@@ -1,0 +1,33 @@
+% Use GCV Minimization Criteria to find optimal Lambda (smoothing
+% parameter)
+
+%% Load Data
+p_410_m_410 = csvread(...
+    '../experiments/single_v_dual_poly/poly_410_measure_410_sean.csv', ...
+    1, 1);
+p_410_m_410(p_410_m_410<500) = 0;
+
+sq = flipud(ssquare(p_410_m_410));
+
+subset = 1:10;
+data = sq(:,subset);
+positions = 1:size(sq,1);
+
+initialFd = makeWormFd_SJ(data, 'lambda', 10^-2);
+
+%% Lambda Optimization
+candidate_lambdas = 10.^(-1:0.1:2);
+
+Lfd2 = int2Lfd(2);
+
+gcv_i = zeros(length(loglam),1);
+df_i = [];
+for i=1:length(candidate_lambdas)
+    lambda_i = candidate_lambdas(i);
+    fdParams_i = fdPar(getbasis(initialFd), Lfd2, lambda_i);
+    
+    [fd_i, dftmp, gcvtmp_i] = smooth_basis(positions, data, fdParams_i);
+    gcv_i(i) = sum(gcvtmp_i);
+    df_i(i) = dftmp;
+    vals_i = eval_fd(positions, fd_i);
+end

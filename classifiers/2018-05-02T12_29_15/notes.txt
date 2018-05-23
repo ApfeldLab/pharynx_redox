@@ -1,0 +1,11 @@
+Classifier:
+AdaBoostClassifier(n_estimators=1000)
+
+Features:
+ - Center of Mass dX 
+ - Center of Mass dY 
+ - HoG (block_norm='L2-Hys')
+
+Labels:
+0/1 = 0
+2/3 = 1
