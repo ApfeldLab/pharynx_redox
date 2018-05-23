@@ -1,0 +1,117 @@
+open("/Users/sean/code/wormAnalysis/imageJ_Macro_Playground/HD233_High_Movement_03_16_by5.tif");
+
+macro "RotateAlign_PA" {
+	// Split Stack into 5 Channels
+    frames = nSlices/5;
+	run("Stack to Hyperstack...", "order=xyczt(default) channels=5 slices=1 frames=frames display=Color");
+    run("Split Channels");
+    titles = getImageWindowTitles();
+    
+    // Get ROIs and Measurements
+    
+    RoiForStack(titles[4]);
+
+    for(i = 0; i < 5; i++) {
+    	rotateStack(titles[i]);
+    }
+
+    for(i = 0; i < 5; i++) {
+    	selectWindow(getAlignedTitle(titles[i]));
+    }
+
+    //centerOfMass(getAlignedTitle(titles[2]), 1);
+}
+
+function getAlignedTitle(title) {
+	return "A-" + title;
+}
+
+function threshold() {
+	run("Threshold...");
+    setThreshold (1200, 60000);
+    selectWindow("Threshold");
+    run("Close");
+}
+
+function getImageWindowTitles() {
+	titles = newArray(nImages()); 
+  	for (i=1; i<=nImages(); i++) { 
+    	selectImage(i); 
+    	titles[i-1] = getTitle();
+    }
+    return titles;
+}
+
+function RoiForStack(title) {
+	selectWindow(title);
+	setSlice(1);
+	
+	threshold();
+	run("Set Measurements...", "centroid fit");
+	run("Analyze Particles...", "size=200-Infinity circularity=0.00-1.00 show=Nothing display add stack");
+}
+
+function rotateStack(title) {
+	selectWindow(title);
+	width = getWidth;
+	height = getHeight;
+
+	xCenter = width / 2;
+	yCenter = height / 2;
+	
+	selectWindow(title);
+
+	roiName = "ROI_STACK-" + title;
+	translateName = getAlignedTitle(title);
+	
+	newImage(translateName, bitDepth, width, height, nResults);
+
+    for (i = 0; i < nResults; i++) {
+    	selectWindow(title);
+    	setSlice(i+1);
+		run("Copy");
+		selectWindow(translateName);
+    	setSlice(i+1);
+		run("Paste");
+
+		roiManager("Select", i);
+		xOffset = xCenter - getResult("X", i);
+		yOffset = yCenter - getResult("Y", i);
+		Angle =  getResult("Angle", i);	
+
+		run("Select None");
+		run("Translate...", "x="+xOffset+" y="+yOffset+" interpolation=Bicubic slice");
+		run("Rotate... ", "angle=Angle grid=1 interpolation=Bicubic slice");
+    }
+    
+    selectWindow(translateName);
+    
+    makeRectangle(140, 110, 71, 38);
+	run("Crop");
+	run("Select None");
+	resetMinAndMax();
+}
+
+function centerOfMass(title, slice) {
+	run("Clear Results");
+	
+	selectWindow(title);
+	setSlice(slice);
+	
+	width = getWidth;
+	height = getHeight;
+	run("Set Measurements...", "center");
+	for (i = 0; i < width; i++) {
+		makeRectangle(i, 0, 1, height);
+		run("Measure");
+	}
+
+	Xs = newArray(nResults);
+	Ys = newArray(nResults);
+	for (i = 0; i < nResults; i++) {
+		Xs[i] = i;
+		Ys[i] = getResult("YM", i);
+	}
+	
+	makeSelection("polyline", Xs, Ys);
+}

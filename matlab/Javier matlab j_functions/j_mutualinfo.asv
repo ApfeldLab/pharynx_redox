@@ -1,0 +1,36 @@
+%function I = j_mutualinfo(series)
+
+series = [6 5 4 3 1; 6 2 3 5 1]';
+
+%find counts of all categories
+%concat_series
+concat_series=[];
+for n = 1:size(series,2)
+    concat_series=cat(1,concat_series,series(:,n));
+end
+
+% cat_count is a list of categories and counts
+cat_count = j_count(concat_series)
+
+
+
+I = zeros(size(series,2));
+
+for n = 1:size(series,2);
+    for m = 1:size(series,2)-n+1;
+        a(m) = series(n,m);
+    end
+    count(a,b)=count(a,b) + 1;
+    
+end
+%{
+p = count(:,:) ./sum(sum(count))
+
+I = 0;
+for n = 1:2
+    for m =1:2
+       I= I + log2((p(n,m)/(sum(p(n,:))*sum(p(:,m))))^p(n,m));
+    end
+end
+%}
+
