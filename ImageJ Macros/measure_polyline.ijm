@@ -1,4 +1,8 @@
 dirName = getInfo("image.directory");
+title = getTitle;
+baseTitle = split(title, '.');
+baseTitle = baseTitle[0];
+
 run("Clear Results");
 for (i = 0; i < roiManager("count"); i++) {
 	roiManager("select", i);
@@ -7,4 +11,8 @@ for (i = 0; i < roiManager("count"); i++) {
 		setResult(""+i, j, profile[j]);
 	}
 }
+
 updateResults;
+selectWindow("Results");
+save(dirName + baseTitle + "_intensities.txt");
+run("Close");
