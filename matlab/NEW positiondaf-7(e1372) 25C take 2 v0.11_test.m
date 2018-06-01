@@ -321,7 +321,7 @@ data_col_labels ={ 'i410','i470','R','OxD','E (mV)','E-Emedialaxis (mV)','E-Epm3
 % tstart_index = 29;% =  max(worm_firsttime_idx);
 %
 % %select wt 2do for '64wt 2do alone'  experiment
-% worm_subset = find(metadata(:,8)==1); %
+% worm_subset = find(:(:,8)==1); %
 
 % worm_subset = find(annotation.MovementRep1 <= 1 & annotation.ImagingCount==1 & annotation.Alive =='y'); % this currently works with only one strain, need to keep track of which worm is on which strain
 worm_subset = find(annotation.MovementRep1 <= 3);

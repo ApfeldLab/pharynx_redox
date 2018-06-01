@@ -8,7 +8,8 @@ function sqData = loadIntensityData_SJ(filepath, t)
     data = csvread(filepath, 1);
     
     % Remove X Values
-    yData = data(:, 2:2:end);
+    yData = data;
+%     yData = data(:, 2:2:end);
     
     % Threshold
 %     for i=1:size(yData,2)
@@ -17,6 +18,6 @@ function sqData = loadIntensityData_SJ(filepath, t)
 %     end
     
     % Length-Normalize
-    sqData = flipud(ssquare(yData));
+    sqData = ssquare(yData);
 end
 

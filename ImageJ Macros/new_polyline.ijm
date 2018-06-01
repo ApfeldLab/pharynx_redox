@@ -17,6 +17,7 @@ if (stack) {
 	runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/threshold.ijm", "slice");
 	polyline_slice();
 }
+
 close();
 selectWindow("Results");
 run("Close");
@@ -66,7 +67,7 @@ function polyline_slice() {
 	pad = 6;
 	lineWidth = rightBound - leftBound + (pad * 2);
 
-	Fit.doFit("5th Degree Polynomial", XTrimmed, YTrimmed);
+	Fit.doFit("3rd Degree Polynomial", XTrimmed, YTrimmed);
 
 	XFit = newArray(width);
 	YFit = newArray(width);
