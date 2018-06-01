@@ -28,6 +28,8 @@ classdef Experiment < handle
             
             obj.coords410 = loadCoords(obj, '410');
             obj.coords470 = loadCoords(obj, '470');
+            
+            obj.calcRegionMeans('raw');
         end
     end
     
@@ -80,6 +82,12 @@ classdef Experiment < handle
             obj.reg.R = obj.reg.i410 ./ obj.reg.i470;
             obj.reg.OxD = ja_oxd(obj.reg.R);
             obj.reg.E = ja_E(obj.reg.OxD);
+            
+            obj.calcRegionMeans('reg');
+        end
+        
+        function idx = filter(obj, boolean_phrase)
+            idx = obj.metadata(boolean_phrase,:).Frame;
         end
     end
     
@@ -91,7 +99,7 @@ classdef Experiment < handle
         
         function md = loadMetadata(obj)
             mdFile = dir(fullfile(obj.directory, '*.dat'));
-            md = readtable(fullfile(obj.directory, mdFile.name));
+            md = readtable(fullfile(obj.directory, mdFile.name)); % TODO: this is slow (~1sec), optimize at some point
         end
         
         function data = loadIntensity(obj, channel)
@@ -102,6 +110,18 @@ classdef Experiment < handle
         function coords = loadCoords(obj, channel)
             dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_coords.txt')));
             coords = loadCoordinates(fullfile(obj.directory, dataFile.name));
+        end
+        
+        function calcRegionMeans(obj, dataStruct)
+            fields = fieldnames(obj.(dataStruct));
+            for i=1:numel(fields)
+                data = obj.(dataStruct).(fields{i});
+                if (size(data, 1) == 100) % TODO: Remove magic number
+                    % The regions are only defined on the "squared" data
+                    % So we don't calculate these on 
+                    obj.(dataStruct).regions.(fields{i}) = regionMeans(data);
+                end
+            end
         end
     end
 end
