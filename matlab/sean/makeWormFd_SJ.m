@@ -2,7 +2,7 @@ function wormFd = makeWormFd_SJ(intensityData, varargin)
 %SmoothIntensity Return a functional data object containing a smoothing of the
 %intensity Data
 %   intensityData should be length-normalized (see square).
-    LAMBDA_DEFAULT = 10^2;
+    LAMBDA_DEFAULT = 10^.0891;
     N_ORDER_DEFAULT = 6;
     N_BREAKS_DEFAULT = 96;
     
