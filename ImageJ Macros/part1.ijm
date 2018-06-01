@@ -4,7 +4,7 @@ dirName = getInfo("image.directory");
 
 runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/Split_Stack.ijm", "stack");
 titles = getList("image.titles");
-
+Array.print(titles);
 // Initial Measurements
 run("Set Measurements...", "area mean standard modal min centroid median display redirect=None decimal=7");
 
@@ -34,7 +34,7 @@ for (i = 0; i < lengthOf(titles); i++) {
 		setSlice(j+1);
 		run("Measure");
 		Background = getResult("Mode");
-        run("Subtract...", "value=Background");
+        run("Subtract...", "value="+Background);
 	}
 	rename(baseTitle + "_subMode.tif");
 	save(dirName + baseTitle + "_subMode.tif");

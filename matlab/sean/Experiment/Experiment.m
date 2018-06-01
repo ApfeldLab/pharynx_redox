@@ -9,9 +9,10 @@ classdef Experiment < handle
             if (~endsWith(dirPath, filesep))
                 dirPath = strcat(dirPath, filesep);
             end
+            obj.varname = evalin('caller','inputname(1)');
             
             obj.directory = dirPath;
-           
+            
             dirparts = split(dirPath, filesep);
             obj.name = dirparts{end-1};
             obj.metadata = loadMetadata(obj);
@@ -30,10 +31,16 @@ classdef Experiment < handle
             obj.coords470 = loadCoords(obj, '470');
             
             obj.calcRegionMeans('raw');
+            
+            obj.fdConstants = struct(...
+                'smoothL', 0.0891, 'smoothOrder', 6, 'smoothBasis', 96, ...
+                'warpL',     5000, 'warpOrder',   4,   'warpBasis',   6 ...
+                );
         end
     end
     
     properties
+        varname
         name
         directory
         metadata
@@ -47,6 +54,8 @@ classdef Experiment < handle
         coords470
         
         warp
+        
+        fdConstants
     end
     
     methods
@@ -75,7 +84,8 @@ classdef Experiment < handle
         end
         
         function registerChannels(obj)
-            [obj.reg.fd410, obj.reg.fd470, obj.warp, regInts] = ChannelRegister(obj.raw.sq410, obj.raw.sq470);
+            [obj.reg.fd410, obj.reg.fd470, obj.warp, regInts] =  ...
+                ChannelRegister(obj.raw.sq410, obj.raw.sq470);
             obj.reg.i410 = regInts.m410;
             obj.reg.i470 = regInts.m470;
             
@@ -84,6 +94,8 @@ classdef Experiment < handle
             obj.reg.E = ja_E(obj.reg.OxD);
             
             obj.calcRegionMeans('reg');
+            disp('Persisting Experiment To Disk');
+            save(fullfile(obj.directory, obj.name), obj.varname);
         end
         
         function idx = filter(obj, boolean_phrase)
@@ -98,6 +110,7 @@ classdef Experiment < handle
         end
         
         function md = loadMetadata(obj)
+            warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames'); % TODO do i need to worry about this warning? Suppresed for now
             mdFile = dir(fullfile(obj.directory, '*.dat'));
             md = readtable(fullfile(obj.directory, mdFile.name)); % TODO: this is slow (~1sec), optimize at some point
         end
@@ -113,13 +126,20 @@ classdef Experiment < handle
         end
         
         function calcRegionMeans(obj, dataStruct)
+            % dataStruct is either 'raw' or 'reg'
+            
             fields = fieldnames(obj.(dataStruct));
+            obj.(dataStruct).regions.all = table;
             for i=1:numel(fields)
                 data = obj.(dataStruct).(fields{i});
                 if (size(data, 1) == 100) % TODO: Remove magic number
                     % The regions are only defined on the "squared" data
-                    % So we don't calculate these on 
-                    obj.(dataStruct).regions.(fields{i}) = regionMeans(data);
+                    % So we only calculate region data on these
+                    regions = regionMeans(data);
+                    obj.(dataStruct).regions.(fields{i}) = regions;
+                    
+                    regions.Properties.VariableNames = cellfun(@(x) strcat({x}, '_', fields{i}), regions.Properties.VariableNames);
+                    obj.(dataStruct).regions.all = [obj.(dataStruct).regions.all regions];
                 end
             end
         end
