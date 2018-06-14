@@ -62,7 +62,7 @@ classdef Experiment < handle
         function im = getIm410(obj)
             persistent img
             if isempty(img)
-                img = loadImage(obj, '410_subMode');
+                img = loadImage(obj, '410_subMed');
             end
             im = img;
         end
@@ -70,7 +70,7 @@ classdef Experiment < handle
         function im = getIm470(obj)
             persistent img
             if isempty(img)
-                img = loadImage(obj, '470_subMode');
+                img = loadImage(obj, '470_subMed');
             end
             im = img;
         end
@@ -85,7 +85,7 @@ classdef Experiment < handle
         
         function registerChannels(obj)
             [obj.reg.fd410, obj.reg.fd470, obj.warp, regInts] =  ...
-                ChannelRegister(obj.raw.sq410, obj.raw.sq470);
+                ChannelRegister(obj.raw.sq410, obj.raw.sq470, 1000);
             obj.reg.i410 = regInts.m410;
             obj.reg.i470 = regInts.m470;
             
@@ -116,12 +116,13 @@ classdef Experiment < handle
         end
         
         function data = loadIntensity(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_intensities.txt')));
-            data = dlmread(fullfile(obj.directory, dataFile.name));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_intensities.txt')));
+            fullPath = fullfile(obj.directory, dataFile.name);
+            data = dlmread(fullPath);
         end
         
         function coords = loadCoords(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_coords.txt')));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_coords.txt')));
             coords = loadCoordinates(fullfile(obj.directory, dataFile.name));
         end
         

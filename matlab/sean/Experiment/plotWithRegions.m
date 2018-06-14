@@ -11,5 +11,5 @@ function plotWithRegions(regions, varargin)
             label = fn{k};
             vline(regions.(label), c, label);
         end
-    end    
+    end
 end
