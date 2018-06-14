@@ -30,7 +30,7 @@ classdef Experiment < handle
             obj.coords410 = loadCoords(obj, '410');
             obj.coords470 = loadCoords(obj, '470');
             
-            obj.calcRegionMeans('raw');
+            obj.calcRegionMeans('raw', 100);
             
             obj.fdConstants = struct(...
                 'smoothL', 0.0891, 'smoothOrder', 6, 'smoothBasis', 96, ...
@@ -93,9 +93,7 @@ classdef Experiment < handle
             obj.reg.OxD = ja_oxd(obj.reg.R);
             obj.reg.E = ja_E(obj.reg.OxD);
             
-            obj.calcRegionMeans('reg');
-            disp('Persisting Experiment To Disk');
-            save(fullfile(obj.directory, obj.name), obj.varname);
+            obj.calcRegionMeans('reg', 1000);
         end
         
         function idx = filter(obj, boolean_phrase)
@@ -116,23 +114,27 @@ classdef Experiment < handle
         end
         
         function data = loadIntensity(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_intensities.txt')));
-            data = dlmread(fullfile(obj.directory, dataFile.name));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_intensities.txt')));
+            data = dlmread(fullfile(obj.directory, dataFile.name), '', 1, 1);
         end
         
         function coords = loadCoords(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_coords.txt')));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_coords.txt')));
             coords = loadCoordinates(fullfile(obj.directory, dataFile.name));
         end
         
-        function calcRegionMeans(obj, dataStruct)
-            % dataStruct is either 'raw' or 'reg'
-            
-            fields = fieldnames(obj.(dataStruct));
+        function calcRegionMeans(obj, dataStruct, len)
+            % 1dataStruct` is either 'raw' or 'reg'
+            % `len` refers to the sampling size of the data
+            %       the registered data is sampled from the functional data
+            %       objects at a variable resolution.
+
             obj.(dataStruct).regions.all = table;
+            fields = fieldnames(obj.(dataStruct)); % i410, E, ...
+            
             for i=1:numel(fields)
                 data = obj.(dataStruct).(fields{i});
-                if (size(data, 1) == 100) % TODO: Remove magic number
+                if (size(data, 1) == len)
                     % The regions are only defined on the "squared" data
                     % So we only calculate region data on these
                     regions = regionMeans(data);

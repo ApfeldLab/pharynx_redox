@@ -13,7 +13,7 @@ if (lengthOf(modifier) == 0) {
 // First Threshold, gets rid of autoflourescence
 //run("Gaussian Blur...", "sigma=2");
 run("Find Edges", "stack");
-setThreshold(3000, 60000);
+setThreshold(1000, 60000);
 run("Analyze Particles...", "size=200-Infinity pixel show=Masks " + "stack");
 run("Dilate", modifier);
 run("Dilate", modifier);
