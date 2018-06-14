@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ImageJ1-Plugins-IntelliJ.iml" filepath="$PROJECT_DIR$/ImageJ1-Plugins-IntelliJ.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/wormAnalysis.iml" filepath="$PROJECT_DIR$/.idea/wormAnalysis.iml" />
     </modules>
   </component>

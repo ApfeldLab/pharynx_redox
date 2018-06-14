@@ -32,7 +32,7 @@ end
 textprogressbar('Done.');
 
 % Resample
-xs = linspace(1,100,100);
+xs = linspace(1,100,1000);
 int_410 = zeros(size(xs, 2), n_worms);
 int_470 = zeros(size(xs, 2), n_worms);
 warp470 = zeros(size(xs, 2), n_worms);

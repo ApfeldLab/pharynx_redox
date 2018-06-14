@@ -9,7 +9,7 @@ for (i = 0; i < roiManager("count"); i++) {
 	for (j = 0; j < lengthOf(x); j++) {
 		setResult("X"+i, j, x[j]);
 		setResult("Y"+i, j, y[j]); 	
-	}
+	}c
 }
 updateResults;
 selectWindow("Results");

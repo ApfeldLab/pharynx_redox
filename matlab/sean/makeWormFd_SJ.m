@@ -23,10 +23,11 @@ function wormFd = makeWormFd_SJ(intensityData, varargin)
     breaks = linspace(1, 100, n_breaks);
     n_basis = length(breaks) + n_order - 2;
     
-    basis_range = [1 size(intensityData, 1)];
+    basis_range = [1 max(breaks)];
     bspline_basis = create_bspline_basis(basis_range, n_basis, n_order, breaks);
 
     Lfd2 = int2Lfd(2);
     wormFdPar = fdPar(bspline_basis, Lfd2, lambda);
-    [wormFd,~,~] = smooth_basis(basis_range(1):basis_range(2), intensityData, wormFdPar);
+    argvals = linspace(basis_range(1), basis_range(2), size(intensityData, 1));
+    [wormFd,~,~] = smooth_basis(argvals, intensityData, wormFdPar);
 end
