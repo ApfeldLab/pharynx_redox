@@ -1,8 +1,8 @@
 function RGB = cmapping(varargin)
 %CMAPPING   Colormap linear mapping/interpolation.
 %
-%   SYNTAX:
-%           cmapping
+    %   SYNTAX:
+    %           cmapping
 %           cmapping(U)
 %           cmapping(U,CMAP)
 %           cmapping(U,CMAP,...,CNAN)
