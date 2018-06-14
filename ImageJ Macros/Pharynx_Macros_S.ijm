@@ -167,7 +167,7 @@ macro "Orient and Align [3]" {
 	selectWindow(rotStackTitle);
 
 	// Segment images
-	runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/threshold.ijm", "stack");
+	threshold();
 	segTitle = getTitle;
 	setThreshold (25, 60000);
 
@@ -197,7 +197,7 @@ macro "Orient and Align [3]" {
 	run("Set Measurements...", "area shape redirect=None decimal=7");
 
 	selectWindow("PA-"+rotStackTitle);
-	runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/threshold.ijm", "stack");
+	threshold();
 	segTitle = getTitle;
 	setThreshold(256, 60000);
 
@@ -303,6 +303,7 @@ macro "Measure Morphology [4]" {
 	selectWindow("Results");
 	save(dirName + "morph.txt");
 	run("Close");
+	roiManager("reset");
 }
 
 macro "Draw Polyline [5]" {
@@ -316,14 +317,14 @@ macro "Draw Polyline [5]" {
 	stack = true;
 	
 	if (stack) {
-		runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/threshold.ijm", "stack");
+		threshold();
 		for (j = 0; j < nSlices; j++) {
 			setSlice(j+1);
 		
 			polyline_slice();
 		}
 	} else {
-		runMacro("/Users/sean/code/wormAnalysis/ImageJ Macros/threshold.ijm", "slice");
+		threshold();
 		polyline_slice();
 	}
 	
