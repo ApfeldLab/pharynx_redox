@@ -52,4 +52,3 @@ function plotChannelRegistration(wormFd ,regFd, warpFd, im410, im470, coords410,
 %     suplabel('Single title on top', 't');
 %     export_fig(sprintf('sean/figs/channel_registration/SAY98_eat5_2do_05_24_18/%d.pdf', i));
 end
-

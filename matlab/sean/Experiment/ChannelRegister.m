@@ -46,10 +46,11 @@ parfor i=1:n_worms
     warp470(:,i) = temp(:,2);
 end
 
-fdObjCells = {fdObjs.('regFD')};
+allRegFds = concatFds({fdObjs.('regFD')}.');
 
-reg410_FD = fdObjs.regFD(1);
-reg470_FD = makeWormFd_SJ(int_470, 'lambda', 10^0.0891);
+n_obs = size(allRegFds, 2) / 2;
+reg410_FD = allRegFds(1:2:n_obs);
+reg470_FD = allRegFds(2:2:n_obs);
 
 resampled_intensity.m410 = int_410;
 resampled_intensity.m470 = int_470;
