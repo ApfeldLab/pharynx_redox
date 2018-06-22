@@ -35,7 +35,7 @@ beep();
 
 
 macro "Sort_by_Excitation [0]" {
-		frames = nSlices/5
+		frames = nSlices/3
 		run("Stack to Hyperstack...", "order=xyczt(default) channels=5 slices=1 frames=frames display=Color");
 		run("Split Channels");
 	}

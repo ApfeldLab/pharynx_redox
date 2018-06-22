@@ -1,4 +1,7 @@
+TITLES = newArray();
+
 macro "Split [0]" {
+	run("Set Scale...", "distance=1 known=2.58 pixel=1 unit=mm global");
 	dirName = getInfo("image.directory");
 	baseTitle = split(getTitle, ".");
 	baseTitle = baseTitle[0];
@@ -42,6 +45,7 @@ macro "Split [0]" {
 }
 
 macro "Make Masks [1]" {
+	run("Set Scale...", "distance=1 known=2.58 pixel=1 unit=mm global");
 	dirName = getInfo("image.directory");
 	titles = getList("image.titles");
 
@@ -58,12 +62,14 @@ macro "Make Masks [1]" {
 }
 
 macro "Initial Measurements and Mode Subtraction [2]" {
+	run("Set Scale...", "distance=1 known=2.58 pixel=1 unit=mm global");
 	dirName = getInfo("image.directory");
 	titles = getList("image.titles");
 	
 	// Initial Measurements
 	run("Set Measurements...", "area mean standard modal min centroid median display redirect=None decimal=7");
 	for (i = 0; i < lengthOf(titles);  i++) {
+		roiManager("reset");
 		selectWindow(titles[i]);
 		baseTitle = split(titles[i], '.');
 		baseTitle = baseTitle[0];
@@ -111,23 +117,24 @@ macro "Initial Measurements and Mode Subtraction [2]" {
 		}
 	}
 	
+	n_animals = nSlices;
 	run("Set Measurements...", "area mean standard modal min centroid center bounding fit redirect=None decimal=7");
 	for (i = 0; i < lengthOf(titles); i++) {
 		baseTitle = split(titles[i], '.');
 		baseTitle = baseTitle[0];
 		if (!endsWith(baseTitle, "TL")) {
-			roiManager("reset");
-			run("Clear Results");
 			selectWindow(baseTitle + "_subMed.tif");
 			threshold();
 			segTitle = getTitle;
-			setThreshold (25, 60000);
+			setThreshold (250, 60000);
+			
+			run("Clear Results");
+			roiManager("reset");
 			run("Analyze Particles...", "size=200-Infinity circularity=0.00-1.00 show=Nothing display add stack");
-			roiManager("Measure");
 			selectWindow("Results");
 			save(dirName + baseTitle + "_pMeasure.txt");
+			
 			run("Close");
-
 			selectWindow(segTitle);
 			close();
 			roiManager("reset");
@@ -138,6 +145,7 @@ macro "Initial Measurements and Mode Subtraction [2]" {
 }
 
 macro "Orient and Align [3]" {
+	run("Set Scale...", "distance=0 global");
 	//////////////////////////////////////////////////////////////
 	// Setup
 	//////////////////////////////////////////////////////////////
@@ -147,7 +155,6 @@ macro "Orient and Align [3]" {
 	Dialog.create("Rotate Images");
 	Dialog.addMessage("Please select the image stack you would like the rotation to be based on.")
 	Dialog.addChoice("Rotation Image Stack", imTitles);
-
 
 	Dialog.addMessage("Please select the image stacks you would like to rotate/crop.")
 	defaults = newArray(lengthOf(imTitles));
@@ -169,11 +176,11 @@ macro "Orient and Align [3]" {
 	// Segment images
 	threshold();
 	segTitle = getTitle;
-	setThreshold (25, 60000);
-
+	setThreshold (250, 60000);
+	roiManager("reset");
 	run("Clear Results");
 	run("Set Measurements...", "fit centroid shape");
-	run("Analyze Particles...", "size=200-Infinity pixel circularity=0.00-1 show=Nothing display add stack");
+	run("Analyze Particles...", "size=200-Infinity circularity=0.00-1 show=Nothing display add stack");
 
 	roiManager("show none");
 	roiManager("reset");
@@ -206,10 +213,12 @@ macro "Orient and Align [3]" {
 	for (i = 0; i < nSlices; i++) {
 		run("Clear Results");
 		setSlice(i + 1);
-	    makeRectangle(5,9,25,25);
+	    //makeRectangle(5,9,25,25);
+	    makeRectangle(17,4,22,30);
 	    run("Analyze Particles...", "size=10-Infinity pixel circularity=0.00-1.00 show=Nothing display");	run("Select None");
 
-	    makeRectangle(42,9,25,25);
+	    //makeRectangle(42,9,25,25);
+	    makeRectangle(50,4,26,29);
 	    run("Analyze Particles...", "size=10-Infinity pixel circularity=0.00-1.00 show=Nothing display");	run("Select None");
 
 	    leftEnd = getResult("Round", 0);
@@ -293,6 +302,7 @@ macro "Orient and Align [3]" {
 }
 
 macro "Measure Morphology [4]" {
+	run("Set Scale...", "distance=1 known=2.58 pixel=1 unit=mm global");
 	// Only need to run this on either 410 or 470
 	dirName = getInfo("image.directory");
 	makeMask();
@@ -307,6 +317,7 @@ macro "Measure Morphology [4]" {
 }
 
 macro "Draw Polyline [5]" {
+	run("Set Scale...", "distance=0 global");
 	// Select Image window to draw on, then run macro
 	width = getWidth;
 	height = getHeight;
@@ -399,6 +410,7 @@ macro "Draw Polyline [5]" {
 }
 
 macro "Save Polyline [6]" {
+	run("Set Scale...", "distance=0 global");
 	// With the image stack selected, make sure a polyline has already been drawn, then run this macro.
 	// It will save the polyline coordinates and measurements with the correct formats & names.
 	dirName = getInfo("image.directory");
@@ -475,7 +487,8 @@ function threshold() {
 	// First Threshold, uses edge gradients to remove autoflourescence in the gut
 	run("Find Edges", modifier);
 	setThreshold(AUTOFLORESCENCE_THRESH, 60000);
-	run("Analyze Particles...", "size=200-Infinity pixel show=Masks " + modifier);
+	setThreshold(1000,60000);
+	run("Analyze Particles...", "size=100-Infinity show=Masks exclude" + modifier);
 	run("Dilate", modifier);
 	run("Dilate", modifier);
 	run("Dilate", modifier);
