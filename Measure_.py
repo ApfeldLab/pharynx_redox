@@ -81,19 +81,25 @@ img410PA = img410.duplicate()
 img470PA = img470.duplicate()
 maskPA = imgMask.duplicate()
 
-def translate(ip, xi, yi):
-	xCenter = ip.getWidth() / 2
-	yCenter = ip.getHeight() / 2
-	xOffset = xCenter - xi
-	yOffset = yCenter - yi
-	ip.translate(xOffset, yOffset)
+def translate(ip, x_center_obj, y_center_obj):
+	x_center_im = ip.getWidth() / 2
+	y_center_im = ip.getHeight() / 2
+	x_offset = x_center_im - x_center_obj
+	y_offset = y_center_im - y_center_obj
+	ip.translate(x_offset, y_offset)
 
-def rotateStack(imPlus, interpMethod):
+def rotateStack(imPlus, angles, interp_method):
+	""" Rotate a stack of images
+
+	`angles` is an array of angles in radians # TODO: radians or degrees?
+	`interp_method` is from the ImageProcessor class (ImageProcessor.BILINEAR, etc.)
+	"""
 	stk = imPlus.getStack()
 	for i in range(stk.getSize()):
 		ip = stk.getProcessor(i+1)
+		
+		ip.setInterpolationMethod(interp_method)
 		ip.setBackgroundValue(0)
-		ip.setInterpolationMethod(IP.BILINEAR)
 		translate(ip, xs[i], ys[i])
 		ip.rotate(angles[i])
 
@@ -113,8 +119,8 @@ def getFlipArray(maskPAImgPlus):
 	rt.show("Aligning")
 
 
-rotateStack(img410PA, IP.BILINEAR)
-rotateStack(maskPA, IP.NONE)
+rotateStack(img410PA, angles, IP.BILINEAR)
+rotateStack(maskPA, angles, IP.NONE)
 img410PA.show()
 getFlipArray(maskPA)
 maskPA.show()

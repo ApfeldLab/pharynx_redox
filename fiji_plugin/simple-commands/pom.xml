@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>16.1.0</version>
+		<relativePath />
+	</parent>
+
+	<groupId>imagej-tutorials</groupId>
+	<artifactId>simple-commands</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+
+	<name>Pharynx Measure</name>
+	<description>Plugins to measure ratiometric flourescence in pharynges of C. elgans</description>
+	<url>https://github.com/[MY-ORG]/[MY-REPO]</url>
+	<inceptionYear>2018</inceptionYear>
+	<organization>
+		<name>The Apfeld Lab</name>
+		<url>http://apfeldlab.strikingly.com/</url>
+	</organization>
+	<licenses>
+		<license>
+			<name>CC0 1.0 Universal License</name>
+			<url>http://creativecommons.org/publicdomain/zero/1.0/</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>half-adder</id>
+			<name>Sean Johnsen</name>
+            <url>http://www.seanjohnsen.com</url>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Catalina Romero-Aristizabal</name>
+		</contributor>
+	</contributors>
+
+	<scm>
+		<connection>scm:git:git://github.com/[MY-ORG]/[MY-REPO]</connection>
+		<developerConnection>scm:git:git@github.com:[MY-ORG]/[MY-REPO]</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/[MY-ORG]/[MY-REPO]</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/half-adder/wormAnalysis/issues</url>
+	</issueManagement>
+
+	<ciManagement>
+		<system>None</system>
+	</ciManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>lab.apfeld</groupId>
+			<artifactId>pharynx-measure</artifactId>
+		</dependency>
+	</dependencies>
+</project>
