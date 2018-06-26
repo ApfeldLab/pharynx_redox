@@ -1,3 +1,5 @@
+from __future__ import division
+
 import csv
 import os
 from collections import defaultdict
@@ -6,12 +8,14 @@ import json
 from ij import IJ, WindowManager
 from ij.gui import GenericDialog, Roi
 from ij.measure import ResultsTable, Measurements, Calibration
-from ij.process import ImageStatistics, ImageProcessor as IP
+from ij.process import ImageStatistics, ImageProcessor as IP, StackProcessor
 from ij.plugin.frame import RoiManager
 from ij.plugin.filter import ParticleAnalyzer as PA, PlugInFilter as PF, Analyzer
 
 
-#### Helper Functions
+##################################################
+# UTILITY HELPER FUNCTIONS
+
 def getMedians(imPlus):
 	medians = []
 	stk = imPlus.getStack()
@@ -19,6 +23,43 @@ def getMedians(imPlus):
 		img_stats = ImageStatistics.getStatistics(stk.getProcessor(i+1), Measurements.MEDIAN, Calibration())
 		medians.append(img_stats.median)
 	return medians
+
+def addValues(table, column, values):
+	"""Add values (list) to column of table"""
+	for i,value in enumerate(values):
+		table.setValue(column, i, value)
+
+def pa_title(imageTitle):
+	"""Give the PA title for the given image title (including the .tif)"""
+	baseTitle = imageTitle.split(".")[0]
+	return baseTitle + "-PA" + ".tif"
+
+def mask_title(imageTitle):
+	"""Give the mask title for the given image title (including the .tif)"""
+	baseTitle = imageTitle.split(".")[0]
+	return baseTitle + "-MASK" + ".tif"
+
+def get_processors(image_plus):
+	stk = image_plus.getStack()
+	for i in range(stk.getSize()):
+		yield stk.getProcessor(i+1)
+
+def applyToStack(im_plus, fun, kwargs):
+	"""Apply a function to each ImageProcessor in the given ImagePlus
+
+	The function should take in an ImageProcessor as its first argument. Other arguments can
+	be passed with kwargs.
+	
+	e.g.
+	def addN(imProc, n):
+		imProc.add(n)
+	
+	applyToStack(an_imPlus, addN, 10)
+	"""
+	map(lambda im_proc: fun(im_proc, **kwargs), get_processors(im_plus))
+
+###################################################
+# SETUP
 
 imTitles = WindowManager.getImageTitles()
 nTitles = len(imTitles)
@@ -31,7 +72,6 @@ d.addChoice("410 image", imTitles, "-")
 d.addRadioButtonGroup("Binning", ["4x4", "2x2"], 1, 2, "4x4")
 d.showDialog()
 
-
 imgMask = WindowManager.getImage(d.getNextChoice())
 img410 = WindowManager.getImage(d.getNextChoice())
 img470 = WindowManager.getImage(d.getNextChoice())
@@ -40,7 +80,7 @@ binning = d.getNextRadioButton()
 PARENT_DIR = img410.getOriginalFileInfo().directory
 
 # setup data collection object
-data = defaultdict(list)
+dataTable = ResultsTable()
 
 ##################################################
 # INITIAL MEASUREMENTS
@@ -49,8 +89,8 @@ roiManager = RoiManager(True) # Boolean => Don't Display
 PA.setRoiManager(roiManager)
 
 # Measure Median 410 and 470
-data['Median 410'] = getMedians(img410)
-data['Median 470'] = getMedians(img470)
+addValues(dataTable, 'Median 410', getMedians(img410))
+addValues(dataTable, 'Median 470', getMedians(img470))
 
 # Make the ROIs based on the mask
 IJ.setThreshold(imgMask, 255, 255, "No Update")
@@ -66,32 +106,32 @@ angles = []
 xs = []
 ys = []
 
+# TODO: subtract median here?
 ra = roiManager.getRoisAsArray()
 for i in range(maskStk.getSize()):
 	ip = im410Stk.getProcessor(i+1)
 	ip.setRoi(ra[i])
 	istats = ip.getStatistics()
-	data['Intensity410_wholePharynx'].append(istats.mean)
+	dataTable.setValue('Intensity410_wholePharynx', i, istats.mean)
 
 	ip = im470Stk.getProcessor(i+1)
 	ip.setRoi(ra[i])
 	istats = ip.getStatistics()
-	data['Intensity470_wholePharynx'].append(istats.mean)
+	dataTable.setValue('Intensity470_wholePharynx', i, istats.mean)
 
 	# TODO: Figure out units for Area
-	data['Area (Px)'].append(istats.area)
+	dataTable.setValue('Area (Px)', i, istats.area)
 
 	# we don't need to keep track of these in our `data` object, just need them to do the rotations
 	angles.append(istats.angle)
 	xs.append(istats.xCenterOfMass)
 	ys.append(istats.yCenterOfMass)
 
+roiManager.runCommand("reset")
+
 
 ###############################################
 # Orient & Align
-img410PA = img410.duplicate()
-img470PA = img470.duplicate()
-maskPA = imgMask.duplicate()
 
 def translate(ip, x_center_obj, y_center_obj):
 	x_center_im = ip.getWidth() / 2
@@ -107,15 +147,15 @@ def rotateStack(imPlus, angles, interp_method):
 	`interp_method` is from the ImageProcessor class (ImageProcessor.BILINEAR, etc.)
 	"""
 	stk = imPlus.getStack()
-	for i in range(stk.getSize()):
-		ip = stk.getProcessor(i+1)
-		
+	for i, ip in enumerate(get_processors(imPlus)):
 		ip.setInterpolationMethod(interp_method)
 		ip.setBackgroundValue(0)
 		translate(ip, xs[i], ys[i])
 		ip.rotate(angles[i])
+		
 
 def getFlipArray(maskPAImgPlus):
+	"""Given the PA-aligned mask image, return a list of booleans, indicating whether or not we should flip the corresponding index"""
 	maskPAImgPlus.show()
 	IJ.run(maskPAImgPlus, "Shape Smoothing", "relative_proportion_fds=15 absolute_number_fds=2 keep=[Relative_proportion of FDs] stack");
 	
@@ -148,11 +188,18 @@ def flipIfNecessary(flipArray, imPluses):
 			if flipArray[i]:
 				proc.flipHorizontal()
 
+img410PA = img410.duplicate()
+img470PA = img470.duplicate()
+maskPA = imgMask.duplicate()
+
+for imPlus in [img410PA, img470PA, maskPA]:
+	imPlus.setTitle(pa_title(imPlus.getTitle().lstrip("DUP_")))
 
 rotateStack(img410PA, angles, IP.BILINEAR)
 rotateStack(img470PA, angles, IP.BILINEAR)
 rotateStack(maskPA, angles, IP.NONE)
 flipIfNecessary(getFlipArray(maskPA), [img410PA, img470PA, maskPA])
+
 img410PA.show()
 img470PA.show()
 
@@ -169,24 +216,24 @@ PA.setResultsTable(morphTable)
 
 maskPA.show()
 IJ.run(maskPA, "Select None", "")
-IJ.run(maskPA, "Set Scale...", "distance=1 known=" + str(scales[binning]) + " pixel=1 unit=�m");
+IJ.run(maskPA, "Set Scale...", "distance=1 known=" + str(scales[binning]) + " pixel=1 unit=μm"); #TODO scale?
 IJ.run(maskPA, "Set Measurements...", "area centroid center perimeter bounding fit shape feret's median skewness kurtosis scientific redirect=None decimal=7");
 IJ.run(maskPA, "Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing stack");
 
 morph_headings = morphTable.getColumnHeadings().strip(' ').split('\t')
 print(morph_headings)
 for m_heading in morph_headings[1:]: # because of formatting, the first is empty
-	data[m_heading] = [morphTable.getValue(m_heading, i) for i in range(morphTable.size())]
+	addValues(dataTable, m_heading, [morphTable.getValue(m_heading, i) for i in range(morphTable.size())])
 
-# WRITE TO CSV
+def cropStack(imPlus, width=120, height=50):
+	x = int(imPlus.getWidth() / 2 - width / 2)
+	y = int(imPlus.getHeight() / 2 - height / 2)
+	sp = StackProcessor(imPlus.getStack())
+	imPlus.setStack(sp.crop(x, y, int(width), int(height)))
 
-dataRows = [dict(zip(data.keys(), [data[col][i] for col in data.keys()])) for i in range(morphTable.size())]
+for imPlus in [img410PA, img470PA, maskPA]:
+	cropStack(imPlus)
+	IJ.saveAsTiff(imPlus, os.path.join(PARENT_DIR, imPlus.getTitle()))
 
-
-data_path = os.path.join(PARENT_DIR, 'data.csv')
-print("Writing to: " + data_path)
-with open(data_path, 'wb') as f:
-	writer = csv.DictWriter(f, fieldnames=data.keys())
-	writer.writeheader()
-	for row in dataRows:
-		writer.writerow(row)
+dataTable.show("Measurements")
+dataTable.save(os.path.join(PARENT_DIR, 'measurements.csv'))
