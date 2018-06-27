@@ -33,8 +33,9 @@ d.addRadioButtonGroup("Binning", ["4x4", "2x2"], 1, 2, "4x4")
 d.showDialog()
 
 imgMask = WindowManager.getImage(d.getNextChoice())
-img410 = WindowManager.getImage(d.getNextChoice())
 img470 = WindowManager.getImage(d.getNextChoice())
+img410 = WindowManager.getImage(d.getNextChoice())
+
 binning = d.getNextRadioButton()
 
 PARENT_DIR = img410.getOriginalFileInfo().directory
@@ -53,7 +54,7 @@ addValues(dataTable, 'Median 410', getMedians(img410))
 addValues(dataTable, 'Median 470', getMedians(img470))
 
 # Make the ROIs based on the mask
-IJ.setThreshold(imgMask, 255, 255, "No Update")
+IJ.setThreshold(imgMask, 1, 255, "Red")
 IJ.run(imgMask, "Analyze Particles...", "size=200 exclude add stack")
 roiManager.runCommand("Show None")
 
