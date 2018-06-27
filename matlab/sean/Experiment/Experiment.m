@@ -141,6 +141,7 @@ classdef Experiment < handle
         
         function plotMeanStrain(obj, regOrRaw, meas, strain, varargin)
             measurement = obj.(regOrRaw).(meas);
+            
             L = cellfun(@(x)(strcmp(x,strain)), obj.metadata.Strain, 'UniformOutput', false);
             L = cat(2, L{:}).';
             
@@ -170,17 +171,17 @@ classdef Experiment < handle
         
         function md = loadMetadata(obj)
             warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames'); % TODO do i need to worry about this warning? Suppresed for now
-            mdFile = dir(fullfile(obj.directory, '*.dat.txt'));
+            mdFile = dir(fullfile(obj.directory, '*.dat'));
             md = readtable(fullfile(obj.directory, mdFile.name)); % TODO: this is slow (~1sec), optimize at some point
         end
         
         function data = loadIntensity(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_intensities.txt')));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '*_intensities.txt')));
             data = dlmread(fullfile(obj.directory, dataFile.name), '', 1, 1);
         end
         
         function coords = loadCoords(obj, channel)
-            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '_subMed_coords.txt')));
+            dataFile = dir(fullfile(obj.directory, strcat('*', channel, '*_coords.txt')));
             coords = loadCoordinates(fullfile(obj.directory, dataFile.name));
         end
         

@@ -17,20 +17,21 @@
 %   csvwrite('path/to/filename.csv', reindexed_cols)
 % This CSV can then be pasted into the "Column" column on JMP.
 
-function reindexed_cols = clusterColumns(filename, nCols, shouldPlot)
+function strains = clusterColumns(camera_position_filename, columnStrains, nChannels, shouldPlot)
+    t = readtable(camera_position_filename);
+    X = t.PlaneStagePositionX(1:nChannels:end);
     
-    t = readtable(filename);
-    X = t.PlaneStagePositionX;
-    cols = kmeans(X, nCols);
-    clusters = unique(cols, 'stable'); % don't want unique to sort this
+    cols = kmeans(X, numel(columnStrains));
+    clusters = unique(cols, 'stable'); % stable means don't sort
 
-    reindexed_cols = cols;
+    strains = cell(numel(cols),1);
     for i=1:max(clusters)
-        reindexed_cols(cols==clusters(i)) = i;
+        strains(cols==clusters(i)) = {columnStrains{i}};
     end
 
     if shouldPlot
-        scatter(t.PlaneStagePositionX, t.PlaneStagePositionY, 30, reindexed_cols);
+        [~, ~, group_idx] = unique(strains);
+        Y = t.PlaneStagePositionY(1:nChannels:end);
+        scatter(X, Y, 30, group_idx);
     end
-    
 end
