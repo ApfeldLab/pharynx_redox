@@ -52,9 +52,7 @@ for i=1:1
     title(sprintf('Mean E +/- 1.96*std of %s and worm #%d', strain, i));
     
     set(gcf, 'Position', get(0, 'Screensize'));
-    fname = fullfile(experiment_directory, 'figs', 'registration', strcat(num2str(i), '.pdf'));
-    export_fig fname;
-    close(gcf);
+    print(gcf, '-dpdf', fullfile(experiment_directory, 'figs', 'registration, 'E_by_strain.pdf'));
 end
 
 
