@@ -139,28 +139,28 @@ classdef Experiment < handle
             title(strcat(regOrRaw, meas, ' +/- 1.96*std'));
         end
         
-        function plotMeanStrain(obj, regOrRaw, meas, strain, varargin)
-            measurement = obj.(regOrRaw).(meas);
-            
-            L = cellfun(@(x)(strcmp(x,strain)), obj.metadata.Strain, 'UniformOutput', false);
-            L = cat(2, L{:}).';
-            
-            resolution = size(measurement, 1);
-            x = linspace(1,100,resolution);
-            means = mean(measurement(:,L).');
-            stds = 1.96*std(measurement(:, L),0,2);
-            
-            if nargin > 4
-                ax = varargin{1};
-            else
-                figure;
-                ax = gca();
-                title(sprintf('Mean %s%s (%s) +/- 1.96*std', regOrRaw, meas, strain));
-            end
-            
-            colors = brewermap(1, 'Set1');
-            boundedline(x, means, stds, 'cmap', colors, 'alpha', 'transparency', 0.15, ax);
-        end
+%         function plotMeanStrain(obj, regOrRaw, meas, strain, varargin)
+%             measurement = obj.(regOrRaw).(meas);
+%             
+%             L = cellfun(@(x)(strcmp(x,strain)), obj.metadata.Strain, 'UniformOutput', false);
+%             L = cat(2, L{:}).';
+%             
+%             resolution = size(measurement, 1);
+%             x = linspace(1,100,resolution);
+%             means = mean(measurement(:,L).');
+%             stds = 1.96*std(measurement(:, L),0,2);
+%             
+%             if nargin > 4
+%                 ax = varargin{1};
+%             else
+%                 figure;
+%                 ax = gca();
+%                 title(sprintf('Mean %s%s (%s) +/- 1.96*std', regOrRaw, meas, strain));
+%             end
+%             
+%             colors = brewermap(1, 'Set1');
+%             boundedline(x, means, stds, 'cmap', colors, 'alpha', 'transparency', 0.15, ax);
+%         end
     end
     
     methods (Access = private, Hidden = true)
