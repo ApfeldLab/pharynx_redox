@@ -19,6 +19,7 @@
 
 % TODO: return column #s as well
 function strains = clusterColumns(camera_position_filename, columnStrains, nChannels, shouldPlot)
+    if endsWith(camera_position_filename,pattern)
     t = readtable(camera_position_filename);
     X = t.PlaneStagePositionX(1:nChannels:end);
     
