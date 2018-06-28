@@ -1,8 +1,19 @@
-DIRECTORY = '/Users/sean/Desktop/2018_06_14_SAY98_HD233';
+% TODO: Suppress Warnings
+
+DIRECTORY = 'D:\Sean\2018_06_27_HD233_SAY47_SEAN';
 
 experimentID = getExperimentID(DIRECTORY);
 measurementTable = loadMeasurements(DIRECTORY);
 movementRep = loadMvmtRep(DIRECTORY);
+
+metadata = coalesce(experimentID, measurementTable, movementRep);
+
+function metadata = coalesce(experimentID, measTable, mvmtTable)
+    metadata = horzcat(measTable, mvmtTable);
+    expIDs = cell(size(metadata,1), 1);
+    expIDs(:) = {experimentID};
+    metadata.ExperimentID = expIDs;
+end
 
 function experimentID = getExperimentID(directory)
     checkIfDir(directory);
@@ -18,8 +29,9 @@ function measurementTable = loadMeasurements(directory)
     measurementTable = loadDataFile(directory, '*_measurements.csv');
 end
 
-function mvmtRep = loadMvmtRep(directory)
-    mvmtRep = loadDataFile(directory, '*_mvmt.csv');
+function mvmtRepDataTable = loadMvmtRep(directory)
+    mvmtRepDataTable = loadDataFile(directory, '*_mvmt.csv');
+    mvmtRepDataTable.Properties.VariableNames = {'Mvmt_Rep'};
 end
 
 function dataTable = loadDataFile(directory, globPattern)
