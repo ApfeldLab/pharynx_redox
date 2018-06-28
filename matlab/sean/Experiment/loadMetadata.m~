@@ -1,0 +1,14 @@
+metadata_file_path = '/Users/sean/Desktop/2018_06_14_SAY98_HD233/2018_06_14_SAY98_HD233.dat';
+
+metadata = readtable(metadata_file_path);
+
+if sum(isnan(metadata.Strain))
+    log_file_path = input('Enter metamorph log file path: ', 's');
+    strains_str = input('Enter Column Strains (separated by comma, e.g. HD233, SAY98, HD233, SAY98): ', 's');
+    nChannels = input('Enter # of frames / worm: ');
+    strains = strsplit(strains_str, ',');
+    disp('Clustering Columns. Ensure that in the plot, there is *1 COLOR* per column. If there are more than one colors, you will need to open JMP and assign strains manually');
+    metadata.Strain = clusterColumns(log_file_path, strains, nChannels, 1);
+end
+
+function get_str
