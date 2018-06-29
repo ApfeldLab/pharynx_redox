@@ -12,6 +12,7 @@ Software Required:
     * FIJI
     * Python3
     * MATLAB
+    * JMP
 
 MacOS
 #####
