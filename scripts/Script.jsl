@@ -1,0 +1,127 @@
+﻿dt = Current Data Table();
+directory = Pick Directory( "Select a directory." );
+
+fileNames = Files In Directory( directory );
+For( iFile = 1, iFile <= N Items( fileNames ), iFile++, 
+
+	filename = fileNames[iFile];
+
+	If( Ends With( filename, "_measurements.csv" ),
+		meas_filename = directory || filename
+	);
+  
+	If( Ends With( filename, "_mvmt.csv" ),
+		mvmt_filename = directory || filename
+	);
+);
+Show( meas_filename );
+Show( mvmt_filename );
+
+// Open pharynx-level measurements
+meas_dt = Open(
+	meas_filename,
+	Invisible,
+	columns(
+		Column( "Median 410", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Median 470", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Intensity410_wholePharynx", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Intensity470_wholePharynx", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Area (Px)", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Area", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "X", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Y", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "XM", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "YM", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Perim.", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "BX", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "BY", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Width", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Height", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Major", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Minor", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Angle", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Circ.", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Feret", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Median", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Skew", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Kurt", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "FeretX", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "FeretY", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "FeretAngle", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "MinFeret", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "AR", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Round", Numeric, "Continuous", Format( "Best", 12 ) ),
+		Column( "Solidity", Numeric, "Continuous", Format( "Best", 12 ) )
+	),
+	Import Settings(
+		End Of Line( CRLF, CR, LF ),
+		End Of Field( Comma, CSV( 0 ) ),
+		Strip Quotes( 1 ),
+		Use Apostrophe as Quotation Mark( 0 ),
+		Use Regional Settings( 0 ),
+		Scan Whole File( 1 ),
+		Treat empty columns as numeric( 0 ),
+		CompressNumericColumns( 0 ),
+		CompressCharacterColumns( 0 ),
+		CompressAllowListCheck( 0 ),
+		Labels( 1 ),
+		Column Names Start( 1 ),
+		Data Starts( 2 ),
+		Lines To Read( "All" ),
+		Year Rule( "20xx" )
+	)
+);
+
+// Open Movement File
+mvmt_dt = Open(
+	mvmt_filename,
+	Invisible,
+	columns( Column( "Movement Rep 1", Numeric, "Continuous", Format( "Best", 12 ) ) ),
+	Import Settings(
+		End Of Line( CRLF, CR, LF ),
+		End Of Field( Comma, CSV( 0 ) ),
+		Strip Quotes( 1 ),
+		Use Apostrophe as Quotation Mark( 0 ),
+		Use Regional Settings( 0 ),
+		Scan Whole File( 1 ),
+		Treat empty columns as numeric( 0 ),
+		CompressNumericColumns( 0 ),
+		CompressCharacterColumns( 0 ),
+		CompressAllowListCheck( 0 ),
+		Labels( 0 ),
+		Column Names Start( 1 ),
+		Data Starts( 1 ),
+		Lines To Read( "All" ),
+		Year Rule( "20xx" )
+	)
+);
+
+joined_dt = meas_dt << Join( With( mvmt_dt ), By Row Number, Output Table Name( "joined" ) );
+
+joined_dt << New Column( "ExpID", Character );
+joined_dt << New Column( "Strain", Character );
+joined_dt << New Column( "Cohord", Character );
+joined_dt << New Column( "Replicate", Numeric, Ordinal );
+joined_dt << New Column( "Age", Numeric, Continuous );
+joined_dt << New Column( "Column", Numeric, Ordinal );
+joined_dt << New Column( "Plate", Numeric, Ordinal );
+joined_dt << New Column( "Plate ID (col_plt)", Character, Formula( Char( Column ) || "_" || Char( Plate ) ) );
+joined_dt << New Column( "Imaged At", Character );
+joined_dt << New Column( "ID", Character, Formula(:Name( "Plate ID (Col_plt)" ) || "_" || :Imaged At ));
+joined_dt << New Column( "Frame", Numeric, Ordinal, Formula(Row()));
+joined_dt << New Column( "Alive?", Numeric, Nominal);
+joined_dt << New Column( "Hours post L4", Numeric, Nominal);
+joined_dt << New Column( "Time in Lev", Numeric, Continuous);
+joined_dt << New Column( "Time imaging", Numeric, Continuous);
+joined_dt << New Column( "Time to recover", Numeric, Continuous);
+joined_dt << New Column( "Notch?", Numeric, Nominal);
+joined_dt << New Column( "Mosaic?", Numeric, Nominal);
+joined_dt << New Column( "Head AF (dark in RT)", Numeric, Nominal);
+joined_dt << New Column( "Notes morph", Character);
+joined_dt << New Column( "Notes AF", Character);
+joined_dt << New Column( "R1000", Numeric, Continuous, Formula(1000 * (:Intensity 410_whole pharynx / :Intensity 470_whole pharynx)));
+joined_dt << New Column( "Bckgnd 410 (M%S)", Numeric, Continuous, Formula((:Median 410 * 100) / :Intensity 410_whole pharynx));
+joined_dt << New Column( "Bckgnd 470 (M%S)", Numeric, Continuous, Formula((:Median 470 * 100) / :Intensity 470_whole pharynx));
+joined_dt << New Column( "OxD", Numeric, Continuous, Formula((:R1000 / 1000 - :Min) / ((:R1000 / 1000 - :Min) + (:Max - :R1000 / 1000) * :IF)));
+joined_dt << New Column( "E", Numeric, Continuous, Formula((-265) - ((8314.463 * (273.15 + :Temperature)) / (2 * 96485.3415)) *
+Log( (1 - :OxD) / :OxD )));
