@@ -4,6 +4,7 @@ experimentID = getExperimentID(DIRECTORY);
 measurementTable = loadMeasurements(DIRECTORY);
 movementRep = loadMvmtRep(DIRECTORY);
 
+
 function experimentID = getExperimentID(directory)
     checkIfDir(directory);
     
