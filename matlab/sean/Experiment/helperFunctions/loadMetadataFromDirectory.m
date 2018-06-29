@@ -1,5 +1,5 @@
-% A set of helper functions to load experiment metadata from the experiment
-% directory.
+% A set of helper functions to load and coalesce experiment metadata from 
+% the experiment directory.
 %
 % ASSUMPTIONS:
 %   - You have already run ImageJ analysis.
