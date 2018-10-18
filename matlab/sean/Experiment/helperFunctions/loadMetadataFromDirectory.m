@@ -23,9 +23,10 @@
 % TODO: suppress warnings
 function metadata = loadMetadataFromDirectory(directory)
     experimentID = getExperimentID(directory);
-    measurementTable = loadMeasurements(directory);
-    movementRep = loadMvmtRep(directory);
-    metadata = coalesce(experimentID, measurementTable, movementRep);
+%     measurementTable = loadMeasurements(directory);
+%     movementRep = loadMvmtRep(directory);
+%     metadata = coalesce(experimentID, measurementTable, movementRep);
+    metadata = experimentID;
 end
 
 function metadata = coalesce(experimentID, measTable, mvmtTable)

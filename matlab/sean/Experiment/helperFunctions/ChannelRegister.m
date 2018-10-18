@@ -1,4 +1,4 @@
-function [reg410_FD, reg470_FD, warp470, resampled_intensity] = ...
+function [reg410_FD, reg470_FD, warp470, resampled_intensity, fdObjs] = ...
     ChannelRegister(meas_410, meas_470, resample_resolution)
 % CHANNELREGISTER Register the 470 to the 410
 %   Measurements should be the same dimensions (use square)
@@ -19,10 +19,9 @@ fdParObj = fdPar(warpBasis, int2Lfd(2), WARP_LAMBDA);
 
 % TODO: Preallocate fdObjs for memory/speed
 
-disp('Registering 470 to 410:');
-% textprogressbar('Registering 470 to 410: ');
+textprogressbar('Registering 470 to 410: ');
 parfor i=1:n_worms
-%     textprogressbar(100*i/n_worms);
+    textprogressbar(num2str(100*(i/n_worms)));
     origFd = makeWormFd_SJ(horzcat(meas_410(:,i),meas_470(:,i)), 'lambda', 10^0.0891);
     [regFd, warpFd] = register_fd(origFd(1), origFd, fdParObj, 0, 2, 1e-4, 100, 0);
     
@@ -31,7 +30,7 @@ parfor i=1:n_worms
     fdObjs(i).warpFD = warpFd;
 end
 disp('Done.');
-% textprogressbar('Done.');
+textprogressbar('Done.');
 
 % Resample
 xs = linspace(1,100,resample_resolution);
@@ -48,7 +47,7 @@ end
 
 allRegFds = concatFds({fdObjs.('regFD')}.');
 
-n_obs = size(allRegFds, 2) / 2;
+n_obs = size({fdObjs.('regFD')}, 2) / 2;
 reg410_FD = allRegFds(1:2:n_obs);
 reg470_FD = allRegFds(2:2:n_obs);
 
