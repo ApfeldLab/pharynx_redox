@@ -1,8 +1,15 @@
 function coords = loadCoordinates(filename)
-%UNTITLED4 Summary of this function goes here
-%   Detailed explanation goes here
-    allcoords = dlmread(filename, '', 1, 1);
+%LOADCOORDINATES Load the coordinates of the midlines from FIJI.
+%   Returns a struct where the x attribute contains all x-coordinates, and
+%   the y attribute contains all y-coorinates. In each, every COLUMN is a
+%   different animal.
+
+    allcoords = readtable(filename, 'ReadVariableNames', 0, 'HeaderLines', 1);
+    
+    % First column is an index... this comes from FIJI. Get rid of it here.
+    allcoords = allcoords(:, 2:end);
+    
     coords = struct;
-    coords.x = ssquare(allcoords(:,1:2:end));
-    coords.y = ssquare(allcoords(:,2:2:end));
+    coords.x = table2array(allcoords(:,1:2:end));
+    coords.y = table2array(allcoords(:,2:2:end));
 end

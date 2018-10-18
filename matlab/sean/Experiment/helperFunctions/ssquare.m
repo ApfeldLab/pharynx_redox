@@ -16,8 +16,8 @@ New= zeros(100,ncols); % New length normalized matrix to store lnx and lny pairs
 %i=ncols/2;
 
 for i=1:ncols
-    first = find(data(:,i), 1, 'first');
-    last = find(data(:,i), 1, 'last');
+    first = find(data(:,i) > 0, 1, 'first');
+    last = find(data(:,i) > 0, 1, 'last');
     
     crop = data(first:last, i);
     orig_x = 1:length(crop);

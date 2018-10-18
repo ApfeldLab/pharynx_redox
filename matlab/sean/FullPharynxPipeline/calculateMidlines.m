@@ -1,0 +1,20 @@
+function midlines = calculateMidlines(TLStack, fluorescenceMaskStack)
+    nAnimals = size(TLStack, 3);
+    midlines = cell(nAnimals, 1);
+    for i=1:nAnimals
+        segTL = imfill(~imbinarize(TLStack(:,:,i)), 'holes');
+        eroded = bwmorph(fluorescenceMaskStack(:,:,i), 'thin', 2);
+
+        [yTL, xTL] = find(segTL);
+        [y410, x410] = find(eroded);
+        x = vertcat(xTL, x410);
+        y = vertcat(yTL, y410);
+
+        ft = fittype('smoothingspline');
+        opts = fitoptions('Method', 'SmoothingSpline');
+        opts.SmoothingParam = 0.001;
+
+        [fitresult, ~] = fit(x, y, ft, opts);
+        midlines(i) = {fitresult};
+    end
+end
