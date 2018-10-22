@@ -1,10 +1,6 @@
 function midlines = calculateMidlines(TLStack, fluorescenceMaskStack)
     nAnimals = size(TLStack, 3);
     midlines = cell(nAnimals, 1);
-    
-    for i=1:100
-        display('hello');
-    end
     for i=1:nAnimals
         segTL = imfill(~imbinarize(TLStack(:,:,i)), 'holes');
         eroded = bwmorph(fluorescenceMaskStack(:,:,i), 'thin', 2);

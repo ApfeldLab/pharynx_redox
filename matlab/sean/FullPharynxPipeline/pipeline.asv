@@ -4,7 +4,7 @@ rawImgFilePath = "D:\Sean\data\2018_06_07_SAY98_HD233_EXAMPLE\2018_06_07_SAY98_H
 imTable = struct2table(tiffread2(rawImgFilePath));
 allImgs = cat(3, imTable.data{:}); % dimensions: WxHxi; e.g. first image is ims(:, :, 1)
 
-% TODO - Un-hardcode three channels
+% TODO - Un-hardcode th
 imTL = allImgs(:, :, 1:3:end);
 im410_raw = allImgs(:, :, 2:3:end);
 im470_raw = allImgs(:, :, 3:3:end);
@@ -91,3 +91,5 @@ csvwrite(fullfile(rawImgDir, 'i470.csv'),i470_trimmed.');
 
 %% Plot according to Movment
 plotStrainMeans(mvmnt, i410_trimmed, "Mean 410nm \pm std per Movment");
+
+
