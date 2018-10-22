@@ -1,5 +1,5 @@
 %% Load Images
-rawImgFilePath = "/Users/sean/Desktop/Analyses for Jodie's new Data/2018_10_14_SAY47_HD233_ctlRNAi_ifg1RNAi/2018_10_14_SAY47_HD233_ctlRNAi_ifg1RNAi.tif";
+rawImgFilePath = "D:\Sean\data\2018_06_07_SAY98_HD233_EXAMPLE\2018_06_07_SAY98_HD233_EXAMPLE.tif";
 [rawImgDir, ~, ~]= fileparts(rawImgFilePath);
 imTable = struct2table(tiffread2(rawImgFilePath));
 allImgs = cat(3, imTable.data{:}); % dimensions: WxHxi; e.g. first image is ims(:, :, 1)
@@ -9,16 +9,22 @@ im410_raw = allImgs(:, :, 2:3:end);
 im470_raw = allImgs(:, :, 3:3:end);
 nAnimals = size(im410_raw, 3);
 
+%% Load Movement
+mvmnt = csvread(fullfile(rawImgDir, 'mvmnt.csv'));
+
 %% Subtract medians
-median410 = median(im410_raw, [1 2]);
-median470 = median(im470_raw, [1 2]);
+% median410 = median(im410_raw, [1 2]);
+% median470 = median(im470_raw, [1 2]);
 
 im410 = im410_raw;
 im470 = im470_raw;
 % TODO vectorize
 for i=1:nAnimals
-    im410(:,:,i) = im410(:,:,i) - median410(i);
-    im470(:,:,i) = im470(:,:,i) - median470(i);
+    A = im410(:,:,i);
+    B = im470(:,:,i);
+    
+    im410(:,:,i) = im410(:,:,i) - median(A(:));
+    im470(:,:,i) = im470(:,:,i) - median(B(:));
 end
 
 %% Strain Names
@@ -64,9 +70,9 @@ i470_trimmed = trimProfile(i470);
 mkdir(rawImgDir, 'figures');
 
 plotStrainMeans(strains, i410_trimmed, "Mean 410nm \pm std per Strain");
-export_fig(fullfile(rawImgDir, 'figures', 'mean_410nm_raw.pdf'));
+export_fig(fullfile(rawImgDir, 'figures', 'mean_410nm_raw.png'));
 plotStrainMeans(strains, i470_trimmed, "Mean 470nm \pm std per Strain");
-export_fig(fullfile(rawImgDir, 'figures', 'mean_470nm_raw.pdf'));
+export_fig(fullfile(rawImgDir, 'figures', 'mean_470nm_raw.png'));
 
 % Calc R, OxD, E
 R = i410_trimmed ./ i470_trimmed;
@@ -74,10 +80,15 @@ OxD = ja_oxd(R);
 E = ja_E(OxD);
 
 plotStrainMeans(strains, E, "Mean E \pm std per Strain");
-export_fig(fullfile(rawImgDir, 'figures', 'mean_E_raw.pdf'));
+export_fig(fullfile(rawImgDir, 'figures', 'mean_E_raw.png'));
 plotStrainMeans(strains, OxD, "Mean OxD \pm std per Strain");
-export_fig(fullfile(rawImgDir, 'figures', 'mean_OxD_raw.pdf'));
+export_fig(fullfile(rawImgDir, 'figures', 'mean_OxD_raw.png'));
 
 %% Save Profile Data
 csvwrite(fullfile(rawImgDir, 'i410.csv'),i410_trimmed.');
 csvwrite(fullfile(rawImgDir, 'i470.csv'),i470_trimmed.');
+
+%% Plot according to Movment
+plotStrainMeans(mvmnt, i410_trimmed, "Mean 410nm \pm std per Movment");
+
+
