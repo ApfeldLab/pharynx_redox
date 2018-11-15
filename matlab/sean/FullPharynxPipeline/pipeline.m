@@ -53,21 +53,22 @@ rotatedSeg410 = logical(rotatePharynx(seg410, centroids, orientations));
 rotatedSeg470 = logical(rotatePharynx(seg470, centroids, orientations));
 
 %% Bounding Boxes
-lrBounds = getLeftRightBounds(seg410);
+segLRBounds = double(getLeftRightBounds(seg410));
 
 %% Generate Midlines
 midlines = calculateMidlines(imTL, seg410);
 midlines_rot = calculateMidlines(rotatedTL, rotatedSeg410);
 
 %% get profile data
+
 INTERP_METHOD = 'bilinear';
 PROFILE_LENGTH = 1000;
-i410 = measureIntensityAlongMidlines(im410, midlines, PROFILE_LENGTH, INTERP_METHOD);
-i470 = measureIntensityAlongMidlines(im470, midlines, PROFILE_LENGTH, INTERP_METHOD);
-i_r_410_470 = measureIntensityAlongMidlines(im_r_410_470, midlines, PROFILE_LENGTH, INTERP_METHOD);
+i410 = measureIntensityAlongMidlines(im410, midlines, segLRBounds, PROFILE_LENGTH, INTERP_METHOD);
+i470 = measureIntensityAlongMidlines(im470, midlines, segLRBounds, PROFILE_LENGTH, INTERP_METHOD);
+i_r_410_470 = measureIntensityAlongMidlines(im_r_410_470, midlines, segLRBounds, PROFILE_LENGTH, INTERP_METHOD);
 
-i410_trimmed = ssquare(trimProfile(i410));
-i470_trimmed = ssquare(trimProfile(i470));
+i410_trimmed = ssquare(trimProfile(i410, segLRBounds));
+i470_trimmed = ssquare(trimProfile(i470, segLRBounds));
 
 %% Plot Strain Means
 
@@ -111,6 +112,7 @@ plot(midline);
 hold off;
 
 %% Plot normal line of midline at fixed x
+masked_im410 = seg410 .* im410;
 i = 90;
 I = masked_im410(:,:,i);
 midline = midlines{i};
@@ -162,7 +164,7 @@ for i=1:nAnimals
         normal_stds(i, j) = nanstd(prof_(:));
     end
 end
-normal_means = ssquare(trimProfile(normal_means.'));
+normal_means = ssquare(trimProfile(normal_means.', segLRBounds));
 %%
 plot(normal_means(:,1)); hold on; plot(ssquare(i410_trimmed(:,1)));
 legend('normal mean', 'midline');
