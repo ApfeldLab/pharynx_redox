@@ -1,8 +1,8 @@
 function seg = segmentPharynx(imStack, useAC)
     seg = zeros(size(imStack));
-    cannyse = strel('diamond',2);
 
     acSE = strel('square', 3);
+    
     f = waitbar(0,'1','Name','Segmenting Images...',...
         'CreateCancelBtn', 'setappdata(gcbf,''canceling'',1)');
     setappdata(f,'canceling',0);
