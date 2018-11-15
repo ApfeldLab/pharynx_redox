@@ -1,13 +1,12 @@
-function intensityProfiles = measureIntensityAlongMidlines(fluorescenceStack, midlines)
+function intensityProfiles = measureIntensityAlongMidlines(fluorescenceStack, midlines, bounds, profileLength, interpMethod)
     nAnimals = size(fluorescenceStack, 3);
-    imWidth = size(fluorescenceStack, 2);
-    intensityProfiles = zeros(imWidth * 10, nAnimals);
-    xs = 1:imWidth;
+    intensityProfiles = zeros(profileLength, nAnimals);
     
     for i=1:nAnimals
+        xs = double(bounds(i, 1):bounds(i, 2));
         ys = feval(midlines{i}, xs);
-        intensityProfiles(:, i) = improfile(fluorescenceStack(:,:,i), xs, ys, imWidth * 10, 'bilinear');
+        intensityProfiles(:, i) = improfile(fluorescenceStack(:,:,i), xs, ys, profileLength, interpMethod);
     end
+    
     intensityProfiles(isnan(intensityProfiles)) = 0;
-%     intensityProfiles = ssquare(clip_sj(intensityProfiles, threshold));
 end
