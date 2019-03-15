@@ -1,4 +1,6 @@
-function intensityProfiles = measureIntensityAlongMidlines(fluorescenceStack, midlines, bounds, profileLength, interpMethod)
+function intensityProfiles = measureIntensityAlongMidlines(...
+    fluorescenceStack, midlines, bounds, profileLength, interpMethod)
+
     nAnimals = size(fluorescenceStack, 3);
     intensityProfiles = zeros(profileLength, nAnimals);
     

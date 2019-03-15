@@ -1,0 +1,50 @@
+%% Load Data
+rawImageFilePath = "data/2018_10_03_HD233_SAY47.tif";
+[rawImageDirectory, ~, ~] = fileparts(rawImageFilePath);
+allImages = loadTiffImageStack(rawImageFilePath);
+
+I = loadIndexer("data/indexer.csv");
+
+%% Split Image Stacks
+im_TL_raw  = allImages(:,:,I.ImgFrame(I.LambdaGroup == "TL/470/410" & I.SetFrame == 1));
+im_470_raw = allImages(:,:,I.ImgFrame(I.LambdaGroup == "TL/470/410" & I.SetFrame == 2));
+im_410_raw = allImages(:,:,I.ImgFrame(I.LambdaGroup == "TL/470/410" & I.SetFrame == 3));
+
+%% Process Images
+
+% Subtract medians
+im_470 = subtractMedians(im_470_raw);
+im_410 = subtractMedians(im_410_raw);
+
+% Segment Pharynx
+seg_470 = segmentPharynx(im_470, 0);
+seg_410 = segmentPharynx(im_410, 0);
+
+%% Measure Intensities
+% Calculate Midlines
+LRBounds_470 = double(getLeftRightBounds(seg_470));
+LRBounds_410 = double(getLeftRightBounds(seg_410));
+
+midlines_470 = calculateMidlines(im_TL_raw, seg_470, im_470, 0);
+midlines_410 = calculateMidlines(im_TL_raw, seg_410, im_410, 0);
+
+% Measure under midlines
+INTERP_METHOD = 'bilinear';
+PROFILE_LENGTH = 1000;
+
+[i_470, ~, scaledLRBounds_470] = measureAndTrim(...
+    im_470, midlines_470, LRBounds_470, PROFILE_LENGTH);
+[i_410, ~, scaledLRBounds_410] = measureAndTrim(...
+    im_410, midlines_410, LRBounds_410, PROFILE_LENGTH);
+
+%% Register Midlines
+[reg_i410, reg_i470, ~, ~, ~] = ...
+    ChannelRegister(i_410, i_470, 100);
+
+%% Plots
+hd233_idx = I.ImgFrame(I.Lambda=="410" & I.Strain == "HD233") / 3;
+say75_idx = I.ImgFrame(I.Lambda=="410" & I.Strain == "SAY75") / 3;
+
+% Plot Mean According to Strain
+figure;
+plot(mean(i_410(:,hd233_idx), 2));
