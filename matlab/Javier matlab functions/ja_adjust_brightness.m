@@ -80,6 +80,5 @@ img_hsv = cat(3,img_hsv(:,:,1:2),tmp);
 % Transform back to RGB
 img2 = hsv2rgb(img_hsv);
 
-
 end
 

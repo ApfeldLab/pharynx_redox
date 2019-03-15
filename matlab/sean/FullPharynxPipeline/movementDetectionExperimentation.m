@@ -14,6 +14,7 @@ mvmnt = csvread(fullfile(rawImgDir, 'movement.csv'));
 im410 = subtractMedians(im410_raw);
 im470 = subtractMedians(im470_raw);
 
+%%
 seg410 = segmentPharynx(im410, 0);
 seg470 = segmentPharynx(im470, 0);
 
@@ -133,10 +134,10 @@ hold off;
 
 %% Multiple midline warp distance plots
 PROF_SAMPLE_LEN = 5000;
-my_rgb = cbrewer('qual', 'Set1', 5);
+% my_rgb = cbrewer('qual', 'Set1', 5);
 % lw = [.05 4];
 figure; hold on;
-for animal_number=1:nAnimals
+for animal_number=1:1
     xs410 = linspace(scaledBounds410(animal_number, 1), scaledBounds410(animal_number, 2), PROF_SAMPLE_LEN);
     ys410 = feval(midlines410{animal_number}, xs410);
     ys470 = feval(midlines470{animal_number}, xs410);
@@ -157,9 +158,9 @@ for animal_number=1:nAnimals
     Axy = [xs410; ys410.'];
     Bxy = [warped_xs470; warped_ys470.'];
 
-%     d = sqrt(sum((Axy-Bxy).^2,1));
-    d = xs410 - warped_xs470;
-    plot(s, d, 'Color', my_rgb(mvmnt(animal_number), :));
+    d = sqrt(sum((Axy-Bxy).^2,1));
+%     d = xs410 - warped_xs470;f
+    plot(s, d);
     ylim([0 3]);
 end
 hold off;

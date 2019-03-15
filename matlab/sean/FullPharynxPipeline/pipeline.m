@@ -204,3 +204,15 @@ end
 normal_means_labels = horzcat([normal_means mvmnt]);
 normal_vars_labels = horzcat([normal_stds mvmnt]);
 normal_stds_labels = horzcat([normal_stds mvmnt]);
+%% Functionalize
+[reg410_FD, reg470_FD, warp470, resampled_intensity, fdObjs] = ...
+    ChannelRegister(i410_trimmed, i470_trimmed, 100);
+
+%% Data Table
+
+
+
+T = table(...
+    mvmnt, strains, mean(i410).', mean(i470).', mean(R).', mean(OxD).', mean(E).',...
+    'VariableNames', {'movement', 'strain', 'meani410', 'meani470', 'meanR', 'meanOxD', 'meanE'});
+
