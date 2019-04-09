@@ -3,7 +3,8 @@ function midlines = calculateMidlines(TLStack, fluorescenceSegStack, fluorescenc
     midlines = cell(nAnimals, 1);
     
     for i=1:nAnimals
-        segTL = imfill(~imbinarize(mat2gray(TLStack(:,:,i))), 'holes');
+%         segTL = imfill(~imbinarize(mat2gray(TLStack(:,:,i))), 'holes');
+        segTL = imclose(edge(TLStack(:,:,i),[]), strel('disk',10,6));
         segTL = bwpropfilt(segTL, 'Area', 1);
         eroded = bwmorph(fluorescenceSegStack(:,:,i), 'thin', 2);
 

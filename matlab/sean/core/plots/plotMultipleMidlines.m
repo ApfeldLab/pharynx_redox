@@ -15,7 +15,7 @@ function plotMultipleMidlines(ratioImage, flImage, mask, midline1, midline2, ...
 
 
     cmap_ = cbrewer('div', 'RdBu', 256, 'PCHIP');
-    R_adj = ja_adjust_brightness(ratioImage, flImage, 1200, cmap_, .65, 1.45);
+    R_adj = ja_adjust_brightness(ratioImage, flImage, 1200, cmap_, .85, 1.25);
     imshow(R_adj);
     
     axis square;

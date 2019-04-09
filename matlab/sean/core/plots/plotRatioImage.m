@@ -3,17 +3,17 @@ figure;
 
 
 colorbar;
-for i=1:nAnimal1
+for i=1:nAnimals
 ratioImage = imR(:,:,i);
-flImage = crop_410_1(:,:,i);
-R_adj = ja_adjust_brightness(ratioImage, flImage, 4000, cmap_, 1-pd.sigma*3, 1+pd.sigma*3);
+flImage = im410(:,:,i);
+R_adj = ja_adjust_brightness(ratioImage, flImage, 4000, cmap_, 500, 2000);
 image(gca, R_adj);
 title(int2str(i));
-colormap(map);
-caxis([1-pd.sigma*3 1+pd.sigma*3]);
+colormap(cmap_);
+% caxis([1-pd.sigma*3 1+pd.sigma*3]);
 colorbar;
 % waitforbuttonpress();
-export_fig(sprintf('/Users/sean/Desktop/ratios/%d.pdf', i));
+export_fig(sprintf('/Users/sean/Desktop/asi_ratios/%d.pdf', i));
 end
 
 %%
