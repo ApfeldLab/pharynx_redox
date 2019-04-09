@@ -28,7 +28,7 @@ unreg_i1 = i1;
 unreg_i2 = i2;
 
 [reg_i1, reg_i2, ~, ~, fdObjs] = ...
-    ChannelRegister(i1, i2, 100);
+    channelRegisterSmoothRough(i1, i2, 100);
 
 i1 = eval_fd(1:100, reg_i1);
 i2 = eval_fd(1:100, reg_i2);

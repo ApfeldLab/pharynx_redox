@@ -24,7 +24,7 @@ warpBasis = create_bspline_basis([1 100], nBasis, order);
 fdParObj = fdPar(warpBasis, int2Lfd(2), lambda);
 
 % TODO: Preallocate fdObjs for memory/speed
-textprogressbar('Registering 470 to 410: ');
+disp('Registering 470 to 410: ');
 parfor i=1:n_worms
     origFd = makeWormFd_SJ(horzcat(meas_410(:,i),meas_470(:,i)), 'lambda', 10^0.0891);
     [regFd, warpFd] = register_fd(origFd(1), origFd, fdParObj, 0, 2, 1e-4, 100, 0);
@@ -33,7 +33,7 @@ parfor i=1:n_worms
     fdObjs(i).regFD = regFd;
     fdObjs(i).warpFD = warpFd;
 end
-textprogressbar('done');
+disp('done');
 
 % Resample
 xs = linspace(1,100,resample_resolution);

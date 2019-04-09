@@ -13,7 +13,8 @@ end
 
 if nargin <2 | Rmin==[]
     %Rmin = 0.667;
-     Rmin = 0.667*Rmax/5.207;
+%      Rmin = 0.667*Rmax/5.207;
+    Rmin = .852;
 end
 
 if sum([(max(size(R))) > 1 (max(size(Rmin))) > 1 (max(size(Rmax))) > 1 (max(size(Instrument_Factor))) > 1])> 1
