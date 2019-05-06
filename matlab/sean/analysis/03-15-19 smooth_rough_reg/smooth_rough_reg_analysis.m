@@ -11,18 +11,18 @@ imTL = repmat(imTL(:,:,1), [1 1 nAnimal1]);
 % Rotate Images according to first frame
 seg410_1 = segmentPharynx(im410_1, 0, 2000);
 
-im410_1 = rotatePharynx(im410_1, seg410_1);
-im410_2 = rotatePharynx(im410_2, seg410_1);
-imTL = rotatePharynx(imTL, seg410_1);
+% im410_1 = rotatePharynx(im410_1, seg410_1);
+% im410_2 = rotatePharynx(im410_2, seg410_1);
+% imTL = rotatePharynx(imTL, seg410_1);
 
 % Crop
 % im410_1 = im410_1(52:79, 54:121, :);
 % im410_2 = im410_2(52:79, 54:121, :);
 % imTL = imTL(52:79, 54:121, :);
 
-%
-[i1, i2, matchingVecs, midlines1, midlines2, scaled_bounds1, scaled_bounds2, fdObjs, dx, dy, unreg_i1, unreg_i2] = pipelineTwoMidlinesTwoMasksRegistration(imTL, im410_1, im410_2);
+% [i1, i2, matchingVecs, midlines1, midlines2, scaled_bounds1, scaled_bounds2, fdObjs, dx, dy, unreg_i1, unreg_i2] = pipelineTwoMidlinesTwoMasksRegistration(imTL, im410_1, im410_2);
 
+[i1, i2, seg1, seg2, midlines1, midlines2, lrBounds1, lrBounds2, i1_raw, i2_raw] = pipelineTwoMidlinesTwoMasks(imTL, im410_1, im410_2);
 %% Hyperparameter search
 % Hyperparameters:
 % Smooth Lambda, Rough Lambda, Warp Lambda
