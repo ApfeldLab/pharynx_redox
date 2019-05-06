@@ -10,8 +10,8 @@ function [trimmed, unscaledBounds, scaledBounds] = trimProfile(intensityProfile,
 
         smoothed = smoothdata(prof_i, 'gaussian', 15);
 
-        left = find(smoothed >= 2000, 1, 'first');
-        right = find(smoothed >= 2000, 1, 'last');
+        left = find(smoothed >= 1200, 1, 'first');
+        right = find(smoothed >= 1200, 1, 'last');
         unscaledBounds(i, :) = [left right];
         
         xs = linspace(lrBounds(i,1), lrBounds(i,2), size(intensityProfile, 1));
