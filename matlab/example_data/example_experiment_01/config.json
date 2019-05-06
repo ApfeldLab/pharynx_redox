@@ -1,0 +1,18 @@
+{
+    "imageTypeSequence": ["TL", "410", "470", "TL", "410", "470"],
+    "strainSequence": [
+        {"strain": "HD233", "animals": 12},
+        {"strain": "SAY97", "animals": 13},
+        {"strain": "SAY47", "animals": 10},
+        {"strain": "HD233", "animals": 12}
+    ],
+    "rMin": 0.852,
+    "rMax": 6.65,
+    "instrumentFactor": -265,
+    "z": 2,
+    "temperature": 22,
+    "dateImaged": "2019-02-29",
+    "wormDaysOld": 6,
+    "movementAnnotations": [0, 1, 3, 0, 0, 1, 2, 3],
+    "intensityData": "2000,2010,2103,..."
+}

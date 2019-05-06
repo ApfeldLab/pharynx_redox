@@ -1,8 +1,11 @@
-function plotMultiplePharynxData(matrices, labels, ylimits, ax)
+function plotMultiplePharynxData(matrices, labels, ylimits, ax, cmap)
 %   `matrices` is a cell array of pharynx data
 %         pharynx data = PositionInPharynx x Worm
     
 %     matrices = horzcat(matrices{:});
+    if nargin < 5 || isempty(cmap)
+        cmap = cbrewer('qual', 'Set2', max(3, size(matrices, 2)));
+    end
 
     if nargin < 4 || isempty(ax)
         figure;
@@ -30,8 +33,6 @@ function plotMultiplePharynxData(matrices, labels, ylimits, ax)
             CI_data(:,:,i) = y_data(:,i) + ts.*SEM_data(:,i);
             e_data(:,:,i) = abs(y_data(:,i) - CI_data(:,:,i));
     end
-    
-    cmap = cbrewer('qual', 'Dark2', max(3, size(matrices, 3))); 
     
     boundedline(x, y_data, e_data, 'cmap', cmap, ax, 'alpha');
     xlim(ax, [1 sz(1)]);
