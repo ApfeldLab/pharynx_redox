@@ -1,16 +1,11 @@
 function FinalImage = loadTiffImageStack(filepath)
-    % Read a TIFF image stack into a matrix.
-    % 
-    % Dimensions: width x height x worm
-    %
-    %
-    % TODO: do the pictures come back as ints or doubles?
+    % Read a TIFF image stack into a matrix (width x height x nFrames) 
     
     InfoImage=imfinfo(filepath);
     mImage=InfoImage(1).Width;
     nImage=InfoImage(1).Height;
     NumberImages=length(InfoImage);
-    FinalImage=zeros(nImage,mImage,NumberImages,'double');
+    FinalImage=zeros(nImage,mImage,NumberImages,'uint16');
 
     TifLink = Tiff(filepath, 'r');
     for i=1:NumberImages
