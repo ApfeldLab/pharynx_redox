@@ -5,7 +5,7 @@ function midlines = calculateMidlinesNoTL(fluorescenceSegStack)
     imHeight = size(fluorescenceSegStack, 1);
     imWidth  = size(fluorescenceSegStack, 2);
     
-    textprogressbar('calculating midlines: ');
+    textprogressbar('Calculating Midlines: ');
     for i=1:nAnimals
         textprogressbar(100 * (i/nAnimals));
 
@@ -18,5 +18,5 @@ function midlines = calculateMidlinesNoTL(fluorescenceSegStack)
         [fitresult, ~] = fit(x, y, 'smoothingspline', 'SmoothingParam', 0.001);
         midlines(i) = {fitresult};
     end
-    textprogressbar('done');
+    textprogressbar(' done');
 end
