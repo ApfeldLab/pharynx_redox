@@ -3,7 +3,6 @@ function seg = segmentPharynx(imStack, useAC, thresh)
 
     acSE = strel('square', 3);
 
-
     steps = size(imStack, 3);
     disp('Segmenting Images... Please hold');
     h = fspecial('unsharp');
@@ -23,5 +22,6 @@ function seg = segmentPharynx(imStack, useAC, thresh)
             mask(mask < thresh) = 0;
         end
     end
+    seg = logical(seg);
     disp('DONE Segmenting Images');
 end
