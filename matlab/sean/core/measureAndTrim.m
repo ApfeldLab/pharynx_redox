@@ -1,5 +1,5 @@
-function [i, unscaled_bounds, scaled_bounds, i_raw] = measureAndTrim(imStack, midlines, lrBounds, profileLength)
-    i_raw = measureIntensityAlongMidlines(imStack, midlines, lrBounds, profileLength, 'BILINEAR');
-    [i_trimmed, unscaled_bounds, scaled_bounds] = trimProfile(i_raw, lrBounds);
+function [i, i_raw] = measureAndTrim(imStack, midlines, trimThreshold, profileLength)
+    i_raw = measureIntensityAlongMidlines(imStack, midlines, profileLength, 'BILINEAR');
+    i_trimmed = trimProfile(i_raw, trimThreshold);
     i = ssquare(i_trimmed);
 end

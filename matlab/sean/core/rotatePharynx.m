@@ -13,7 +13,8 @@ function [rotated_FL, rotated_seg] = rotatePharynx(imStack, segStack, cropDims)
         rotated_seg(:,:,i) = logical(uint8(floor(imrotate(translated_seg, -orientations(i), 'nearest', 'crop'))));
     end
     
-    if cropDims % [height width]
+    if nargin > 2 
+        % cropDims = [height width]
         B = center(2)-cropDims(1)/2;
         T = center(2)+cropDims(1)/2;
         L = center(1)-cropDims(2)/2;

@@ -1,4 +1,4 @@
-imgs = loadTiffImageStack("/Users/sean/code/wormAnalysis/data/NEW_DATA/2017-02-22_HD233_SAY47/170222 HD233 SAY47.tif");
+imgs = loadTiffImageStack("/Users/sean/code/wormAnalysis/data/NEW_DATA/2017-02-22_HD233_SAY47/2017-02-22_HD233_SAY47.tif");
 metadata = jsondecode(fileread("/Users/sean/code/wormAnalysis/data/NEW_DATA/2017-02-22_HD233_SAY47/metadata.json"));
 
 nFrames = size(imgs, 3);
