@@ -8,7 +8,7 @@ splitImages = splitImageStack(loadTiffImageStack(fullfile("data", "2017_02_22-HD
 [i410_2_new, i470_2_new] = pipelineTwoMidlinesTwoMasks(splitImages.imTL_1, splitImages.im410_2, splitImages.im470_2);
 
 R_1_cata = i410_1_cata ./ i410_2_cata;
-R_1_new = i410_1_new ./ i410_2_new; 
+R_1_new = i410_1_new ./ i410_2_new;
 
 %%
 % Generate a new "synthetic" dataset using only i410 data
