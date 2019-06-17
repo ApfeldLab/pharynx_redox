@@ -1,6 +1,6 @@
 splitImages = splitImageStack(loadTiffImageStack(fullfile("data", "2017_02_22-HD233_SAY47.tif")), "TL/470/410/470/410");
 
-%%
+%
 [i410_1_cata, i470_1_cata] = pipelineCata(splitImages.imTL_1, splitImages.im410_1, splitImages.im470_1);
 [i410_1_new, i470_1_new] = pipelineTwoMidlinesTwoMasks(splitImages.imTL_1, splitImages.im410_1, splitImages.im470_1);
 
@@ -10,7 +10,7 @@ splitImages = splitImageStack(loadTiffImageStack(fullfile("data", "2017_02_22-HD
 R_1_cata = i410_1_cata ./ i410_2_cata;
 R_1_new = i410_1_new ./ i410_2_new;
 
-%%
+%
 % Generate a new "synthetic" dataset using only i410 data
 [centroids, orientations] = calcCentroidsAndOrientations(segmentPharynx(splitImages.im410_1,0,2000));
 orientations = deg2rad(-orientations);
@@ -29,7 +29,7 @@ shiftedIm410 = unshiftedIm410;
 shiftMagnitudesRep = repmat(shiftMagnitudes, [1 size(splitImages.im410_1, 3)]);
 for i=1:size(shiftedIm410, 3)
     animalIndex = ceil(i/nShifts);
-    zIndex = mod(i, nShifts) + 1;
+    zIndex = max(mod(i, nShifts), 1);
     unshiftedIm410(:,:,i) = splitImages.im410_1(:,:,animalIndex);
     shiftedIm410(:,:,i) = imtranslate(splitImages.im410_1(:,:,animalIndex), [unitXYZ(animalIndex, 1, zIndex), unitXYZ(animalIndex, 2, zIndex)]);
 end
@@ -43,7 +43,7 @@ implay(imE);
 shifted_percent_e_cata = abs(shifted_i410_1_cata - shifted_i410_2_cata) ./ ((shifted_i410_1_cata + shifted_i410_2_cata) / 2);
 shifted_percent_e_new = abs(shifted_i410_1_new - shifted_i410_2_new) ./ ((shifted_i410_1_new + shifted_i410_2_new) / 2);
 
-%% plot
+% plot
 
 mean_shifted_e_cata = mean(shifted_percent_e_cata, 1);
 mean_shifted_e_new = mean(shifted_percent_e_new, 1);
@@ -57,6 +57,6 @@ figure;
 scatter(abs(shiftMagnitudesRep), mean_shifted_e_new);
 title('New');
 
-%%
+%
 t = table(mean_shifted_e_cata.', mean_shifted_e_new.', shiftMagnitudesRep.');
 writetable(t, '~/Desktop/shifted_percent_errors.csv');
