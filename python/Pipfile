@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+jupyter = "*"
+pandas = "*"
+numpy = "*"
+sklearn = "*"
+matplotlib = "*"
+bokeh = "*"
+seaborn = "*"
+scikit-image = "*"
+xarray = "*"
+
+[requires]
+python_version = "3.7"
