@@ -6,15 +6,16 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-jupyter = "*"
-pandas = "*"
+pyqt5 = "*"
+pyqtgraph = "*"
 numpy = "*"
-sklearn = "*"
-matplotlib = "*"
-bokeh = "*"
-seaborn = "*"
 scikit-image = "*"
+pyopengl = "*"
+jupyter = "*"
 xarray = "*"
+pytest = "*"
+seaborn = "*"
+statsmodels = "*"
 
 [requires]
 python_version = "3.7"
