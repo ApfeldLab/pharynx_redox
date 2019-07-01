@@ -17,6 +17,7 @@ pytest = "*"
 seaborn = "*"
 statsmodels = "*"
 pyqt5-stubs = "*"
+bidict = "*"
 
 [requires]
 python_version = "3.7"
