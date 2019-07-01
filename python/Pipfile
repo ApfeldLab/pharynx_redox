@@ -16,6 +16,10 @@ xarray = "*"
 pytest = "*"
 seaborn = "*"
 statsmodels = "*"
+pyqt5-stubs = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

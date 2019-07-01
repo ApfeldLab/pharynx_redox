@@ -1,5 +1,6 @@
-from pharynx_analysis import pharynx_io as pio
 import numpy as np
+
+from pharynx_analysis import pharynx_io as pio
 
 
 class TestPharynxAnalysis:
