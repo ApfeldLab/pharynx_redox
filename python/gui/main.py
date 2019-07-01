@@ -2,10 +2,11 @@ import os
 import pickle
 import sys
 
-import matplotlib.pyplot as plt
 import matplotlib.projections as proj
+import matplotlib.pyplot as plt
 import numpy as np
 from PyQt5 import QtWidgets, QtCore
+from bidict import bidict
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -13,9 +14,8 @@ from matplotlib.lines import Line2D
 from scipy.interpolate import UnivariateSpline
 
 import pharynx_analysis.pharynx_io as pio
-from gui.gui_ui import Ui_MainWindow
 from gui import plots
-
+from gui.gui_ui import Ui_MainWindow
 
 config_dict = {
     'default_imaging_scheme': 'TL/470_1/410_1/470_2/410_2'
@@ -64,7 +64,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
 class ImageGroupLayout(QtWidgets.QGridLayout):
 
-    def __init__(self, images, midlines=None, n_spline_control_points=5):
+    def __init__(self, images, midlines=None, n_spline_control_points=5, crop=False):
         super(ImageGroupLayout, self).__init__()
         proj.register_projection(plots.ThinAxes)
 
@@ -73,6 +73,7 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         self.n_animals = self.images.shape[1]
 
         self.active_vertex_idx = None
+        self.epsilon = 3
 
         self.main_widget = MatplotlibWidget()
         self.addWidget(self.main_widget)
@@ -80,12 +81,13 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         self.canvas = self.fig.canvas
 
         self.wavelengths = self.images.wavelength.data
+        self.backgrounds = {}
 
         self.midlines = midlines
         if self.midlines:
             self.spline_resolution = 100
             self.spline_xs = {
-                wvl: np.tile(np.linspace(40, 120, self.spline_resolution), (self.n_animals, 1))
+                wvl: np.tile(np.linspace(50, 120, self.spline_resolution), (self.n_animals, 1))
                 for wvl in self.wavelengths
             }
             self.spline_ys = {
@@ -101,34 +103,41 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
                     (self.n_animals, 1)
                 ) for wvl in self.wavelengths
             }
+            self.spline_control_ys = {
+                wvl: [self.midlines[wvl][frame](self.spline_control_xs[wvl][frame]) for frame in range(self.n_animals)]
+                for wvl in self.wavelengths
+            }
             self.pts = {
-                wvl: [
-                    Line2D(
-                        self.spline_control_xs[wvl][frame],
-                        self.midlines[wvl][frame](self.spline_control_xs[wvl][frame]),
-                        color='white', ls='', marker='o', animated=True)
-                    for frame in range(self.n_animals)
-                ] for wvl in self.wavelengths
+                wvl: Line2D(
+                    self.spline_control_xs[wvl][self.frame],
+                    self.midlines[wvl][self.frame](self.spline_control_xs[wvl][self.frame]),
+                    color='white', ls='', marker='o', markersize=self.epsilon, animated=True, zorder=100)
+                for wvl in self.wavelengths
             }
             self.lines = {
-                wvl: [
-                    Line2D(
-                        self.spline_xs[wvl][frame],
-                        self.spline_ys[wvl][frame],
-                        color='orange', animated=True)
-                    for frame in range(self.n_animals)
-                ] for wvl in self.wavelengths
+                wvl: Line2D(
+                    self.spline_xs[wvl][self.frame],
+                    self.spline_ys[wvl][self.frame],
+                    color='red', animated=True, alpha=0.3, linewidth=2)
+                for wvl in self.wavelengths
             }
 
         # Set up axes
-        self.axes = {
-            '410_1': self.main_widget.get_figure().add_subplot(321, title="$I_{410_1}$", label='410_1'),
-            '410_2': self.main_widget.get_figure().add_subplot(322, title="$I_{410_2}$", label='410_2'),
-            '470_1': self.main_widget.get_figure().add_subplot(323, title="$I_{470_1}$", label='470_1'),
-            '470_2': self.main_widget.get_figure().add_subplot(324, title="$I_{470_2}$", label='470_2'),
-            'R1': self.main_widget.get_figure().add_subplot(325, title="$R_1$", label='R2'),
-            'R2': self.main_widget.get_figure().add_subplot(326, title="$R_2$", label='R1'),
-        }
+        xlim = (45, 125)
+        ylim = (75, 50)
+
+        if crop:
+            kwargs = {'xlim': xlim, 'ylim': ylim}
+        else:
+            kwargs = {}
+        self.axes = bidict({
+            '410_1': self.main_widget.get_figure().add_subplot(321, title="$I_{410_1}$", **kwargs),
+            '410_2': self.main_widget.get_figure().add_subplot(322, title="$I_{410_2}$", **kwargs),
+            '470_1': self.main_widget.get_figure().add_subplot(323, title="$I_{470_1}$", **kwargs),
+            '470_2': self.main_widget.get_figure().add_subplot(324, title="$I_{470_2}$", **kwargs),
+            'R1': self.main_widget.get_figure().add_subplot(325, title="$I_{R_1}$", **kwargs),
+            'R2': self.main_widget.get_figure().add_subplot(326, title="$I_{R_2}$", **kwargs)
+        })
 
         for i, ax in enumerate(self.axes.values()):
             ax.get_shared_x_axes().join(ax, self.axes['410_1'])
@@ -136,8 +145,8 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
 
         if midlines:
             for wvl in self.wavelengths:
-                self.axes[wvl].add_artist(self.pts[wvl][self.frame])
-                self.axes[wvl].add_artist(self.lines[wvl][self.frame])
+                self.axes[wvl].add_artist(self.pts[wvl])
+                self.axes[wvl].add_artist(self.lines[wvl])
 
         self.ims = {
             wvl: self.axes[wvl].imshow(self.images.sel(wavelength=wvl)[self.frame]) for wvl in self.wavelengths
@@ -191,34 +200,48 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         if ax is None:
             return
 
-        wvl = ax.label
-        midline = self.midlines[wvl][self.frame]
+        wvl = self.axes.inverse[ax]
+
+        try:
+            midline = self.midlines[wvl][self.frame]
+        except KeyError:
+            return
+
         mouse_x, mouse_y = event.xdata, event.ydata
 
         old_ctrl_xs = self.spline_control_xs[wvl][self.frame]
+        old_ctrl_ys = self.spline_control_ys[wvl][self.frame]
 
-        try:
-            self.spline_control_xs[wvl][self.frame][self.active_vertex_idx] = mouse_x
+        self.spline_control_xs[wvl][self.frame][self.active_vertex_idx] = mouse_x
+        self.spline_control_ys[wvl][self.frame][self.active_vertex_idx] = mouse_y
 
-            ctrl_xs = self.spline_control_xs[wvl][self.frame]
-            ctrl_ys = midline(ctrl_xs)
+        ctrl_xs = self.spline_control_xs[wvl][self.frame]
+        ctrl_ys = self.spline_control_ys[wvl][self.frame]
 
-            self.spline_xs[wvl][self.frame] = np.linspace(np.min(ctrl_xs), np.max(ctrl_xs), self.spline_resolution)
-            self.midlines[wvl][self.frame] = self.make_spline(ctrl_xs, midline(ctrl_ys))
-            self.lines[wvl][self.frame].set_data(ctrl_xs, ctrl_ys)
-            self.pts[wvl][self.frame].set_data()
+        self.midlines[wvl][self.frame] = self.make_spline(ctrl_xs, ctrl_ys)
 
-        except ValueError:
-            self.spline_control_xs[wvl][self.frame] = old_ctrl_xs
+        self.spline_xs[wvl][self.frame] = np.linspace(np.min(ctrl_xs), np.max(ctrl_xs), self.spline_resolution)
+        self.spline_ys[wvl][self.frame] = midline(self.spline_xs[wvl][self.frame])
+
+        self.lines[wvl].set_data(self.spline_xs[wvl][self.frame], self.spline_ys[wvl][self.frame])
+        self.pts[wvl].set_data(ctrl_xs, ctrl_ys)
+
+        self.canvas.restore_region(self.backgrounds[wvl])
+        ax.draw_artist(self.lines[wvl])
+        ax.draw_artist(self.pts[wvl])
+        self.canvas.blit(ax.bbox)
 
     def make_spline(self, xs, ys):
         return UnivariateSpline(xs, ys, ext=0, s=0, k=3)
 
     def get_ind_under_point(self, event):
         ax = event.inaxes
-        wvl = ax.label
+        wvl = self.axes.inverse[ax]
 
-        midline = self.midlines[wvl][self.frame]
+        try:
+            midline = self.midlines[wvl][self.frame]
+        except KeyError:
+            return None
         ctrl_xs = self.spline_control_xs[wvl][self.frame]
 
         d = np.hypot(ctrl_xs - event.xdata, midline(ctrl_xs) - event.ydata)
@@ -226,6 +249,7 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         ind = index_sequence[0]
         if d[ind] >= self.epsilon:
             ind = None
+        print(f'{ind}@{wvl}')
         return ind
 
     def set_frame(self, frame):
@@ -237,16 +261,26 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         self.ims['R1'].set_data((self.images.sel(wavelength='410_1') / self.images.sel(wavelength='470_1'))[self.frame])
         self.ims['R2'].set_data((self.images.sel(wavelength='410_2') / self.images.sel(wavelength='470_2'))[self.frame])
 
+        if self.midlines:
+            for wvl in self.wavelengths:
+                midline = self.midlines[wvl][self.frame]
+                ctrl_xs = self.spline_control_xs[wvl][self.frame]
+                ctrl_ys = midline(ctrl_xs)
+                self.pts[wvl].set_data(ctrl_xs, ctrl_ys)
+                self.lines[wvl].set_data(self.spline_xs[wvl][self.frame], self.spline_ys[wvl][self.frame])
+
         self.canvas.draw()
 
     def draw_callback(self, e):
-        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
+        self.backgrounds = {
+            wvl: self.canvas.copy_from_bbox(self.axes[wvl].bbox) for wvl in self.wavelengths
+        }
         for wvl, ax in self.axes.items():
             self.axes[wvl].draw_artist(self.ims[wvl])
         if self.midlines:
             for wvl in self.wavelengths:
-                self.axes[wvl].draw_artist(self.pts[wvl][self.frame])
-                self.axes[wvl].draw_artist(self.lines[wvl][self.frame])
+                self.axes[wvl].draw_artist(self.lines[wvl])
+                self.axes[wvl].draw_artist(self.pts[wvl])
 
 
 class MPLLayout(QtWidgets.QGridLayout):
@@ -268,7 +302,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.experiment = experiment.PairExperiment(img_path, "TL/470_1/410_1/470_2/410_2", strains)
         self.experiment = pickle.load(open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'rb'))
 
-        self.ui.rotatedImagesTab.setLayout(ImageGroupLayout(self.experiment.rot_fl, midlines=self.experiment.midlines))
+        self.ui.rotatedImagesTab.setLayout(
+            ImageGroupLayout(self.experiment.rot_fl, midlines=self.experiment.midlines, crop=True))
         self.ui.rawImagesTab.setLayout(ImageGroupLayout(self.experiment.fl_images))
 
         self.ui.intensityPlotTab.setLayout(MPLLayout())
