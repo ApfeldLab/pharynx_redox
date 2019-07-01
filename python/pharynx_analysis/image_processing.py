@@ -1,10 +1,20 @@
+from typing import Union
+
 from scipy.signal import find_peaks
 from skimage import measure, transform
 from scipy.interpolate import UnivariateSpline
 import numpy as np
+import xarray as xr
 
 
-def center_and_rotate_pharynxes(fl_stack: np.ndarray, seg_stack: np.ndarray) -> (np.ndarray, np.ndarray):
+def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_height=None) -> (np.ndarray, np.ndarray):
+    """ TODO: Documentation
+    :param fl_stack:
+    :param seg_stack:
+    :param crop_width:
+    :param crop_height:
+    :return:
+    """
     all_props = [measure.regionprops(x, coordinates='rc')[0] for x in measure.label(seg_stack)]
 
     rotated_fl = fl_stack.copy()
@@ -32,32 +42,96 @@ def center_and_rotate_pharynxes(fl_stack: np.ndarray, seg_stack: np.ndarray) -> 
             rotated_fl[i] = np.fliplr(rotated_fl[i])
             rotated_seg[i] = np.fliplr(rotated_seg[i])
 
+    # TODO: cropping
+    if crop_width:
+        pass
+    if crop_height:
+        pass
+
     return rotated_fl, rotated_seg
 
 
-def segment_pharynxes(fl_stack: np.ndarray) -> np.ndarray:
+def segment_pharynxes(fl_stack: Union[np.ndarray, xr.DataArray]):
+    """
+    TODO: Documentation
+    :param fl_stack:
+    :return:
+    """
     return fl_stack > 2000
 
 
 def rotate(data, tform, orientation):
+    """
+    TODO: Documentation
+    :param data:
+    :param tform:
+    :param orientation:
+    :return:
+    """
     # noinspection PyTypeChecker
     return transform.rotate(transform.warp(
         data, tform, preserve_range=True, mode='wrap'),
         np.degrees(np.pi / 2 - orientation), mode='wrap')
 
 
-def calculate_midlines(rot_seg_stack, s=1e4, ext=0):
+def calculate_midlines(rot_seg_stack, s=1e8, ext=0):
+    """
+    TODO: Documentation
+    :param rot_seg_stack:
+    :param s:
+    :param ext:
+    :return:
+    """
     return [calculate_midline(x, s, ext) for x in rot_seg_stack]
 
 
-def calculate_midline(rot_seg_img, s=1e4, ext=0):
+def calculate_midline(rot_seg_img, s=1e8, ext=0):
+    """
+    TODO: Documentation
+    :param rot_seg_img:
+    :param s:
+    :param ext:
+    :return:
+    """
     seg_coords = measure.regionprops(measure.label(rot_seg_img))[0].coords
 
     # Adding tiny amounts of random noise to the coordinates because the spline fitting function expects that all
-    # x-coordinates are unique. TODO: figure out if it's possible to not do this
+    # x-coordinates are unique.
+    # TODO: change this; I think this could fail if two random numbers happen to be the same
     seg_coords = seg_coords + (np.random.random(seg_coords.shape) / 100)
     seg_coords = seg_coords[np.argsort(seg_coords, axis=0)[:, 1]]
 
     xs = seg_coords[:, 1]
     ys = seg_coords[:, 0]
     return UnivariateSpline(xs, ys, s=s, ext=ext)
+
+
+def measure_under_midline(fl: np.ndarray, mid: UnivariateSpline, xs: np.ndarray) -> np.ndarray:
+    """
+    TODO: Documentation
+    :param fl:
+    :param mid:
+    :param xs:
+    :return:
+    """
+    ys = mid(xs)
+    zs = np.zeros((1, len(xs)), dtype=np.uint16)
+    for i, (x, y) in enumerate(zip(np.int_(xs), np.int_(ys))):
+        zs[i] = fl[y, x].data
+    return zs
+
+
+def measure_under_midlines(fl_stack: np.ndarray, midlines: [UnivariateSpline],
+                           x_range: tuple, n_points: int) -> np.ndarray:
+    """
+    TODO: Documentation
+    :param fl_stack:
+    :param midlines:
+    :param x_range:
+    :param n_points:
+    :return:
+    """
+    xs = np.linspace(x_range[0], x_range[1], n_points)
+    return np.asarray([
+        measure_under_midline(fl_stack[i], midlines[i], xs) for i in range(fl_stack.shape[0])
+    ])
