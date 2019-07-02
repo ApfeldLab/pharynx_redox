@@ -1,10 +1,10 @@
 from typing import Union
 
-from scipy.signal import find_peaks
-from skimage import measure, transform
-from scipy.interpolate import UnivariateSpline
 import numpy as np
 import xarray as xr
+from scipy.interpolate import UnivariateSpline
+from scipy.signal import find_peaks
+from skimage import measure, transform
 
 
 def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_height=None) -> (np.ndarray, np.ndarray):
@@ -24,8 +24,8 @@ def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_heigh
     for i, p in enumerate(all_props):
         translation_matrix = transform.EuclideanTransform(
             translation=(-(img_center[0] - p.centroid[1]), -(img_center[1] - p.centroid[0])))
-        rotated_fl[i, :, :] = rotate(fl_stack[i].data, translation_matrix, p.orientation)
-        rotated_seg[i, :, :] = rotate(seg_stack[i].data, translation_matrix, p.orientation)
+        rotated_fl[i, :, :] = rotate(fl_stack[i].data, translation_matrix, p.orientation, order=2)
+        rotated_seg[i, :, :] = rotate(seg_stack[i].data, translation_matrix, p.orientation, order=2)
 
     # go through the rotated images to check that the orientation is correct
     mean_intensity_ap = np.mean(rotated_fl, axis=1)
@@ -135,3 +135,23 @@ def measure_under_midlines(fl_stack: np.ndarray, midlines: [UnivariateSpline],
     return np.asarray([
         measure_under_midline(fl_stack[i], midlines[i], xs) for i in range(fl_stack.shape[0])
     ])
+
+
+def trim_profile(profile, threshold, new_length):
+    first = np.argmax(profile > threshold)
+    last = len(profile) - np.argmax(np.flip(profile > threshold))
+
+    trimmed = profile[first:last]
+    new_xs = np.linspace(0, len(trimmed), new_length)
+    old_xs = np.arange(0, len(trimmed))
+
+    return np.interp(new_xs, old_xs, trimmed)
+
+def trim_profiles(intensity_data_stack, threshold, new_length):
+    # just iterate over the wavelengths
+    # use xarray's interpolating indexing within each wavelength
+    starts = np.argmax(pe.raw_intensity_data.sel(wavelength="410_1").T > 2000, axis=0)
+    resampled_idx = np.linspace(starts, ends, 100, axis=1)
+    trimmed_data = np.zeros((intensity_data_stack.shape[0], intensity_data_stack.shape[1], new_length))
+    for i in range(intensity_data_stack.shape[2]):
+        trimmed_data
