@@ -159,12 +159,14 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
             (self.images.sel(wavelength='410_2') / self.images.sel(wavelength='470_2'))[self.frame]
         )
 
+        for wvl in self.wavelengths:
+            self.ims[wvl].set_clim(0, 1.5e4)
         for ax in self.axes.values():
             ax.set_axis_off()
 
-        self.fig.subplots_adjust(right=0.8)
-        self.cbar_ax = self.fig.add_axes([0.85, .10, .05, .7])
-        self.fig.colorbar(self.ims['410_1'], cax=self.cbar_ax)
+        # self.fig.subplots_adjust(right=0.8)
+        # self.cbar_ax = self.fig.add_axes([0.85, .10, .05, .7])
+        # self.fig.colorbar(self.ims['410_1'], cax=self.cbar_ax)
 
         self.background = None
 
@@ -229,7 +231,7 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         self.canvas.restore_region(self.backgrounds[wvl])
         ax.draw_artist(self.lines[wvl])
         ax.draw_artist(self.pts[wvl])
-        self.canvas.blit(ax.bbox)
+        self.canvas.draw()
 
     def make_spline(self, xs, ys):
         return UnivariateSpline(xs, ys, ext=0, s=0, k=3)
@@ -249,7 +251,6 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
         ind = index_sequence[0]
         if d[ind] >= self.epsilon:
             ind = None
-        print(f'{ind}@{wvl}')
         return ind
 
     def set_frame(self, frame):
@@ -283,10 +284,66 @@ class ImageGroupLayout(QtWidgets.QGridLayout):
                 self.axes[wvl].draw_artist(self.pts[wvl])
 
 
-class MPLLayout(QtWidgets.QGridLayout):
+class MPLLayout(QtWidgets.QVBoxLayout):
 
-    def __init__(self):
+    def __init__(self, data):
         super(MPLLayout, self).__init__()
+        self.data = data
+
+        self.frame = 0
+        self.strains = data.strain.data
+
+        self.main_widget = MatplotlibWidget()
+        self.addWidget(self.main_widget)
+        self.fig = self.main_widget.get_figure()
+        self.wavelengths = data.wavelength.data
+
+        if len(self.wavelengths) > 2:
+            n_cols = 2
+        else:
+            n_cols = 1
+
+        n_rows = len(self.wavelengths) // n_cols
+        n_rows += len(self.wavelengths) % n_cols
+
+        pos = range(1, len(self.wavelengths) + 1)
+
+        self.axes = bidict({
+            wvl: self.main_widget.get_figure().add_subplot(n_rows, n_cols, pos[i])
+            for i, wvl in enumerate(self.wavelengths)
+        })
+
+        self.xs = np.linspace(0, 500, data.shape[2])
+        self.individual_measurements = {
+            wvl: Line2D(self.xs, self.data.sel(wavelength=wvl)[self.frame], linestyle='--', color='k')
+            for wvl in self.wavelengths
+        }
+
+        for i, wvl in enumerate(self.data.wavelength.data):
+            ax = self.axes[wvl]
+            d = self.data.sel(wavelength=wvl).groupby('strain').mean(dim='strain').T
+            ax.plot(d)
+            ax.legend(d.strain.data)
+            ax.set_ylim((0, 1.6e4))
+            ax.set_title(f'${wvl}$')
+            ax.add_artist(self.individual_measurements[wvl])
+
+        plt.tight_layout()
+
+    def set_frame(self, frame):
+        self.frame = frame
+
+        backgrounds = {
+            wvl: self.fig.canvas.copy_from_bbox(self.axes[wvl].bbox) for wvl in self.wavelengths
+        }
+
+        for wvl in self.wavelengths:
+            ax = self.axes[wvl]
+            self.individual_measurements[wvl].set_data(self.xs, self.data.sel(wavelength=wvl)[self.frame])
+            self.fig.canvas.restore_region(backgrounds[wvl])
+            ax.draw_artist(self.individual_measurements[wvl])
+
+        self.fig.canvas.draw()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -306,8 +363,8 @@ class MainWindow(QtWidgets.QMainWindow):
             ImageGroupLayout(self.experiment.rot_fl, midlines=self.experiment.midlines, crop=True))
         self.ui.rawImagesTab.setLayout(ImageGroupLayout(self.experiment.fl_images))
 
-        self.ui.intensityPlotTab.setLayout(MPLLayout())
-        self.ui.redoxPlotTab.setLayout(MPLLayout())
+        self.ui.intensityPlotTab.setLayout(MPLLayout(self.experiment.raw_intensity_data))
+        self.ui.redoxPlotTab.setLayout(MPLLayout(self.experiment.raw_intensity_data))
 
         self.ui.horizontalSlider.setMaximum(self.experiment.raw_image_data.shape[0] - 1)
 
@@ -325,6 +382,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.label.setText(str(self.frame))
 
         self.ui.imagesTabWidget.currentWidget().layout().set_frame(self.frame)
+        self.ui.intensityPlotTab.layout().set_frame(self.frame)
 
     def handle_images_tab_change(self):
         self.ui.imagesTabWidget.currentWidget().layout().set_frame(self.frame)
@@ -335,6 +393,7 @@ if __name__ == '__main__':
     qapp.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     window = MainWindow()
     window.show()
+
     sys.exit(qapp.exec_())
 
     # import pickle
