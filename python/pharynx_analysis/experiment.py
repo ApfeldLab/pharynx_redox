@@ -31,6 +31,8 @@ class PairExperiment(Experiment):
             '470_2': '470_2',
         }
 
+        self.wavelengths = self.midline_map.keys()
+
         self.n_midline_pts = 500
         self.seg_threshold = 2000
         self.seg_stack = ip.segment_pharynxes(get_non_tl(self.raw_image_data))
@@ -69,6 +71,8 @@ class PairExperiment(Experiment):
             self.raw_intensity_data.append(xr.concat(i_data, dim='strain'))
 
         self.raw_intensity_data = xr.concat(self.raw_intensity_data, dim='wavelength')
+
+        # Trim
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])
