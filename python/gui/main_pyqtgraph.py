@@ -2,10 +2,12 @@ import pickle
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget, ImageItem, PlotWidget
 
+import pharynx_analysis.pharynx_io as pio
 from gui.gui_pyqtgraph import Ui_MainWindow
+from pharynx_analysis import experiment
 
 
 class ImageGridWidget(GraphicsLayoutWidget):
@@ -32,7 +34,8 @@ class ImageGridWidget(GraphicsLayoutWidget):
     def set_frame(self, frame):
         self.frame = frame
         for wvl in self.wavelengths:
-            self.image_items[wvl].setImage(self.image_stack_set.sel(wavelength=wvl)[self.frame].data)
+            self.image_items[wvl].setImage(self.image_stack_set.sel(wavelength=wvl)[self.frame].data,
+                                           autoDownsample=True)
 
 
 class ProfilePlotGridWidget(GraphicsLayoutWidget):
@@ -43,24 +46,48 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
         self.wavelengths = self.profile_data.wavelength.data
         self.xs = np.linspace(1, 100, self.profile_data.shape[2])
         self.plots = {}
+        self.means = {}
+        self.current_strain = self.profile_data.strain.data[self.frame]
+
+        for wvl in self.wavelengths:
+            self.means[wvl] = {}
+            for strain in self.profile_data.strain.data:
+                self.means[wvl][strain] = self.profile_data.sel(wavelength=wvl, strain=strain).mean(dim='strain')
+        self.legends = {}
+
+        self.idx_plot = {}
+        self.mean_plot = {}
+
         for i, wvl in enumerate(self.wavelengths):
-            if (i>0) and (i % 2 == 0):
+            if (i > 0) and (i % 2 == 0):
                 self.nextRow()
-            self.plots[wvl] = self.addPlot(x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
+            self.plots[wvl] = self.addPlot(title=wvl)
+            self.plots[wvl].setYRange(0, 1.55e4)
+            self.plots[wvl].setXRange(0, 100)
+            self.plots[wvl].disableAutoRange()
+            self.idx_plot[wvl] = self.plots[wvl].plot(x=self.xs,
+                                                      y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
+            self.mean_plot[wvl] = self.plots[wvl].plot(x=self.xs, y=self.means[wvl][self.current_strain].data,
+                                                       pen={'color': 'b'})
+
+        self.set_frame(self.frame)
 
     def set_frame(self, frame):
         self.frame = frame
         for wvl in self.wavelengths:
-            self.plots[wvl].plot(x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data, clear=True)
+            strain = self.profile_data.strain.data[self.frame]
+            if strain is not self.current_strain:
+                self.mean_plot[wvl].setData(x=self.xs, y=self.means[wvl][strain].data, pen={'color': 'b'})
+                self.current_strain = strain
+            self.idx_plot[wvl].setData(x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
 
-
-    def _mean_data(self):
-        pass
+    def _mean_wvl_by_strain(self, wvl):
+        return self.profile_data.sel(wavelength=wvl).groupby('strain', restore_coord_dims=False).mean(dim='strain')
 
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self):
+    def __init__(self, reload=False):
         super(MainWindow, self).__init__()
 
         self.ui = Ui_MainWindow()
@@ -68,8 +95,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.frame = 0
 
-        # self.experiment = experiment.PairExperiment(img_path, "TL/470_1/410_1/470_2/410_2", strains)
-        self.experiment = pickle.load(open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'rb'))
+        if reload:
+            img_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif"
+            strain_map_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/indexer.csv"
+
+            strains = pio.load_strain_map(strain_map_path)
+            self.experiment = experiment.PairExperiment(img_path, "TL/470_1/410_1/470_2/410_2", strains)
+            pickle.dump(self.experiment, open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'wb'))
+        else:
+            self.experiment = pickle.load(open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'rb'))
 
         self.ui.horizontalSlider.setMinimum(0)
         self.ui.horizontalSlider.setMaximum(self.experiment.raw_image_data.shape[0] - 1)
@@ -78,10 +112,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Set up images
         self.rot_image_grid = ImageGridWidget(self.experiment.rot_fl)
-        self.raw_image_grid = ImageGridWidget(self.experiment.fl_images)
+        # self.raw_image_grid = ImageGridWidget(self.experiment.fl_images)
 
         self.ui.rotatedImagesBox.layout().addWidget(self.rot_image_grid)
-        self.ui.rawImagesBox.layout().addWidget(self.raw_image_grid)
+        # self.ui.rawImagesBox.layout().addWidget(self.raw_image_grid)
 
         # Set up plots
         # intensity_plot_widget = PlotWidget(background='w')
@@ -98,15 +132,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frame = int(self.ui.horizontalSlider.value())
         self.ui.label.setText(str(self.frame))
         self.rot_image_grid.set_frame(self.frame)
-        self.raw_image_grid.set_frame(self.frame)
+        # self.raw_image_grid.set_frame(self.frame)
         self.intensity_plot_widget.set_frame(self.frame)
 
 
 if __name__ == '__main__':
     pg.setConfigOption('imageAxisOrder', 'row-major')
-    pg.setConfigOptions(antialias=True)
     qapp = QtWidgets.QApplication([])
-    qapp.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-    window = MainWindow()
+    window = MainWindow(reload=True)
     window.show()
     qapp.exec_()
