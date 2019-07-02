@@ -31,7 +31,7 @@ class PairExperiment(Experiment):
             '470_2': '470_2',
         }
 
-        self.wavelengths = self.midline_map.keys()
+        self.wavelengths = list(self.midline_map.keys())
 
         self.n_midline_pts = 500
         self.seg_threshold = 2000
@@ -44,6 +44,7 @@ class PairExperiment(Experiment):
         for wvl in self.midline_map.keys():
             rot_fl, rot_seg = ip.center_and_rotate_pharynxes(get_non_tl(self.raw_image_data).sel(wavelength=wvl),
                                                              self.seg_stack.sel(wavelength=wvl))
+                                                             # crop_height=30, crop_width=70)
             self.rot_fl.append(rot_fl)
             self.rot_seg.append(rot_seg)
 
@@ -56,6 +57,7 @@ class PairExperiment(Experiment):
             self.midlines[wvl] = ip.calculate_midlines(self.rot_seg.sel(wavelength=wvl))
 
         # Measure under midlines
+        # TODO broken when cropped
         self.raw_intensity_data = []
         for img_wvl, mid_wvl in self.midline_map.items():
             img_stk = self.rot_fl.sel(wavelength=img_wvl)
@@ -69,10 +71,12 @@ class PairExperiment(Experiment):
                 i_data.append(img_stk[i].interp(x=xs, y=ys))
 
             self.raw_intensity_data.append(xr.concat(i_data, dim='strain'))
-
         self.raw_intensity_data = xr.concat(self.raw_intensity_data, dim='wavelength')
 
         # Trim
+
+        # Calculate Redox Measurements
+        self.redox = self.raw_intensity_data
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])
