@@ -45,11 +45,11 @@ def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_heigh
     center_x = rotated_fl.shape[2] // 2
     center_y = rotated_fl.shape[1] // 2
     if crop_width:
-        rotated_fl = rotated_fl[:, :, center_x - crop_width//2:center_x + crop_width//2]
-        rotated_seg = rotated_seg[:, :, center_x - crop_width//2:center_x + crop_width//2]
+        rotated_fl = rotated_fl[:, :, center_x - crop_width // 2:center_x + crop_width // 2]
+        rotated_seg = rotated_seg[:, :, center_x - crop_width // 2:center_x + crop_width // 2]
     if crop_height:
-        rotated_fl = rotated_fl[:, center_y - crop_height//2:center_y + crop_height//2, :]
-        rotated_seg = rotated_seg[:, :, center_y - crop_height//2:center_y + crop_height//2]
+        rotated_fl = rotated_fl[:, center_y - crop_height // 2:center_y + crop_height // 2, :]
+        rotated_seg = rotated_seg[:, :, center_y - crop_height // 2:center_y + crop_height // 2]
 
     return rotated_fl, rotated_seg
 
@@ -141,6 +141,13 @@ def measure_under_midlines(fl_stack: np.ndarray, midlines: [UnivariateSpline],
 
 
 def trim_profile(profile, threshold, new_length):
+    """
+    TODO: Documentation
+    :param profile:
+    :param threshold:
+    :param new_length:
+    :return:
+    """
     first = np.argmax(profile > threshold)
     last = len(profile) - np.argmax(np.flip(profile > threshold))
 
@@ -152,10 +159,18 @@ def trim_profile(profile, threshold, new_length):
 
 
 def trim_profiles(intensity_data_stack, threshold, new_length):
-    # just iterate over the wavelengths
-    # use xarray's interpolating indexing within each wavelength
-    starts = np.argmax(pe.raw_intensity_data.sel(wavelength="410_1").T > 2000, axis=0)
-    resampled_idx = np.linspace(starts, ends, 100, axis=1)
-    trimmed_data = np.zeros((intensity_data_stack.shape[0], intensity_data_stack.shape[1], new_length))
-    for i in range(intensity_data_stack.shape[2]):
-        trimmed_data
+    """
+    TODO: Documentation
+    :param intensity_data_stack:
+    :param threshold:
+    :param new_length:
+    :return:
+    """
+    trimmed_data = np.ndarray(
+        shape=(len(intensity_data_stack.wavelength), intensity_data_stack.strain.shape[0], new_length))
+    for i, wvl in enumerate(intensity_data_stack.wavelength):
+        for j in range(intensity_data_stack.strain.shape[0]):
+            untrimmed_profile = intensity_data_stack.sel(wavelength=wvl).isel(strain=j).data
+            trimmed_data[i, j, :] = trim_profile(untrimmed_profile, threshold, new_length)
+    return xr.DataArray(trimmed_data, dims=['wavelength', 'strain', 'position'],
+                        coords={'wavelength': intensity_data_stack.wavelength, 'strain': intensity_data_stack.strain})

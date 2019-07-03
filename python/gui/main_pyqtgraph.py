@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
-from pyqtgraph import GraphicsLayoutWidget, ImageItem, PlotWidget
+from pyqtgraph import GraphicsLayoutWidget, ImageItem, PlotWidget, ViewBox
 
 import pharynx_analysis.pharynx_io as pio
 from gui.gui_pyqtgraph import Ui_MainWindow
@@ -11,12 +11,17 @@ from pharynx_analysis import experiment
 
 
 class ImageGridWidget(GraphicsLayoutWidget):
+    # TODO Docs
+    # TODO add midlines
 
-    def __init__(self, image_stack_set, **kwargs):
+    def __init__(self, image_stack_set, midlines=None, **kwargs):
         super(ImageGridWidget, self).__init__(**kwargs)
         self.image_stack_set = image_stack_set
         self.wavelengths = image_stack_set.wavelength.data
         self.frame = 0
+        self.midlines = midlines
+        self.midline_plots = {}
+        self.n_animals = self.image_stack_set.strain.size
 
         self.image_items = {
             wvl: ImageItem(image=image_stack_set.sel(wavelength=wvl)[self.frame].data, border='w')
@@ -30,19 +35,44 @@ class ImageGridWidget(GraphicsLayoutWidget):
             self.image_viewboxes[wvl] = self.addViewBox(name=wvl)
             self.image_viewboxes[wvl].addItem(self.image_items[wvl])
             self.image_viewboxes[wvl].setAspectLocked(True)
+            if i > 0:
+                self.image_viewboxes[wvl].linkView(ViewBox.XAxis, self.image_viewboxes[self.wavelengths[0]])
+                self.image_viewboxes[wvl].linkView(ViewBox.YAxis, self.image_viewboxes[self.wavelengths[0]])
+
+        if self.midlines:
+            self.midline_xs = {
+                wvl: np.tile(np.linspace(50, 120), (self.n_animals, 1))
+                for wvl in self.wavelengths
+            }
+            self.midline_ys = {
+                wvl: np.array(
+                    [self.midlines[wvl][frame](self.midline_xs[wvl][frame]) for frame in range(self.n_animals)])
+                for wvl in self.wavelengths
+            }
+
+            for wvl in self.wavelengths:
+                self.midline_plots[wvl] = pg.PlotDataItem(pen={'color': 'r', 'width': 2})
+                self.image_viewboxes[wvl].addItem(self.midline_plots[wvl])
+            self.draw_midlines()
+
+    def draw_midlines(self):
+        for wvl in self.wavelengths:
+            self.midline_plots[wvl].setData(x=self.midline_xs[wvl][self.frame], y=self.midline_ys[wvl][self.frame])
 
     def set_frame(self, frame):
         self.frame = frame
         for wvl in self.wavelengths:
-            self.image_items[wvl].setImage(self.image_stack_set.sel(wavelength=wvl)[self.frame].data,
-                                           autoDownsample=True)
+            self.image_items[wvl].setImage(self.image_stack_set.sel(wavelength=wvl)[self.frame].data)
+        if self.midlines:
+            self.draw_midlines()
 
 
 class ProfilePlotGridWidget(GraphicsLayoutWidget):
-    def __init__(self, profile_data, **kwargs):
+    def __init__(self, profile_data, regions, **kwargs):
         super(ProfilePlotGridWidget, self).__init__(**kwargs)
         self.frame = 0
         self.profile_data = profile_data
+        self.regions = regions
         self.wavelengths = self.profile_data.wavelength.data
         self.xs = np.linspace(1, 100, self.profile_data.shape[2])
         self.plots = {}
@@ -57,18 +87,30 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
 
         self.idx_plot = {}
         self.mean_plot = {}
-
+        self.linear_regions = {}
         for i, wvl in enumerate(self.wavelengths):
             if (i > 0) and (i % 2 == 0):
                 self.nextRow()
-            self.plots[wvl] = self.addPlot(title=wvl)
+            self.plots[wvl] = self.addPlot(title=wvl, background='w')
             self.plots[wvl].setYRange(0, 1.55e4)
             self.plots[wvl].setXRange(0, 100)
             self.plots[wvl].disableAutoRange()
             self.idx_plot[wvl] = self.plots[wvl].plot(x=self.xs,
                                                       y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
             self.mean_plot[wvl] = self.plots[wvl].plot(x=self.xs, y=self.means[wvl][self.current_strain].data,
-                                                       pen={'color': 'b'})
+                                                       pen={'color': 'r'})
+            self.linear_regions[wvl] = pg.LinearRegionItem()
+
+        # TODO address region plot boundaries
+        # This code *works*, but looks messy on the screen... maybe just put the boundaries on one of the subplots?
+        # Maybe have a flag in the UI to enable/disable them?
+
+        # self.region_handles = {}
+        # for wvl in self.wavelengths:
+        #     self.region_handles[wvl] = {}
+        #     for i, (region_name, region_boundaries) in enumerate(self.regions.items()):
+        #         self.region_handles[wvl][region_name] = pg.LinearRegionItem(values=self.regions[region_name], brush=pg.intColor(i, alpha=50))
+        #         self.plots[wvl].addItem(self.region_handles[wvl][region_name])
 
         self.set_frame(self.frame)
 
@@ -77,7 +119,7 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
         for wvl in self.wavelengths:
             strain = self.profile_data.strain.data[self.frame]
             if strain is not self.current_strain:
-                self.mean_plot[wvl].setData(x=self.xs, y=self.means[wvl][strain].data, pen={'color': 'b'})
+                self.mean_plot[wvl].setData(x=self.xs, y=self.means[wvl][strain].data, pen={'color': 'r'})
                 self.current_strain = strain
             self.idx_plot[wvl].setData(x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
 
@@ -111,17 +153,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.horizontalSlider.valueChanged.connect(self.handle_slider_changed)
 
         # Set up images
-        self.rot_image_grid = ImageGridWidget(self.experiment.rot_fl)
-        # self.raw_image_grid = ImageGridWidget(self.experiment.fl_images)
+        self.rot_image_grid = ImageGridWidget(self.experiment.rot_fl, midlines=self.experiment.midlines)
+        self.raw_image_grid = ImageGridWidget(self.experiment.fl_images)
 
         self.ui.rotatedImagesBox.layout().addWidget(self.rot_image_grid)
-        # self.ui.rawImagesBox.layout().addWidget(self.raw_image_grid)
+        self.ui.rawImagesBox.layout().addWidget(self.raw_image_grid)
 
         # Set up plots
-        # intensity_plot_widget = PlotWidget(background='w')
         redox_plot_widget = PlotWidget(background='w')
 
-        self.intensity_plot_widget = ProfilePlotGridWidget(self.experiment.raw_intensity_data)
+        self.intensity_plot_widget = ProfilePlotGridWidget(
+            self.experiment.trimmed_intensity_data, self.experiment.get_scaled_region_boundaries()
+        )
         self.ui.intensityPlotBox.layout().addWidget(self.intensity_plot_widget)
         self.ui.redoxPlotBox.layout().addWidget(redox_plot_widget)
 
@@ -132,13 +175,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frame = int(self.ui.horizontalSlider.value())
         self.ui.label.setText(str(self.frame))
         self.rot_image_grid.set_frame(self.frame)
-        # self.raw_image_grid.set_frame(self.frame)
+        self.raw_image_grid.set_frame(self.frame)
         self.intensity_plot_widget.set_frame(self.frame)
 
 
 if __name__ == '__main__':
-    pg.setConfigOption('imageAxisOrder', 'row-major')
+    pg.setConfigOptions(imageAxisOrder='row-major', antialias=True)
     qapp = QtWidgets.QApplication([])
-    window = MainWindow(reload=True)
+    window = MainWindow(reload=False)
     window.show()
     qapp.exec_()
