@@ -2,7 +2,7 @@ import pickle
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget, ImageItem, PlotWidget, ViewBox
 
 import pharynx_analysis.pharynx_io as pio
@@ -171,12 +171,24 @@ class MainWindow(QtWidgets.QMainWindow):
         # Event Handlers
         self.ui.horizontalSlider.valueChanged.connect(self.handle_slider_changed)
 
-    def handle_slider_changed(self):
-        self.frame = int(self.ui.horizontalSlider.value())
+    def keyPressEvent(self, a0: QtGui.QKeyEvent) -> None:
+        k = a0.key()
+        if k == QtCore.Qt.Key_Right:
+            self.set_frame(self.frame + 1)
+
+        if k == QtCore.Qt.Key_Left:
+            self.set_frame(self.frame - 1)
+
+    def set_frame(self, new_frame):
+        self.frame = max(0, min(self.experiment.raw_image_data.strain.size-1, new_frame))
         self.ui.label.setText(str(self.frame))
         self.rot_image_grid.set_frame(self.frame)
         self.raw_image_grid.set_frame(self.frame)
         self.intensity_plot_widget.set_frame(self.frame)
+        self.ui.horizontalSlider.setValue(self.frame)
+
+    def handle_slider_changed(self):
+        self.set_frame(int(self.ui.horizontalSlider.value()))
 
 
 if __name__ == '__main__':
