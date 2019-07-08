@@ -19,6 +19,7 @@ def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_heigh
 
     rotated_fl = fl_stack.copy()
     rotated_seg = seg_stack.copy()
+    rotated_seg['wavelength'] = rotated_fl['wavelength']
 
     img_center = ((fl_stack.shape[2] / 2) - .5, (fl_stack.shape[1] / 2) - .5)
     for i, p in enumerate(all_props):
@@ -89,6 +90,7 @@ def calculate_midlines(rot_seg_stack, s=1e8, ext=0):
 
 
 def calculate_midline(rot_seg_img, s=1e8, ext=0):
+    # TODO center segmentation before fitting splines
     """
     TODO: Documentation
     :param rot_seg_img:
