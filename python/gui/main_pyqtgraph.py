@@ -58,9 +58,36 @@ class ImageGridWidget(GraphicsLayoutWidget):
                 self.midline_plots[wvl] = pg.PlotDataItem(pen={'color': 'r', 'width': 2})
                 self.image_viewboxes[wvl].addItem(self.midline_plots[wvl])
 
+            self.ratio_midline_xs = {
+                i: {
+                    wvl: self.midline_xs[wvl].copy()
+                    for wvl in [f'410_{i + 1}', f'470_{i + 1}']
+                } for i in [0, 1]
+            }
+            self.ratio_midline_ys = {
+                i: {
+                    wvl: self.midline_ys[wvl].copy()
+                    for wvl in [f'410_{i + 1}', f'470_{i + 1}']
+                } for i in [0, 1]
+            }
+
+            for i in [0, 1]:
+                for j, wvl in enumerate(self.ratio_midline_xs[i].keys()):
+                    self.midline_plots[f'r{i + 1}_{wvl}'] = pg.PlotDataItem(pen=pg.intColor(j))
+                    self.image_viewboxes[f'r{i + 1}'].addItem(self.midline_plots[f'r{i + 1}_{wvl}'])
+
+        self.set_frame(self.frame)
+
     def update_midlines(self):
         for wvl in self.wavelengths:
             self.midline_plots[wvl].setData(x=self.midline_xs[wvl][self.frame], y=self.midline_ys[wvl][self.frame])
+
+        for i in [0, 1]:
+            for j, wvl in enumerate(self.ratio_midline_xs[i].keys()):
+                self.midline_plots[f'r{i + 1}_{wvl}'].setData(
+                    x=self.ratio_midline_xs[i][wvl][self.frame],
+                    y=self.ratio_midline_ys[i][wvl][self.frame]
+                )
 
     def update_images(self):
         for wvl in self.wavelengths:
@@ -207,6 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     pg.setConfigOptions(imageAxisOrder='row-major', antialias=True)
     qapp = QtWidgets.QApplication([])
-    window = MainWindow(reload=True)
+    window = MainWindow(reload=False)
     window.show()
     qapp.exec_()
