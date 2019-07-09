@@ -100,8 +100,13 @@ class PairExperiment(Experiment):
                                                        self.trimmed_profile_length)
 
         # Calculate Redox Measurements
-        self.redox = self.trimmed_intensity_data
+        r0 = self.trimmed_intensity_data.sel(wavelength='410_1') / self.trimmed_intensity_data.sel(wavelength='470_1')
+        r1 = self.trimmed_intensity_data.sel(wavelength='410_2') / self.trimmed_intensity_data.sel(wavelength='470_2')
+        self.r = xr.concat([r0, r1], 'pair')
+
         # TODO calculate redox
+        self.oxd = ip.r_to_oxd(self.r)
+        self.e = ip.oxd_to_redox_potential(self.oxd)
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])
