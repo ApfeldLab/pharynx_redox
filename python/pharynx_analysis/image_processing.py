@@ -176,3 +176,11 @@ def trim_profiles(intensity_data_stack, threshold, new_length):
             trimmed_data[i, j, :] = trim_profile(untrimmed_profile, threshold, new_length)
     return xr.DataArray(trimmed_data, dims=['wavelength', 'strain', 'position'],
                         coords={'wavelength': intensity_data_stack.wavelength, 'strain': intensity_data_stack.strain})
+
+
+def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
+    return (r - r_min) / ((r - r_min) + instrument_factor * (r_max - r))
+
+
+def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
+    return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
