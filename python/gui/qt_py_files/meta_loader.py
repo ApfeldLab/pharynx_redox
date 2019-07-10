@@ -9,26 +9,24 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Form(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(400, 300)
-        self.gridLayout = QtWidgets.QGridLayout(Form)
-        self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_2 = QtWidgets.QPushButton(Form)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_2, 1, 0, 1, 1)
-        self.pushButton = QtWidgets.QPushButton(Form)
-        self.pushButton.setObjectName("pushButton")
-        self.gridLayout.addWidget(self.pushButton, 0, 0, 1, 1)
+class Ui_MetaLoader(object):
+    def setupUi(self, MetaLoader):
+        MetaLoader.setObjectName("MetaLoader")
+        MetaLoader.resize(238, 84)
+        self.loadRawImageButton = QtWidgets.QPushButton(MetaLoader)
+        self.loadRawImageButton.setGeometry(QtCore.QRect(6, 42, 167, 32))
+        self.loadRawImageButton.setObjectName("loadRawImageButton")
+        self.loadExperimentButton = QtWidgets.QPushButton(MetaLoader)
+        self.loadExperimentButton.setGeometry(QtCore.QRect(6, 8, 204, 32))
+        self.loadExperimentButton.setObjectName("loadExperimentButton")
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(MetaLoader)
+        QtCore.QMetaObject.connectSlotsByName(MetaLoader)
 
-    def retranslateUi(self, Form):
+    def retranslateUi(self, MetaLoader):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.pushButton_2.setText(_translate("Form", "Load Experiment Directory"))
-        self.pushButton.setText(_translate("Form", "Load Raw Image File"))
+        MetaLoader.setWindowTitle(_translate("MetaLoader", "Load"))
+        self.loadRawImageButton.setText(_translate("MetaLoader", "Load Raw Image File"))
+        self.loadExperimentButton.setText(_translate("MetaLoader", "Load Experiment Directory"))
 
 
