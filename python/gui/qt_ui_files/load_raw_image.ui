@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>LoadExperimentDialog</class>
- <widget class="QDialog" name="LoadExperimentDialog">
+ <class>LoadRawImageFileDialog</class>
+ <widget class="QDialog" name="LoadRawImageFileDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>583</width>
-    <height>331</height>
+    <height>344</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Load Experiment</string>
+   <string>Load Raw Image File</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="2" column="0">
@@ -26,28 +26,28 @@
    </item>
    <item row="1" column="0">
     <layout class="QGridLayout" name="gridLayout">
-     <item row="3" column="1">
+     <item row="4" column="1">
       <widget class="QLineEdit" name="imagingStrategyLineEdit">
        <property name="text">
         <string>TL/410/470/410/470</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
         <string>Imaging Strategy</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="0">
+     <item row="1" column="0">
       <widget class="QPushButton" name="selectImageFilePushButton">
        <property name="text">
         <string>Select Image File</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
         <spacer name="verticalSpacer_2">
@@ -91,39 +91,71 @@
        </item>
       </layout>
      </item>
-     <item row="0" column="1">
+     <item row="1" column="1">
       <widget class="QLineEdit" name="imageFileLineEdit"/>
      </item>
-     <item row="2" column="1">
-      <widget class="TableWidget" name="strainTable">
-       <property name="sortingEnabled">
-        <bool>false</bool>
-       </property>
-       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-        <bool>false</bool>
-       </attribute>
-       <attribute name="horizontalHeaderStretchLastSection">
-        <bool>true</bool>
-       </attribute>
-       <attribute name="verticalHeaderShowSortIndicator" stdset="0">
-        <bool>false</bool>
-       </attribute>
-       <column>
-        <property name="text">
-         <string>Strain</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Start Animal</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>End Animal</string>
-        </property>
-       </column>
-      </widget>
+     <item row="3" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="TableWidget" name="strainTable">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="sortingEnabled">
+          <bool>false</bool>
+         </property>
+         <attribute name="horizontalHeaderCascadingSectionResizes">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="horizontalHeaderDefaultSectionSize">
+          <number>80</number>
+         </attribute>
+         <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="horizontalHeaderStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+         <attribute name="verticalHeaderCascadingSectionResizes">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Strain</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Start Animal</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>End Animal</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>
@@ -148,7 +180,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>LoadExperimentDialog</receiver>
+   <receiver>LoadRawImageFileDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -164,7 +196,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>LoadExperimentDialog</receiver>
+   <receiver>LoadRawImageFileDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
