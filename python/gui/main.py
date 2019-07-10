@@ -1,10 +1,15 @@
 import pickle
+from pathlib import Path
 
+import pandas as pd
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtWidgets import QFileDialog
 
 import pharynx_analysis.pharynx_io as pio
 from gui.qt_py_files.gui_pyqtgraph import Ui_MainWindow
+from gui.qt_py_files.load_raw_image import Ui_LoadExperimentDialog
+from gui.qt_py_files.meta_loader import Ui_MetaLoader
 from gui.widgets import ImageGridWidget, ProfilePlotGridWidget
 from pharynx_analysis import experiment
 
@@ -93,10 +98,76 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.tableWidget.setSortingEnabled(False)
 
 
+class MetaLoaderWindow(QtWidgets.QMainWindow):
+
+    def __init__(self):
+        super(MetaLoaderWindow, self).__init__()
+
+        self.ui = Ui_MetaLoader()
+        self.ui.setupUi(self)
+
+        self.ui.loadRawImageButton.clicked.connect(self.show_raw_image_loader)
+        self.ui.loadExperimentButton.clicked.connect(self.get_directory)
+
+    def show_raw_image_loader(self):
+        raw_image_loader = LoadRawImageWindow()
+        raw_image_loader.exec_()
+        raw_image_loader.show()
+        self.hide()
+
+    def get_directory(self):
+        fname = QFileDialog.getExistingDirectory(self, 'Select Experiment Directory')
+
+
+class LoadRawImageWindow(QtWidgets.QDialog):
+
+    def __init__(self):
+        super(LoadRawImageWindow, self).__init__()
+
+        self.ui = Ui_LoadExperimentDialog()
+        self.ui.setupUi(self)
+
+        # self.ui.buttonBox.accepted.connect(self.accept)
+        # self.ui.buttonBox.rejected.connect(self.reject)
+
+        self.ui.selectImageFilePushButton.clicked.connect(self.get_raw_image_file_name)
+        self.ui.addRowPushButton.clicked.connect(self.handle_add_new_row)
+        self.ui.deleteRowPushButton.clicked.connect(self.handle_delete_row)
+
+        self.ui.strainTable.setSortingEnabled(False)
+        self.ui.strainTable.setEditable(True)
+
+        self.indexer_df = pd.DataFrame()
+
+    def get_raw_image_file_name(self):
+        f_name = QFileDialog.getOpenFileName(self, filter='Image Files (*.tif *.tiff)')
+        file_path = Path(f_name[0])
+        for fp in file_path.parent.iterdir():
+            if 'indexer' in fp.name:
+                self.indexer_df = pd.read_csv(fp.absolute())
+                self.update_strain_table()
+        self.ui.imageFileLineEdit.setText(str(file_path.absolute()))
+
+    def update_strain_table(self):
+        self.ui.strainTable.setData(self.indexer_df.to_dict(orient='records'))
+
+    def handle_add_new_row(self):
+        self.indexer_df = self.indexer_df.append({'Strain': '', 'Start Animal': 0, 'End Animal': 0}, ignore_index=True)
+        self.update_strain_table()
+
+    def handle_delete_row(self):
+        self.indexer_df.drop(self.indexer_df.tail(1).index, inplace=True)
+        self.update_strain_table()
+
+    def accept(self):
+        pass
+
+
 if __name__ == '__main__':
     # TODO: resize recursion bug
     pg.setConfigOptions(imageAxisOrder='row-major', antialias=True)
     qapp = QtWidgets.QApplication([])
-    window = MainWindow(reload=False)
+    # window = MainWindow(reload=False)
+    window = MetaLoaderWindow()
     window.show()
     qapp.exec_()
