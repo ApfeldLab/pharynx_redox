@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 import pharynx_analysis.pharynx_io as pio
 from gui.qt_py_files.gui_pyqtgraph import Ui_MainWindow
-from gui.qt_py_files.load_raw_image import Ui_LoadExperimentDialog
+from gui.qt_py_files.load_raw_image import Ui_LoadRawImageFileDialog
 from gui.qt_py_files.meta_loader import Ui_MetaLoader
 from gui.widgets import ImageGridWidget, ProfilePlotGridWidget
 from pharynx_analysis import experiment
@@ -124,7 +124,7 @@ class LoadRawImageWindow(QtWidgets.QDialog):
     def __init__(self):
         super(LoadRawImageWindow, self).__init__()
 
-        self.ui = Ui_LoadExperimentDialog()
+        self.ui = Ui_LoadRawImageFileDialog()
         self.ui.setupUi(self)
 
         # self.ui.buttonBox.accepted.connect(self.accept)
@@ -137,6 +137,8 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.ui.strainTable.setSortingEnabled(False)
         self.ui.strainTable.setEditable(True)
 
+        self.ui.strainTable.itemChanged.connect(self.handle_table_changed)
+
         self.indexer_df = pd.DataFrame()
 
     def get_raw_image_file_name(self):
@@ -148,12 +150,19 @@ class LoadRawImageWindow(QtWidgets.QDialog):
                 self.update_strain_table()
         self.ui.imageFileLineEdit.setText(str(file_path.absolute()))
 
+    def handle_table_changed(self, item):
+        header = self.ui.strainTable.horizontalHeaderItem(item.column()).text()
+        self.indexer_df.at[item.row(), header] = item.text()
+        return
+
+
     def update_strain_table(self):
         self.ui.strainTable.setData(self.indexer_df.to_dict(orient='records'))
 
     def handle_add_new_row(self):
         self.indexer_df = self.indexer_df.append({'Strain': '', 'Start Animal': 0, 'End Animal': 0}, ignore_index=True)
         self.update_strain_table()
+        return
 
     def handle_delete_row(self):
         self.indexer_df.drop(self.indexer_df.tail(1).index, inplace=True)
