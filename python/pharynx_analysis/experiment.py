@@ -1,11 +1,14 @@
 import numpy as np
-import xarray as xr
 
 from pharynx_analysis import image_processing as ip
 from pharynx_analysis import pharynx_io as pio
 
 
 class Experiment:
+    """
+    The abstract Experiment class
+
+    """
     regions = {
         'pm7': [.07, .13],
         'pm6': [.15, .21],
@@ -13,6 +16,16 @@ class Experiment:
         'pm4': [.53, .64],
         'pm3': [.68, .93],
     }
+
+    # R -> OxD parameters
+    r_min = 0.852
+    r_max = 6.65
+    instrument_factor = 0.171
+
+    # OxD -> E parameters
+    midpoint_potential = -265
+    z = 2
+    temperature = 22
 
     def __init__(self, raw_image_path: str):
         self.raw_image_path = raw_image_path
@@ -23,6 +36,16 @@ def get_non_tl(data_array):
 
 
 class PairExperiment(Experiment):
+    """
+    This is the paired ratio experiment
+
+    Attributes
+    ----------
+    raw_image_path
+    imaging_scheme
+    strain_map
+    midline_smoothing
+    """
     midline_map = {
         '410_1': '410_1',
         '470_1': '470_1',
