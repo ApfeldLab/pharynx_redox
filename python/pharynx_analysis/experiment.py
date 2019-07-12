@@ -6,7 +6,6 @@ from pharynx_analysis import pharynx_io as pio
 
 
 class Experiment:
-
     regions = {
         'pm7': [.07, .13],
         'pm6': [.15, .21],
@@ -24,7 +23,6 @@ def get_non_tl(data_array):
 
 
 class PairExperiment(Experiment):
-
     midline_map = {
         '410_1': '410_1',
         '470_1': '470_1',
@@ -48,63 +46,30 @@ class PairExperiment(Experiment):
         self.imaging_scheme = imaging_scheme
         self.strain_map = strain_map
         self.raw_image_data = pio.load_images(self.raw_image_path, imaging_scheme, strain_map)
-        self.fl_images = self.raw_image_data.where(self.raw_image_data.wavelength != 'TL', drop=True)
-
-        self.seg_stack = ip.segment_pharynxes(get_non_tl(self.raw_image_data))
+        self.seg_stack = ip.segment_pharynxes(self.raw_image_data)
 
         self.rot_fl = []
         self.rot_seg = []
 
-        # Do the rotations
-        self.rotation_wavelength = '410_1'
+        self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(self.raw_image_data, self.seg_stack)
 
-        for wvl in self.midline_map.keys():
-            rot_fl, rot_seg = ip.center_and_rotate_pharynxes(get_non_tl(self.raw_image_data).sel(wavelength=wvl),
-                                                             self.seg_stack.sel(wavelength=self.rotation_wavelength))
-            # crop_height=30, crop_width=70)
-            self.rot_fl.append(rot_fl)
-            self.rot_seg.append(rot_seg)
-
-        self.rot_fl = xr.concat(self.rot_fl, dim='wavelength')
-        self.rot_seg = xr.concat(self.rot_seg, dim='wavelength')
-
-        rot_r1 = self.rot_fl.sel(wavelength='410_1') / self.rot_fl.sel(wavelength='470_1')
-        rot_r2 = self.rot_fl.sel(wavelength='410_2') / self.rot_fl.sel(wavelength='470_2')
-
-        self.rot_ratios = xr.concat([rot_r1, rot_r2], 'pair')
-
-        # Calculate midlines
-        self.midlines = {}
-        for wvl in self.midline_map.keys():
-            self.midlines[wvl] = ip.calculate_midlines(self.rot_seg.sel(wavelength=wvl), s=midline_smoothing)
+        self.midlines = ip.calculate_midlines(self.rot_seg)
 
         # Measure under midlines
         # TODO broken when cropped
-        self.raw_intensity_data = []
-        for img_wvl, mid_wvl in self.midline_map.items():
-            img_stk = self.rot_fl.sel(wavelength=img_wvl)
-
-            i_data = []
-            for i in range(self.raw_image_data.shape[0]):
-                midline = self.midlines[mid_wvl][i]
-                xs = xr.DataArray(np.linspace(40, 120, self.n_midline_pts), dims='z')
-                ys = xr.DataArray(midline(xs), dims='z')
-
-                i_data.append(img_stk[i].interp(x=xs, y=ys))
-
-            self.raw_intensity_data.append(xr.concat(i_data, dim='strain'))
-        self.raw_intensity_data = xr.concat(self.raw_intensity_data, dim='wavelength')
+        self.midline_xs = np.linspace(40, 120, self.n_midline_pts)
+        self.raw_intensity_data = ip.measure_under_midlines(
+            self.rot_fl, self.midlines, (40, 120), n_points=self.n_midline_pts
+        )
 
         # Trim
-        self.trimmed_intensity_data = ip.trim_profiles(self.raw_intensity_data, self.seg_threshold,
-                                                       self.trimmed_profile_length)
+        # TODO: use trim boundaries from 410 to trim 470
+        self.trimmed_intensity_data = ip.trim_profiles(
+            self.raw_intensity_data, self.seg_threshold, self.trimmed_profile_length
+        )
 
         # Calculate Redox Measurements
-        r0 = self.trimmed_intensity_data.sel(wavelength='410_1') / self.trimmed_intensity_data.sel(wavelength='470_1')
-        r1 = self.trimmed_intensity_data.sel(wavelength='410_2') / self.trimmed_intensity_data.sel(wavelength='470_2')
-        self.r = xr.concat([r0, r1], 'pair')
-
-        # TODO calculate redox
+        self.r = self.trimmed_intensity_data.sel(wavelength='410') / self.trimmed_intensity_data.sel(wavelength='470')
         self.oxd = ip.r_to_oxd(self.r)
         self.e = ip.oxd_to_redox_potential(self.oxd)
 
@@ -123,3 +88,10 @@ class PairExperiment(Experiment):
 class TimeSeriesExperiment(Experiment):
     def __init__(self, raw_image_path: str):
         super().__init__(raw_image_path)
+
+
+if __name__ == '__main__':
+    img_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif"
+    strain_map_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/indexer.csv"
+    strains = pio.load_strain_map_from_disk(strain_map_path)
+    ex = PairExperiment(img_path, "TL/470/410/470/410", strains)

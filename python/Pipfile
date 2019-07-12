@@ -18,6 +18,7 @@ seaborn = "*"
 statsmodels = "*"
 pyqt5-stubs = "*"
 bidict = "*"
+sphinx = "*"
 
 [requires]
 python_version = "3.7"
