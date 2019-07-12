@@ -30,7 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
             img_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif"
             strain_map_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/indexer.csv"
 
-            strains = pio.load_strain_map(strain_map_path)
+            strains = pio.load_strain_map_from_disk(strain_map_path)
             self.experiment = experiment.PairExperiment(img_path, "TL/470_1/410_1/470_2/410_2", strains)
             pickle.dump(self.experiment, open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'wb'))
         else:
@@ -127,7 +127,7 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.ui = Ui_LoadRawImageFileDialog()
         self.ui.setupUi(self)
 
-        # self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.accepted.connect(self.accept)
         # self.ui.buttonBox.rejected.connect(self.reject)
 
         self.ui.selectImageFilePushButton.clicked.connect(self.get_raw_image_file_name)
@@ -155,7 +155,6 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.indexer_df.at[item.row(), header] = item.text()
         return
 
-
     def update_strain_table(self):
         self.ui.strainTable.setData(self.indexer_df.to_dict(orient='records'))
 
@@ -168,8 +167,17 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.indexer_df.drop(self.indexer_df.tail(1).index, inplace=True)
         self.update_strain_table()
 
+    def verify_inputs(self):
+        # TODO: Do this here, or when creating an experiment I can just throw an error and quit?
+        # Check image stack divisible by len(strategy)
+
+        # Check animals start @ 1
+
+        # Check
+        return
+
     def accept(self):
-        pass
+        self.verify_inputs()
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ class TestPharynxAnalysis:
 
     def test_load_images_shape(self):
         img_stack = pio.load_images(self.img_stk_0['img_path'], self.img_stk_0['imaging_scheme'],
-                                    pio.load_strain_map(self.img_stk_0['strain_map_path']))
+                                    pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path']))
 
         assert img_stack.shape[0] == self.img_stk_0['n_animals']
         assert img_stack.shape[1] == self.img_stk_0['n_wavelengths']
@@ -41,27 +41,27 @@ class TestPharynxAnalysis:
 
     def test_load_images_dimension_ordering(self):
         img_stack = pio.load_images(self.img_stk_0['img_path'], self.img_stk_0['imaging_scheme'],
-                                    pio.load_strain_map(self.img_stk_0['strain_map_path']))
+                                    pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path']))
 
         assert img_stack.dims == ('strain', 'wavelength', 'y', 'x')
 
     def test_load_strain_map_shape(self):
-        strains = pio.load_strain_map(self.img_stk_0['strain_map_path'])
+        strains = pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path'])
 
         assert (self.img_stk_0['n_animals'],) == strains.shape
 
     def test_load_strain_map_strains(self):
-        strains = pio.load_strain_map(self.img_stk_0['strain_map_path'])
+        strains = pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path'])
 
         assert sorted(np.unique(strains)) == sorted(self.img_stk_0['unique_strains'])
 
     def test_load_strain_map_length(self):
-        strains = pio.load_strain_map(self.img_stk_0['strain_map_path'])
+        strains = pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path'])
 
         assert len(strains) == self.img_stk_0['n_animals']
 
     def test_load_strain_map_n_strains(self):
-        strains = pio.load_strain_map(self.img_stk_0['strain_map_path'])
+        strains = pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path'])
 
         assert len(strains[strains == 'HD233']) == self.img_stk_0['n_HD233']
         assert len(strains[strains == 'SAY47']) == self.img_stk_0['n_SAY47']
