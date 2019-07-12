@@ -1,108 +1,156 @@
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import xarray as xr
 from scipy.interpolate import UnivariateSpline
-from scipy.signal import find_peaks
 from skimage import measure, transform
 
 
-def center_and_rotate_pharynxes(fl_stack, seg_stack, crop_width=None, crop_height=None) -> (np.ndarray, np.ndarray):
-    """ TODO: Documentation
-    :param fl_stack:
-    :param seg_stack:
-    :param crop_width:
-    :param crop_height:
-    :return:
+def center_and_rotate_pharynxes(fl_images, seg_images) -> (np.ndarray, np.ndarray):
     """
-    all_props = [measure.regionprops(x, coordinates='rc')[0] for x in measure.label(seg_stack)]
+    Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
+    that the pharynx is in the center of the image, with its anterior on the left
 
-    rotated_fl = fl_stack.copy()
-    rotated_seg = seg_stack.copy()
-    rotated_seg['wavelength'] = rotated_fl['wavelength']
+    Parameters
+    ----------
+    fl_images
+    seg_images
+    crop_width
+    crop_height
 
-    img_center = ((fl_stack.shape[2] / 2) - .5, (fl_stack.shape[1] / 2) - .5)
-    for i, p in enumerate(all_props):
-        translation_matrix = transform.EuclideanTransform(
-            translation=(-(img_center[0] - p.centroid[1]), -(img_center[1] - p.centroid[0])))
-        rotated_fl[i, :, :] = rotate(fl_stack[i].data, translation_matrix, p.orientation)
-        rotated_seg[i, :, :] = rotate(seg_stack[i].data, translation_matrix, p.orientation)
+    Returns
+    -------
 
-    # go through the rotated images to check that the orientation is correct
-    mean_intensity_ap = np.mean(rotated_fl, axis=1)
+    """
+    reference_wavelength = '410'
 
-    peak_dists = np.abs(np.vstack(
-        [find_peaks(ys, distance=20, height=500)[0] for ys in mean_intensity_ap]
-    ) - rotated_fl.shape[2] / 2)
+    img_center_y, img_center_x = (fl_images.y.size // 2, fl_images.x.size // 2)  # (y, x)
 
-    should_flip_arr = peak_dists[:, 0] > peak_dists[:, 1]
+    fl_rotated_stack = fl_images.copy()
+    seg_rotated_stack = seg_images.copy()
 
-    # noinspection PyTypeChecker
-    for i, should_flip in enumerate(should_flip_arr):
-        if should_flip:
-            rotated_fl[i] = np.fliplr(rotated_fl[i])
-            rotated_seg[i] = np.fliplr(rotated_seg[i])
+    for img_idx in range(fl_images.strain.size):
+        for wvl in fl_images.wavelength.data:
+            for pair in fl_images.pair.data:
+                # Optimization potential here...
+                # this recalculates the centroid/orientation for the reference each time
+                reference_seg = seg_images.isel(strain=img_idx).sel(wavelength=reference_wavelength, pair=pair)
+                img = fl_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
+                seg = seg_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
 
-    center_x = rotated_fl.shape[2] // 2
-    center_y = rotated_fl.shape[1] // 2
-    if crop_width:
-        rotated_fl = rotated_fl[:, :, center_x - crop_width // 2:center_x + crop_width // 2]
-        rotated_seg = rotated_seg[:, :, center_x - crop_width // 2:center_x + crop_width // 2]
-    if crop_height:
-        rotated_fl = rotated_fl[:, center_y - crop_height // 2:center_y + crop_height // 2, :]
-        rotated_seg = rotated_seg[:, :, center_y - crop_height // 2:center_y + crop_height // 2]
+                props = measure.regionprops(measure.label(reference_seg), coordinates='rc')[0]
 
-    return rotated_fl, rotated_seg
+                pharynx_center_y, pharynx_center_x = props.centroid
+                pharynx_orientation = props.orientation
+
+                translation_matrix = transform.EuclideanTransform(
+                    translation=(-(img_center_x - pharynx_center_x), -(img_center_y - pharynx_center_y))
+                )
+
+                rotated_img = rotate(img.data, translation_matrix, pharynx_orientation)
+                rotated_seg = rotate(seg.data, translation_matrix, pharynx_orientation)
+
+                fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][img_idx] = rotated_img
+                seg_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][img_idx] = rotated_seg
+
+    return fl_rotated_stack, seg_rotated_stack
 
 
 def segment_pharynxes(fl_stack: Union[np.ndarray, xr.DataArray]):
     """
-    TODO: Documentation
-    :param fl_stack:
-    :return:
+
+    Parameters
+    ----------
+    fl_stack
+
+    Returns
+    -------
+
     """
     return fl_stack > 2000
 
 
 def rotate(data, tform, orientation):
     """
-    TODO: Documentation
-    :param data:
-    :param tform:
-    :param orientation:
-    :return:
+
+    Parameters
+    ----------
+    data
+    tform
+    orientation
+
+    Returns
+    -------
+
     """
     # noinspection PyTypeChecker
-    return transform.rotate(transform.warp(
-        data, tform, preserve_range=True, mode='wrap'),
+    return transform.rotate(
+        transform.warp(
+            data, tform, preserve_range=True, mode='wrap'),
         np.degrees(np.pi / 2 - orientation), mode='wrap')
 
 
-def calculate_midlines(rot_seg_stack, s=1e8, ext=0):
+def calculate_midlines(rot_seg_stack, s=1e8, ext=0) -> List[dict]:
+    """Calculate the midlines for the given stack. Only calculates midlines for NON-TL images
+    Parameters
+    ----------
+    rot_seg_stack: xr.DataArray
+        The rotated mask with which midlines should be calculated. It should have the following dimensions::
+
+            (strain, wavelength, pair, height, width)
+    s
+        smoothing constraint
+    ext
+        extrapolation
+
+    Returns
+    -------
+    list
+        A list of dictionaries with the following structure::
+
+            [
+                {
+                    wavelength0: [midline_pair_0, midline_pair_1, ...],
+                    wavelength1: [midline_pair_0, midline_pair_1, ...]
+                }
+            ]
     """
-    TODO: Documentation
-    :param rot_seg_stack:
-    :param s:
-    :param ext:
-    :return:
-    """
-    return [calculate_midline(x, s, ext) for x in rot_seg_stack]
+    return [
+        {
+            wvl:
+                [calculate_midline(rot_seg_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), s, ext) for pair
+                 in rot_seg_stack.pair.data]
+            for wvl in rot_seg_stack.wavelength.data if 'tl' not in wvl.lower()
+        }
+        for img_idx in range(rot_seg_stack.strain.size)
+    ]
 
 
 def calculate_midline(rot_seg_img, s=1e8, ext=0):
+    """Calculate a the midline for a single image. Right now this only works for images that have been centered and aligned
+    with their anterior-posterior along the horizontal.
+
+    Parameters
+    ----------
+    rot_seg_img: Union[np.ndarray, xr.DataArray]
+        The rotated masked pharynx image
+    s
+        The smoothing constraint for the spline
+    ext
+        The extrapolation method
+
+    Returns
+    -------
+    UnivariateSpline
+        An approximation of the midline of the pharynx for this frame
+
+    """
     # TODO center segmentation before fitting splines
-    """
-    TODO: Documentation
-    :param rot_seg_img:
-    :param s:
-    :param ext:
-    :return:
-    """
     seg_coords = measure.regionprops(measure.label(rot_seg_img))[0].coords
 
     # Adding tiny amounts of random noise to the coordinates because the spline fitting function expects that all
     # x-coordinates are unique.
-    # TODO: change this; I think this could fail if two random numbers happen to be the same
+    # TODO: change this; I think this could fail if two random numbers happen to be the same... could use a while loop checking for uniqueness
     seg_coords = seg_coords + (np.random.random(seg_coords.shape) / 100)
     seg_coords = seg_coords[np.argsort(seg_coords, axis=0)[:, 1]]
 
@@ -111,44 +159,92 @@ def calculate_midline(rot_seg_img, s=1e8, ext=0):
     return UnivariateSpline(xs, ys, s=s, ext=ext)
 
 
-def measure_under_midline(fl: np.ndarray, mid: UnivariateSpline, xs: np.ndarray) -> np.ndarray:
+def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarray) -> np.ndarray:
     """
-    TODO: Documentation
-    :param fl:
-    :param mid:
-    :param xs:
-    :return:
+    Measure the intensity profile of the given image under the given midline at the given x-coordinates.
+
+    Parameters
+    ----------
+    fl: np.ndarray
+        The fluorescence image to measure
+    mid: UnivariateSpline
+        The midline under which to measure
+    xs: np.ndarray
+        The x-coordinates to evaluate the midline at
+
+    Returns
+    -------
+    zs: np.ndarray
+        The intensity profile of the image measured under the midline at the given x-coordinates.
+
     """
-    ys = mid(xs)
-    zs = np.zeros((1, len(xs)), dtype=np.uint16)
-    for i, (x, y) in enumerate(zip(np.int_(xs), np.int_(ys))):
-        zs[i] = fl[y, x].data
-    return zs
+
+    ys = xr.DataArray(mid(xs), dims='z')
+    xs = xr.DataArray(xs, dims='z')
+    return fl.interp(x=xs, y=ys).data.T
 
 
-def measure_under_midlines(fl_stack: np.ndarray, midlines: [UnivariateSpline],
-                           x_range: tuple, n_points: int) -> np.ndarray:
+def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[dict], x_range: tuple, n_points: int) -> xr.DataArray:
     """
-    TODO: Documentation
-    :param fl_stack:
-    :param midlines:
-    :param x_range:
-    :param n_points:
-    :return:
+
+    Parameters
+    ----------
+    fl_stack
+        The fluorescence stack under
+    midlines: dict
+        A list of dictionaries of midlines with the following structure:
+        ```
+            [
+                {'410': [UnivariateSpline, UnivariateSpline, ...]},
+                {'470': [UnivariateSpline, UnivariateSpline, ...]},
+                ...
+            ]
+        ```
+    x_range: tuple
+        the range at which to evaluate the midlines
+    n_points: int
+        the number of points to sample under the midline
+
+    Returns
+    -------
+
     """
+
+    raw_intensity_data = xr.DataArray(
+        np.zeros(
+            (fl_stack.strain.size, fl_stack.wavelength.size, fl_stack.pair.size, n_points)
+        ),
+        dims=['strain', 'wavelength', 'pair', 'position'],
+        coords={'strain': fl_stack.strain, 'wavelength': fl_stack.wavelength, 'pair': fl_stack.pair}
+    )
+
     xs = np.linspace(x_range[0], x_range[1], n_points)
-    return np.asarray([
-        measure_under_midline(fl_stack[i], midlines[i], xs) for i in range(fl_stack.shape[0])
-    ])
+
+    # TODO: implement non-frame-specific midlines
+    for img_idx in range(fl_stack.strain.size):
+        for wvl_idx in range(fl_stack.wavelength.size):
+            wvl = fl_stack.wavelength.data[wvl_idx]
+            if 'tl' not in wvl.lower():
+                for pair in range(fl_stack.pair.size):
+                    img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)
+                    raw_intensity_data[img_idx, wvl_idx, pair, :] = \
+                        measure_under_midline(img, midlines[img_idx][wvl][pair], xs)
+
+    return raw_intensity_data
 
 
 def trim_profile(profile, threshold, new_length):
     """
     TODO: Documentation
-    :param profile:
-    :param threshold:
-    :param new_length:
-    :return:
+    Parameters
+    ----------
+    profile
+    threshold
+    new_length
+
+    Returns
+    -------
+
     """
     first = np.argmax(profile > threshold)
     last = len(profile) - np.argmax(np.flip(profile > threshold))
@@ -157,25 +253,40 @@ def trim_profile(profile, threshold, new_length):
     new_xs = np.linspace(0, len(trimmed), new_length)
     old_xs = np.arange(0, len(trimmed))
 
+    # TODO: also return first and last idx
     return np.interp(new_xs, old_xs, trimmed)
 
 
-def trim_profiles(intensity_data_stack, threshold, new_length):
+def trim_profiles(intensity_data, threshold, new_length):
     """
     TODO: Documentation
-    :param intensity_data_stack:
-    :param threshold:
-    :param new_length:
-    :return:
+    Parameters
+    ----------
+    intensity_data
+    threshold
+    new_length
+
+    Returns
+    -------
+
     """
-    trimmed_data = np.ndarray(
-        shape=(len(intensity_data_stack.wavelength), intensity_data_stack.strain.shape[0], new_length))
-    for i, wvl in enumerate(intensity_data_stack.wavelength):
-        for j in range(intensity_data_stack.strain.shape[0]):
-            untrimmed_profile = intensity_data_stack.sel(wavelength=wvl).isel(strain=j).data
-            trimmed_data[i, j, :] = trim_profile(untrimmed_profile, threshold, new_length)
-    return xr.DataArray(trimmed_data, dims=['wavelength', 'strain', 'position'],
-                        coords={'wavelength': intensity_data_stack.wavelength, 'strain': intensity_data_stack.strain})
+    trimmed_intensity_data = xr.DataArray(
+        np.zeros(
+            (intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, new_length)
+        ),
+        dims=['strain', 'wavelength', 'pair', 'position'],
+        coords={'strain': intensity_data.strain, 'wavelength': intensity_data.wavelength, 'pair': intensity_data.pair}
+    )
+    for img_idx in range(intensity_data.strain.size):
+        for wvl_idx in range(intensity_data.wavelength.size):
+            wvl = intensity_data.wavelength.data[wvl_idx]
+            if 'tl' not in wvl.lower():
+                for pair in range(intensity_data.pair.size):
+                    untrimmed_profile = intensity_data.sel(wavelength=wvl, pair=pair).isel(strain=img_idx).data
+                    trimmed_intensity_data[img_idx, wvl_idx, pair, :] = \
+                        trim_profile(untrimmed_profile, threshold, new_length)
+
+    return trimmed_intensity_data
 
 
 def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
@@ -184,3 +295,21 @@ def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
 
 def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
     return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
+
+
+def center_of_mass_midline(rot_fl):
+    """ Calculate the midline using the Center of Mass method
+
+    Parameters
+    ----------
+    rot_fl
+
+    Returns
+    -------
+
+    """
+    ys = np.arange(rot_fl.shape[0])
+    midline_ys = []
+    for i in range(rot_fl.shape[1]):
+        midline_ys.append(np.average(ys, weights=rot_fl[:, i].data))
+    return np.array(midline_ys)
