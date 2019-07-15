@@ -76,17 +76,22 @@ class PairExperiment(Experiment):
 
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(self.raw_image_data, self.seg_stack)
 
+        # TODO still need to align PA
+
         self.midlines = ip.calculate_midlines(self.rot_seg)
 
         # Measure under midlines
         # TODO broken when cropped
-        self.midline_xs = np.linspace(40, 120, self.n_midline_pts)
+
+        step = self.raw_image_data.x.size // 6
+        self.midline_xs = np.linspace(step, self.raw_image_data.x.size - step, self.n_midline_pts)
         self.raw_intensity_data = ip.measure_under_midlines(
-            self.rot_fl, self.midlines, (40, 120), n_points=self.n_midline_pts
+            self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
         )
 
+        self.raw_intensity_data = ip.align_pa(self.raw_intensity_data)
+
         # Trim
-        # TODO: use trim boundaries from 410 to trim 470
         self.trimmed_intensity_data = ip.trim_profiles(
             self.raw_intensity_data, self.seg_threshold, self.trimmed_profile_length
         )
