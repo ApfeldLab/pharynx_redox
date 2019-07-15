@@ -20,6 +20,9 @@ pyqt5-stubs = "*"
 bidict = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
+fastdtw = "*"
+scikit-learn = "*"
+bokeh = "*"
 
 [requires]
 python_version = "3.7"

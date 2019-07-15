@@ -1,12 +1,13 @@
-from typing import Union, List
+from typing import Union, List, Iterable
 
 import numpy as np
 import xarray as xr
 from scipy.interpolate import UnivariateSpline
+from scipy.signal import find_peaks
 from skimage import measure, transform
 
 
-def center_and_rotate_pharynxes(fl_images, seg_images) -> (np.ndarray, np.ndarray):
+def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410') -> (np.ndarray, np.ndarray):
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
     that the pharynx is in the center of the image, with its anterior on the left
@@ -15,15 +16,12 @@ def center_and_rotate_pharynxes(fl_images, seg_images) -> (np.ndarray, np.ndarra
     ----------
     fl_images
     seg_images
-    crop_width
-    crop_height
+    reference_wavelength
 
     Returns
     -------
 
     """
-    reference_wavelength = '410'
-
     img_center_y, img_center_x = (fl_images.y.size // 2, fl_images.x.size // 2)  # (y, x)
 
     fl_rotated_stack = fl_images.copy()
@@ -33,7 +31,7 @@ def center_and_rotate_pharynxes(fl_images, seg_images) -> (np.ndarray, np.ndarra
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
                 # Optimization potential here...
-                # this recalculates the centroid/orientation for the reference each time
+                # this recalculates all region properties for the reference each time
                 reference_seg = seg_images.isel(strain=img_idx).sel(wavelength=reference_wavelength, pair=pair)
                 img = fl_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
                 seg = seg_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
@@ -184,7 +182,7 @@ def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarra
     return fl.interp(x=xs, y=ys).data.T
 
 
-def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[dict], x_range: tuple, n_points: int) -> xr.DataArray:
+def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: tuple, n_points: int) -> xr.DataArray:
     """
 
     Parameters
@@ -233,6 +231,67 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[dict], x_range
     return raw_intensity_data
 
 
+def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
+    """
+
+    Parameters
+    ----------
+    intensity_data
+
+    Returns
+    -------
+
+    """
+    # peaks_all = xr.DataArray(
+    #     np.full((intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, 2), np.nan),
+    #     dims=['strain', 'wavelength', 'pair', 'peaks'],
+    #     coords={'strain': intensity_data.strain, 'wavelength': intensity_data.wavelength, 'pair': intensity_data.pair}
+    # )
+    # for img_idx in range(intensity_data.strain.size):
+    #     for wvl_idx in range(intensity_data.wavelength.size):
+    #         if intensity_data.wavelength[wvl_idx] != 'TL':
+    #             for pair_idx in range(intensity_data.pair.size):
+    #                 ys = intensity_data.isel(strain=img_idx, wavelength=wvl_idx, pair=pair_idx).data
+    #                 p, peak_props = find_peaks(ys, distance=.3 * len(ys), prominence=100, wlen=10)
+    #                 # Get 2 largest peaks
+    #                 p = np.argpartition(p, len(p) - 2)[-2:]
+    #                 peaks_all[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)] = p
+    #
+    #                 should_flip = False
+    #                 if len(p) == 1:
+    #                     # Usually if there is only 1 peak, it's the anterior peak
+    #                     if p[0] < len(ys) // 2:
+    #                         should_flip = True
+    #                 if len(p) == 2:
+    #                     proms = peak_props['prominences']
+    #                     if proms[0] > proms[1]:
+    #                         should_flip = True
+    #                     if p[0] < len(ys) - p[1]:
+    #                         should_flip = True
+    #
+    #                 if should_flip:
+    #                     intensity_data[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)] = np.flip(
+    #                         intensity_data[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)])
+
+    data = trim_profiles(intensity_data, threshold=2000, new_length=100)
+    ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
+    ref_profile = ref_data.isel(strain=0)
+
+    unflipped_mse = np.sum(np.power(ref_data - ref_profile, 2), axis=1).data
+    flipped_mse = np.sum(np.power(np.flip(ref_data) - ref_profile, 2), axis=1).data
+
+    intensity_data[unflipped_mse > flipped_mse] = np.flip(intensity_data[unflipped_mse > flipped_mse], axis=3)
+
+    mean_intensity = trim_profile(np.mean(intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair), axis=0).data, threshold=2000, new_length=100)
+
+    peaks, _ = find_peaks(mean_intensity, distance=.2 * len(mean_intensity), prominence=200, wlen=10)
+
+    if peaks[0] < len(mean_intensity) - peaks[1]:
+        intensity_data = np.flip(intensity_data, axis=3)
+
+    return intensity_data
+
+
 def trim_profile(profile, threshold, new_length):
     """
     TODO: Documentation
@@ -249,11 +308,11 @@ def trim_profile(profile, threshold, new_length):
     first = np.argmax(profile > threshold)
     last = len(profile) - np.argmax(np.flip(profile > threshold))
 
-    trimmed = profile[first:last]
+    trimmed = profile[first:last + 1]
     new_xs = np.linspace(0, len(trimmed), new_length)
     old_xs = np.arange(0, len(trimmed))
 
-    # TODO: also return first and last idx
+    # TODO: also return first and last idx... ummm why?
     return np.interp(new_xs, old_xs, trimmed)
 
 
@@ -270,6 +329,7 @@ def trim_profiles(intensity_data, threshold, new_length):
     -------
 
     """
+    # TODO: use trim boundaries from 410 to trim 470
     trimmed_intensity_data = xr.DataArray(
         np.zeros(
             (intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, new_length)
@@ -294,6 +354,7 @@ def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
 
 
 def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
+    # TODO: returns NaN sometimes?
     return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
 
 
