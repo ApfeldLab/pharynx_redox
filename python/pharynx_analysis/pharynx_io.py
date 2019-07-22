@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage import io as sk_io
+from skimage.external import tifffile
+from pathlib import Path
 
 from pharynx_analysis import utils
 
@@ -13,6 +15,19 @@ def load_tiff_from_disk(image_path: str) -> np.ndarray:
     :return: a numpy array with dimensions (frame, height, width)
     """
     return sk_io.imread(image_path)
+
+
+def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str):
+    dir_path = Path(dir_path)
+    for pair in imgs.pair.data:
+        for wvl in imgs.wavelength.data:
+            final_path = dir_path.joinpath(f'{stem}-{wvl}-{pair}.tif')
+            if imgs.data.dtype == np.bool:
+                data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
+            else:
+                data = imgs.sel(wavelength=wvl, pair=pair).data
+
+            tifffile.imsave(str(final_path), data)
 
 
 def process_imaging_scheme_str(imaging_scheme_str: str, delimiter='/') -> [(str, int)]:
@@ -109,4 +124,4 @@ def load_strain_map_from_disk(strain_map_path: str) -> np.ndarray:
     """
     strain_map_df = pd.read_csv(strain_map_path)
     return np.concatenate(
-        [np.repeat(x.Strain, x.End_Animal - x.Start_Animal + 1) for x in strain_map_df.itertuples()]).flatten()
+        [np.repeat(x.strain, x.end_animal - x.start_animal + 1) for x in strain_map_df.itertuples()]).flatten()
