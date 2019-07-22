@@ -1,0 +1,5 @@
+﻿Strain,Start_Animal,End_Animal
+HD233 EV RNAi,1,24
+SAY88 EV RNAi,25,41
+HD233 gld-1 RNAi,42,81
+SAY88 gld-1 RNAi,82,121
