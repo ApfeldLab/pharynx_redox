@@ -23,6 +23,8 @@ sphinx-rtd-theme = "*"
 fastdtw = "*"
 scikit-learn = "*"
 bokeh = "*"
+tensorflow = "==1.14.0"
+keras = "*"
 
 [requires]
 python_version = "3.7"
