@@ -74,7 +74,7 @@ class PairExperiment(Experiment):
         self.seg_stack = ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
         raw_img_path = Path(raw_image_path)
-        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent, raw_img_path.stem)
+        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent.joinpath('processed_images'), raw_img_path.stem, 'seg')
 
         self.rot_fl = []
         self.rot_seg = []
@@ -88,14 +88,19 @@ class PairExperiment(Experiment):
 
         step = self.raw_image_data.x.size // 4
         self.midline_xs = np.linspace(step, self.raw_image_data.x.size - step, self.n_midline_pts)
+
+        # TODO keep track of when we get NaNs
         self.raw_intensity_data = ip.measure_under_midlines(
             self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
         )
 
+        self.raw_intensity_data_nans_idx = np.argwhere(np.isnan(self.raw_intensity_data.data))
+        self.raw_intensity_data.data = np.nan_to_num(self.raw_intensity_data.data)
         self.raw_intensity_data = ip.align_pa(self.raw_intensity_data)
 
         # Trim
         self.trimmed_intensity_data = ip.trim_profiles(
+
             self.raw_intensity_data, self.seg_threshold, self.trimmed_profile_length
         )
 

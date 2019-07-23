@@ -2,6 +2,7 @@ import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
+from statsmodels.stats.weightstats import DescrStatsW
 
 
 def plot_individual_profile_data_by_strain_and_pair(profile_data, cmin, cmax, cmap_name, linewidth=1, ylim=None,
@@ -58,7 +59,21 @@ def plot_individual_profile_data_by_strain_and_pair(profile_data, cmin, cmax, cm
     plt.tight_layout()
 
 
-def plot_average_by_strain_and_pair(data):
-    for strain in np.unique(data.strain):
-        for pair in data.pair.data:
-            data_subset = data.sel(strain=strain, pair=pair)
+def plot_average_by_strain_and_pair(profile_data, ylim=None):
+    strains = np.unique(profile_data.strain.data)
+
+    n_strains = len(strains)
+    n_pairs = profile_data.pair.size
+    fig, axes = plt.subplots(n_pairs, 1, figsize=(10, 10))
+
+    for i, ax in zip(range(n_pairs), axes):
+        for strain in strains:
+            data = profile_data.isel(pair=i).sel(strain=strain)
+            ax.plot(np.mean(data, axis=0), label=strain)
+            lower, upper = DescrStatsW(data).tconfint_mean()
+            xs = np.arange(len(lower))
+            ax.fill_between(xs, lower, upper, alpha=0.4)
+            ax.legend()
+            ax.set_title(f'Pair: {i}')
+            if ylim:
+                ax.set_ylim(ylim)
