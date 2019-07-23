@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage import io as sk_io
+from skimage.external import tifffile
 
 from pharynx_analysis import utils
 
@@ -93,6 +96,33 @@ def load_images(intercalated_image_stack_path: str, imaging_scheme: str, strain_
                         coords={'wavelength': unique_lambdas, 'strain': strain_map})
 
 
+def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) -> None:
+    """
+    Save the given image container to disk, splitting the images by wavelength and pair.
+
+    Parameters
+    ----------
+    images
+        The DataArray containing the images
+    prefix
+        The name that will be used to save the images
+    dir_path
+        The directory to save the images in
+
+    Returns
+    -------
+
+    """
+    dir_path = Path(dir_path)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    for wvl in images.wavelength.data:
+        for pair in images.pair.data:
+            tifffile.imsave(
+                str(dir_path.joinpath(f'{prefix}-{wvl}-{pair}.tif').absolute()),
+                images.sel(wavelength=wvl, pair=pair).data
+            )
+
+
 def load_strain_map_from_disk(strain_map_path: str) -> np.ndarray:
     """ Load strain map from disk, generate a 1D array where the index corresponds to the strain of the worm at that index
 
@@ -109,4 +139,4 @@ def load_strain_map_from_disk(strain_map_path: str) -> np.ndarray:
     """
     strain_map_df = pd.read_csv(strain_map_path)
     return np.concatenate(
-        [np.repeat(x.Strain, x.End_Animal - x.Start_Animal + 1) for x in strain_map_df.itertuples()]).flatten()
+        [np.repeat(x.strain, x.end_animal - x.start_animal + 1) for x in strain_map_df.itertuples()]).flatten()
