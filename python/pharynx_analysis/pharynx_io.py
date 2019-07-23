@@ -19,11 +19,12 @@ def load_tiff_from_disk(image_path: str) -> np.ndarray:
     return sk_io.imread(image_path)
 
 
-def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str):
+def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str, suffix: str):
     dir_path = Path(dir_path)
+    dir_path.mkdir(parents=True, exist_ok=True)
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
-            final_path = dir_path.joinpath(f'{stem}-{wvl}-{pair}.tif')
+            final_path = dir_path.joinpath(f'{stem}-{wvl}-{pair}-{suffix}.tif')
             if imgs.data.dtype == np.bool:
                 data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
             else:
