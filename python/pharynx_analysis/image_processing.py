@@ -5,9 +5,9 @@ import xarray as xr
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
+from scipy.spatial import distance
 from skimage import measure, transform
 from skimage.measure import label
-from scipy import ndimage as ndi
 
 
 def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410') -> (np.ndarray, np.ndarray):
@@ -30,22 +30,24 @@ def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410
     fl_rotated_stack = fl_images.copy()
     seg_rotated_stack = seg_images.copy()
 
-    seg_images_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
-    seg_images_data = seg_images_data > 1000
-    seg_images.data = seg_images_data
+    blurred_seg = fl_images.copy()
+    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
+    blurred_seg_data = blurred_seg_data > 1000
+    blurred_seg.data = blurred_seg_data
 
     for img_idx in range(fl_images.strain.size):
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
                 # Optimization potential here...
                 # this recalculates all region properties for the reference each time
-                reference_seg = seg_images.isel(strain=img_idx).sel(wavelength=reference_wavelength, pair=pair)
+                reference_seg = blurred_seg.isel(strain=img_idx).sel(wavelength=reference_wavelength, pair=pair)
                 img = fl_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
-                seg = seg_images.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
+                seg = seg_rotated_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair)
 
                 props = measure.regionprops(measure.label(reference_seg), coordinates='rc')[0]
 
-                pharynx_center_y, pharynx_center_x = props.centroid
+                # pharynx_center_y, pharynx_center_x = props.centroid
+                pharynx_center_y, pharynx_center_x = np.mean(np.nonzero(reference_seg), axis=1)
                 pharynx_orientation = props.orientation
 
                 translation_matrix = transform.EuclideanTransform(
@@ -63,8 +65,10 @@ def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410
 
 def extract_largest_binary_object(bin_img):
     labels = label(bin_img)
-    largestCC = labels == np.argmax(np.bincount(labels.flat))
-    return np.logical_not(largestCC)
+    if labels.max() == 0:
+        # No connected components (TL images)
+        return bin_img
+    return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
 
 def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
@@ -82,8 +86,8 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
     for img_idx in range(fl_stack.strain.size):
         for wvl_idx in range(fl_stack.wavelength.size):
             for pair in range(fl_stack.pair.size):
-                seg[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)] = extract_largest_binary_object(
-                    fl_stack[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)] > threshold)
+                seg_img = seg[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)]
+                seg[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)] = extract_largest_binary_object(seg_img)
     return seg
 
 
@@ -92,8 +96,6 @@ def get_centroids(fl_stack: xr.DataArray, reference_wavelength='410', threshold=
     image_data.data = ndi.gaussian_filter(image_data.data, sigma=(0, 0, 0, gaussian_sigma, gaussian_sigma))
     image_data.data[image_data.data < threshold] = 0
     image_data.data[image_data.data > threshold] = 1
-
-
 
 
 def rotate(data, tform, orientation):
@@ -110,10 +112,11 @@ def rotate(data, tform, orientation):
 
     """
     # noinspection PyTypeChecker
+    cval = 300
     return transform.rotate(
         transform.warp(
-            data, tform, preserve_range=True, mode='wrap'),
-        np.degrees(np.pi / 2 - orientation), mode='wrap')
+            data, tform, preserve_range=True, mode='wrap', cval=cval),
+        np.degrees(np.pi / 2 - orientation), mode='edge', cval=cval)
 
 
 def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
@@ -144,7 +147,8 @@ def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
     return [
         {
             wvl:
-                [calculate_midline(rot_seg_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), rot_fl_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), s, ext) for pair
+                [calculate_midline(rot_seg_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair),
+                                   rot_fl_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), s, ext) for pair
                  in rot_seg_stack.pair.data]
             for wvl in rot_seg_stack.wavelength.data if 'tl' not in wvl.lower()
         }
@@ -208,10 +212,39 @@ def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarra
         The intensity profile of the image measured under the midline at the given x-coordinates.
 
     """
-
+    # old way
+    # print('measuring')
     ys = xr.DataArray(mid(xs), dims='z')
     xs = xr.DataArray(xs, dims='z')
     return fl.interp(x=xs, y=ys).data.T
+
+    # # Use line thickness!
+    # print('measuring')
+    # ys = mid(xs)
+    # der = mid.derivative()
+    # normal_slopes = -1 / der(xs)
+    # normal_thetas = np.arctan(normal_slopes)
+    #
+    # mag = 1.5
+    # x0 = np.cos(normal_thetas) * mag
+    # y0 = np.sin(normal_thetas) * mag
+    #
+    # x1 = np.cos(normal_thetas) * -mag
+    # y1 = np.sin(normal_thetas) * -mag
+    #
+    # xs0 = xs + x0
+    # xs1 = xs + x1
+    # ys0 = ys + y0
+    # ys1 = ys + y1
+    #
+    # prof = []
+    # for i in range(len(xs)):
+    #     line = measure.profile._line_profile_coordinates((xs0[i], ys0[i]), (xs1[i], ys1[i]))[:,:,0]
+    #     line_xs = xr.DataArray(line[0], dims='z')
+    #     line_ys = xr.DataArray(line[1], dims='z')
+    #     prof.append(np.mean(fl.interp(x=line_xs, y=line_ys).data, 0))
+    # # TODO: optionally use gaussian weight for the profile
+    # return prof
 
 
 def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: tuple, n_points: int) -> xr.DataArray:
@@ -268,6 +301,8 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     Parameters
     ----------
     intensity_data
+    reference_pair
+    reference_wavelength
 
     Returns
     -------
@@ -305,19 +340,30 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     #                         intensity_data[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)])
 
     data = trim_profiles(intensity_data, threshold=2000, new_length=100)
+
     ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
-    ref_profile = ref_data.isel(strain=0)
+    ref_profile = ref_data.isel(strain=0).data
 
-    unflipped_mse = np.sum(np.power(ref_data - ref_profile, 2), axis=1).data
-    flipped_mse = np.sum(np.power(np.flip(ref_data) - ref_profile, 2), axis=1).data
+    ref_vecs = np.tile(ref_profile, (data.strain.size, 1))
+    unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
+    flipped = np.fliplr(unflipped)
+    print(ref_vecs.shape)
+    print(unflipped.shape)
+    print(flipped.shape)
 
-    intensity_data[unflipped_mse > flipped_mse] = np.flip(intensity_data[unflipped_mse > flipped_mse], axis=3)
+    should_flip = distance.cdist(ref_vecs, unflipped, 'cosine')[0, :] > distance.cdist(ref_vecs, flipped, 'cosine')[0, :]
+
+    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3)
 
     mean_intensity = trim_profile(
         np.mean(intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair), axis=0).data, threshold=2000,
         new_length=100)
 
     peaks, _ = find_peaks(mean_intensity, distance=.2 * len(mean_intensity), prominence=200, wlen=10)
+
+    # TODO: fix
+    if len(peaks) < 2:
+        return intensity_data
 
     if peaks[0] < len(mean_intensity) - peaks[1]:
         intensity_data = np.flip(intensity_data, axis=3)
@@ -362,7 +408,7 @@ def trim_profiles(intensity_data, threshold, new_length):
     -------
 
     """
-    # TODO: use trim boundaries from 410 to trim 470
+    # TODO: use trim boundaries from ref wavelength to trim others within tuple
     trimmed_intensity_data = xr.DataArray(
         np.zeros(
             (intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, new_length)
@@ -383,10 +429,36 @@ def trim_profiles(intensity_data, threshold, new_length):
 
 
 def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
+    """
+
+    Parameters
+    ----------
+    r
+    r_min
+    r_max
+    instrument_factor
+
+    Returns
+    -------
+
+    """
     return (r - r_min) / ((r - r_min) + instrument_factor * (r_max - r))
 
 
 def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
+    """
+
+    Parameters
+    ----------
+    oxd
+    midpoint_potential
+    z
+    temperature
+
+    Returns
+    -------
+
+    """
     # TODO: returns NaN sometimes?
     return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
 
