@@ -1,8 +1,8 @@
 # Project-Specific
-#data/
-# *.tif
-# *.tiff
-# *.csv
+data/
+*.tif
+*.tiff
+*.csv
 
 .idea/
 
