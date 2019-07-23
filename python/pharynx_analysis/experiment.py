@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 from pharynx_analysis import image_processing as ip
@@ -62,7 +64,7 @@ class PairExperiment(Experiment):
 
     trimmed_profile_length = 100
     n_midline_pts = 200
-    seg_threshold = 4000
+    seg_threshold = 2000
 
     def __init__(self, raw_image_path: str, imaging_scheme: str, strain_map: [str], midline_smoothing=1e8):
         super().__init__(raw_image_path)
@@ -71,14 +73,15 @@ class PairExperiment(Experiment):
         self.raw_image_data = pio.load_images(self.raw_image_path, imaging_scheme, strain_map)
         self.seg_stack = ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
+        raw_img_path = Path(raw_image_path)
+        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent, raw_img_path.stem)
+
         self.rot_fl = []
         self.rot_seg = []
 
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(self.raw_image_data, self.seg_stack)
 
-        # TODO still need to align PA
-
-        self.midlines = ip.calculate_midlines(self.rot_seg)
+        self.midlines = ip.calculate_midlines(self.rot_seg, self.rot_fl)
 
         # Measure under midlines
         # TODO broken when cropped
