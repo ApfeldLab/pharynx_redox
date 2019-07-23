@@ -1,10 +1,12 @@
-from typing import Union, List, Iterable
+from typing import List, Iterable
 
 import numpy as np
 import xarray as xr
+from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from skimage import measure, transform
+from skimage.measure import label
 
 
 def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410') -> (np.ndarray, np.ndarray):
@@ -54,7 +56,13 @@ def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410
     return fl_rotated_stack, seg_rotated_stack
 
 
-def segment_pharynxes(fl_stack: Union[np.ndarray, xr.DataArray]):
+def extract_largest_binary_object(bin_img):
+    labels = label(bin_img)
+    largestCC = labels == np.argmax(np.bincount(labels.flat))
+    return np.logical_not(largestCC)
+
+
+def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
     """
 
     Parameters
@@ -65,7 +73,22 @@ def segment_pharynxes(fl_stack: Union[np.ndarray, xr.DataArray]):
     -------
 
     """
-    return fl_stack > 2000
+    seg = fl_stack > threshold
+    for img_idx in range(fl_stack.strain.size):
+        for wvl_idx in range(fl_stack.wavelength.size):
+            for pair in range(fl_stack.pair.size):
+                seg[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)] = extract_largest_binary_object(
+                    fl_stack[dict(strain=img_idx, wavelength=wvl_idx, pair=pair)] > threshold)
+    return seg
+
+
+def get_centroids(fl_stack: xr.DataArray, reference_wavelength='410', threshold=1000, gaussian_sigma=6):
+    image_data = fl_stack.copy()
+    image_data.data = ndi.gaussian_filter(image_data.data, sigma=(0, 0, 0, gaussian_sigma, gaussian_sigma))
+    image_data.data[image_data.data < threshold] = 0
+    image_data.data[image_data.data > threshold] = 1
+
+
 
 
 def rotate(data, tform, orientation):
@@ -184,7 +207,6 @@ def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarra
 
 def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: tuple, n_points: int) -> xr.DataArray:
     """
-
     Parameters
     ----------
     fl_stack
@@ -282,7 +304,9 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
 
     intensity_data[unflipped_mse > flipped_mse] = np.flip(intensity_data[unflipped_mse > flipped_mse], axis=3)
 
-    mean_intensity = trim_profile(np.mean(intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair), axis=0).data, threshold=2000, new_length=100)
+    mean_intensity = trim_profile(
+        np.mean(intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair), axis=0).data, threshold=2000,
+        new_length=100)
 
     peaks, _ = find_peaks(mean_intensity, distance=.2 * len(mean_intensity), prominence=200, wlen=10)
 

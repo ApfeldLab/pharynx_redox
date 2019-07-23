@@ -62,14 +62,14 @@ class PairExperiment(Experiment):
 
     trimmed_profile_length = 100
     n_midline_pts = 200
-    seg_threshold = 2000
+    seg_threshold = 4000
 
     def __init__(self, raw_image_path: str, imaging_scheme: str, strain_map: [str], midline_smoothing=1e8):
         super().__init__(raw_image_path)
         self.imaging_scheme = imaging_scheme
         self.strain_map = strain_map
         self.raw_image_data = pio.load_images(self.raw_image_path, imaging_scheme, strain_map)
-        self.seg_stack = ip.segment_pharynxes(self.raw_image_data)
+        self.seg_stack = ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
         self.rot_fl = []
         self.rot_seg = []
@@ -83,7 +83,7 @@ class PairExperiment(Experiment):
         # Measure under midlines
         # TODO broken when cropped
 
-        step = self.raw_image_data.x.size // 6
+        step = self.raw_image_data.x.size // 4
         self.midline_xs = np.linspace(step, self.raw_image_data.x.size - step, self.n_midline_pts)
         self.raw_intensity_data = ip.measure_under_midlines(
             self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
