@@ -7,6 +7,7 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from skimage import measure, transform
 from skimage.measure import label
+from scipy import ndimage as ndi
 
 
 def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410') -> (np.ndarray, np.ndarray):
@@ -28,6 +29,10 @@ def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410
 
     fl_rotated_stack = fl_images.copy()
     seg_rotated_stack = seg_images.copy()
+
+    seg_images_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
+    seg_images_data = seg_images_data > 1000
+    seg_images.data = seg_images_data
 
     for img_idx in range(fl_images.strain.size):
         for wvl in fl_images.wavelength.data:
@@ -111,7 +116,7 @@ def rotate(data, tform, orientation):
         np.degrees(np.pi / 2 - orientation), mode='wrap')
 
 
-def calculate_midlines(rot_seg_stack, s=1e8, ext=0) -> List[dict]:
+def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
     """Calculate the midlines for the given stack. Only calculates midlines for NON-TL images
     Parameters
     ----------
@@ -139,7 +144,7 @@ def calculate_midlines(rot_seg_stack, s=1e8, ext=0) -> List[dict]:
     return [
         {
             wvl:
-                [calculate_midline(rot_seg_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), s, ext) for pair
+                [calculate_midline(rot_seg_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), rot_fl_stack.isel(strain=img_idx).sel(wavelength=wvl, pair=pair), s, ext) for pair
                  in rot_seg_stack.pair.data]
             for wvl in rot_seg_stack.wavelength.data if 'tl' not in wvl.lower()
         }
@@ -147,7 +152,7 @@ def calculate_midlines(rot_seg_stack, s=1e8, ext=0) -> List[dict]:
     ]
 
 
-def calculate_midline(rot_seg_img, s=1e8, ext=0):
+def calculate_midline(rot_seg_img, rot_fl, s=1e8, ext=0):
     """Calculate a the midline for a single image. Right now this only works for images that have been centered and aligned
     with their anterior-posterior along the horizontal.
 
@@ -177,7 +182,11 @@ def calculate_midline(rot_seg_img, s=1e8, ext=0):
 
     xs = seg_coords[:, 1]
     ys = seg_coords[:, 0]
-    return UnivariateSpline(xs, ys, s=s, ext=ext)
+
+    try:
+        return UnivariateSpline(xs, ys, s=s, ext=ext)
+    except:
+        return center_of_mass_midline(rot_fl.data, s=s, ext=ext)
 
 
 def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarray) -> np.ndarray:
@@ -382,7 +391,7 @@ def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
     return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
 
 
-def center_of_mass_midline(rot_fl):
+def center_of_mass_midline(rot_fl, s, ext):
     """ Calculate the midline using the Center of Mass method
 
     Parameters
@@ -395,6 +404,7 @@ def center_of_mass_midline(rot_fl):
     """
     ys = np.arange(rot_fl.shape[0])
     midline_ys = []
-    for i in range(rot_fl.shape[1]):
+    xs = np.arange(rot_fl.shape[1])
+    for i in xs:
         midline_ys.append(np.average(ys, weights=rot_fl[:, i].data))
-    return np.array(midline_ys)
+    return UnivariateSpline(xs, np.array(midline_ys), s=s, ext=ext)
