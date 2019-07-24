@@ -62,19 +62,26 @@ class PairExperiment(Experiment):
         '410_2', '470_2', 'r2'
     ]
 
-    trimmed_profile_length = 100
-    n_midline_pts = 200
-    seg_threshold = 2000
-
-    def __init__(self, raw_image_path: str, imaging_scheme: str, strain_map: [str], midline_smoothing=1e8):
+    def __init__(self, raw_image_path: str, imaging_scheme: str, strain_map: [str],
+                 midline_smoothing=1e8, trimmed_profile_length=100, n_midline_pts=200, seg_threshold=2000):
         super().__init__(raw_image_path)
-        self.imaging_scheme = imaging_scheme
+
         self.strain_map = strain_map
+        self.trimmed_profile_length = trimmed_profile_length
+        self.seg_threshold = seg_threshold
+        self.n_midline_pts = n_midline_pts
+        self.midline_smoothing = midline_smoothing
         self.raw_image_data = pio.load_images(self.raw_image_path, imaging_scheme, strain_map)
         self.seg_stack = ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
+        self.scaled_regions = {
+            region: np.int_(trimmed_profile_length * np.asarray(bounds))
+            for region, bounds in Experiment.regions.items()
+        }
+
         raw_img_path = Path(raw_image_path)
-        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent.joinpath('processed_images'), raw_img_path.stem, 'seg')
+        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent.joinpath('processed_images'),
+                                       raw_img_path.stem, 'seg')
 
         self.rot_fl = []
         self.rot_seg = []
