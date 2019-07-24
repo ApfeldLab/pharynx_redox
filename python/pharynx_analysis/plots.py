@@ -5,6 +5,16 @@ from matplotlib import cm
 from statsmodels.stats.weightstats import DescrStatsW
 
 
+def plot_paired_experiment_summary(experiment):
+    fig, axes = plt.subplots(3, 2, figsize=(20, 10))
+    plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='410'),
+                                    regions=experiment.scaled_regions, axes=[axes[0, 0], axes[0, 1]])
+    plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='470'),
+                                    regions=experiment.scaled_regions, axes=[axes[1, 0], axes[1, 1]])
+    plot_average_by_strain_and_pair(experiment.e, ylim=[-275, -265],
+                                    regions=experiment.scaled_regions, axes=[axes[2, 0], axes[2, 1]])
+
+
 def plot_individual_profile_data_by_strain_and_pair(profile_data, cmin, cmax, cmap_name, linewidth=1, ylim=None,
                                                     alpha=1, figsize=None, cmap_boundary_trim=0):
     """
@@ -59,15 +69,17 @@ def plot_individual_profile_data_by_strain_and_pair(profile_data, cmin, cmax, cm
     plt.tight_layout()
 
 
-def plot_average_by_strain_and_pair(profile_data, ylim=None, sup_title=None):
+def plot_average_by_strain_and_pair(profile_data, ylim=None, regions=None, axes=None):
     strains = np.unique(profile_data.strain.data)
 
     if 'pair' in profile_data.dims:
         n_pairs = profile_data.pair.size
 
-        fig, axes = plt.subplots(n_pairs, 1, figsize=(10, 10))
+        if axes is None:
+            fig, axes = plt.subplots(n_pairs, 1, figsize=(10, 10))
 
         for i, ax in zip(range(n_pairs), axes):
+
             for strain in strains:
                 data = profile_data.isel(pair=i).sel(strain=strain)
                 ax.plot(np.mean(data, axis=0), label=strain)
@@ -78,8 +90,16 @@ def plot_average_by_strain_and_pair(profile_data, ylim=None, sup_title=None):
                 ax.set_title(f'Pair: {i}')
                 if ylim:
                     ax.set_ylim(ylim)
+            if regions:
+                add_regions_to_axis(ax, regions)
+
+        return axes
+
     else:
-        fig, ax = plt.subplots(1,1, figsize=(10,10))
+        if axes is None:
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+        else:
+            ax = axes
         for strain in strains:
             data = profile_data.sel(strain=strain)
             ax.plot(np.mean(data, axis=0), label=strain)
@@ -89,6 +109,19 @@ def plot_average_by_strain_and_pair(profile_data, ylim=None, sup_title=None):
             ax.legend()
             if ylim:
                 ax.set_ylim(ylim)
+            if regions:
+                add_regions_to_axis(ax, regions)
 
-    if sup_title:
-        fig.suptitle(sup_title)
+        return ax
+
+
+def add_regions_to_axis(ax, regions, label_dist_bottom_percent=0.03, label_x_offset_percent=0.005, alpha=0.1):
+    min_y, max_y = ax.get_ylim()
+    min_x, max_x = ax.get_xlim()
+    text_y = ((max_y - min_y) * label_dist_bottom_percent) + min_y
+
+    text_x_offset = (max_x - min_x) * label_x_offset_percent
+
+    for region, bounds in regions.items():
+        ax.axvspan(bounds[0], bounds[1], alpha=alpha)
+        ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))

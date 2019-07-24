@@ -347,9 +347,6 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     ref_vecs = np.tile(ref_profile, (data.strain.size, 1))
     unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
     flipped = np.fliplr(unflipped)
-    print(ref_vecs.shape)
-    print(unflipped.shape)
-    print(flipped.shape)
 
     should_flip = distance.cdist(ref_vecs, unflipped, 'cosine')[0, :] > distance.cdist(ref_vecs, flipped, 'cosine')[0, :]
 
