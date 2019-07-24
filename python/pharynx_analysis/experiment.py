@@ -1,43 +1,22 @@
+import logging
+import typing
 from pathlib import Path
 
+import attr
 import numpy as np
+import xarray as xr
 
 from pharynx_analysis import image_processing as ip
 from pharynx_analysis import pharynx_io as pio
 
-
-class Experiment:
-    """
-    The abstract Experiment class
-
-    """
-    regions = {
-        'pm7': [.07, .13],
-        'pm6': [.15, .21],
-        'pm5': [.25, .47],
-        'pm4': [.53, .64],
-        'pm3': [.68, .93],
-    }
-
-    # R -> OxD parameters
-    r_min = 0.852
-    r_max = 6.65
-    instrument_factor = 0.171
-
-    # OxD -> E parameters
-    midpoint_potential = -265
-    z = 2
-    temperature = 22
-
-    def __init__(self, raw_image_path: str):
-        self.raw_image_path = raw_image_path
 
 
 def get_non_tl(data_array):
     return data_array.where(data_array.wavelength != 'TL', drop=True)
 
 
-class PairExperiment(Experiment):
+@attr.s(auto_attribs=True)
+class PairExperiment:
     """
     This is the paired ratio experiment
 
@@ -48,89 +27,129 @@ class PairExperiment(Experiment):
     strain_map
     midline_smoothing
     """
-    midline_map = {
-        '410_1': '410_1',
-        '470_1': '470_1',
-        '410_2': '410_2',
-        '470_2': '470_2',
-    }
+    raw_image_path: str
+    imaging_scheme: str
+    strain_map: typing.List[str]
 
-    wavelengths = list(midline_map.keys())
+    # Pipeline Parameters
+    midline_smoothing: int = 1e8
+    trimmed_profile_length: int = 100
+    n_midline_pts: int = 200
+    seg_threshold: int = 2000
 
-    image_display_order = [
+    # R -> OxD parameters
+    r_min: float = 0.852
+    r_max: float = 6.65
+    instrument_factor: float = 0.171
+
+    # OxD -> E parameters
+    midpoint_potential: float = -265.0
+    z: int = 2
+    temperature: float = 22.0
+
+    image_display_order: typing.List[str] = [
         '410_1', '470_1', 'r1',
         '410_2', '470_2', 'r2'
     ]
 
-    def __init__(self, raw_image_path: str, imaging_scheme: str, strain_map: [str],
-                 midline_smoothing=1e8, trimmed_profile_length=100, n_midline_pts=200, seg_threshold=2000):
-        super().__init__(raw_image_path)
+    regions: dict = {
+        'pm3': [.07, .28],
+        'pm4': [.33, .45],
+        'pm5': [.53, .69],
+        'pm6': [.78, .83],
+        'pm7': [.85, .925],
+    }
 
-        self.strain_map = strain_map
-        self.trimmed_profile_length = trimmed_profile_length
-        self.seg_threshold = seg_threshold
-        self.n_midline_pts = n_midline_pts
-        self.midline_smoothing = midline_smoothing
-        self.raw_image_data = pio.load_images(self.raw_image_path, imaging_scheme, strain_map)
-        self.seg_stack = ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
+    scaled_regions: dict = None
 
-        self.scaled_regions = {
-            region: np.int_(trimmed_profile_length * np.asarray(bounds))
-            for region, bounds in Experiment.regions.items()
-        }
+    raw_image_data: xr.DataArray = None
+    seg_images: xr.DataArray = None
 
-        raw_img_path = Path(raw_image_path)
-        pio.save_images_xarray_to_disk(self.seg_stack, raw_img_path.parent.joinpath('processed_images'),
-                                       raw_img_path.stem, 'seg')
+    rot_fl: xr.DataArray = None
+    rot_seg: xr.DataArray = None
 
-        self.rot_fl = []
-        self.rot_seg = []
+    midlines: typing.List[dict] = None
 
-        self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(self.raw_image_data, self.seg_stack)
+    raw_intensity_data: xr.DataArray = None
+    trimmed_intensity_data: xr.DataArray = None
 
-        self.midlines = ip.calculate_midlines(self.rot_seg, self.rot_fl)
+    r: xr.DataArray = None
+    oxd: xr.DataArray = None
+    e: xr.DataArray = None
 
-        # Measure under midlines
-        # TODO broken when cropped
+    def __attrs_post_init__(self):
+        self.scale_region_boundaries()
+        self.full_pipeline()
 
-        step = self.raw_image_data.x.size // 4
-        self.midline_xs = np.linspace(step, self.raw_image_data.x.size - step, self.n_midline_pts)
+    def full_pipeline(self):
+        logging.info(f'Starting full pipeline run for {self.raw_image_path}')
 
-        # TODO keep track of when we get NaNs
-        self.raw_intensity_data = ip.measure_under_midlines(
-            self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
-        )
+        self.load_images()
+        self.scale_region_boundaries()
+        if self.seg_images is None:
+            self.seg_images = self.segment_pharynxes()
+        self.align_and_center()
+        self.calculate_midlines()
+        self.measure_under_midlines()
+        self.trim_data()
+        self.calculate_redox()
 
-        self.raw_intensity_data_nans_idx = np.argwhere(np.isnan(self.raw_intensity_data.data))
-        self.raw_intensity_data.data = np.nan_to_num(self.raw_intensity_data.data)
-        self.raw_intensity_data = ip.align_pa(self.raw_intensity_data)
+        logging.info(f'Finished full pipeline run for {self.raw_image_path}')
 
-        # Trim
+    def trim_data(self):
+        logging.info('Trimming intensity data')
         self.trimmed_intensity_data = ip.trim_profiles(
-
             self.raw_intensity_data, self.seg_threshold, self.trimmed_profile_length
         )
 
-        # Calculate Redox Measurements
+    def calculate_redox(self):
+        logging.info('Calculating redox measurements')
         self.r = self.trimmed_intensity_data.sel(wavelength='410') / self.trimmed_intensity_data.sel(wavelength='470')
         self.oxd = ip.r_to_oxd(self.r)
         self.e = ip.oxd_to_redox_potential(self.oxd)
+
+    def align_and_center(self):
+        logging.info('Centering and rotating pharynxes')
+        self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(self.raw_image_data, self.seg_images)
+
+    def calculate_midlines(self):
+        logging.info('Calculating midlines')
+        self.midlines = ip.calculate_midlines(self.rot_seg, self.rot_fl)
+
+    def measure_under_midlines(self):
+        logging.info('Measuring under midlines')
+        step = self.raw_image_data.x.size // 4
+        self.midline_xs = np.linspace(step, self.raw_image_data.x.size - step, self.n_midline_pts)
+        self.raw_intensity_data = ip.measure_under_midlines(
+            self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
+        )
+        self.raw_intensity_data.data = np.nan_to_num(self.raw_intensity_data.data)
+        self.raw_intensity_data = ip.align_pa(self.raw_intensity_data)
+
+    def load_images(self):
+        logging.info('Loading Images')
+        self.raw_image_data = pio.load_images(self.raw_image_path, self.imaging_scheme, self.strain_map)
+
+    def segment_pharynxes(self):
+        logging.info('Segmenting pharynxes')
+        return ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])
         np.fliplr(self.rot_seg[:, idx])
         np.fliplr(self.raw_intensity_data[:, idx])
 
-    def get_scaled_region_boundaries(self):
-        return {
+    def scale_region_boundaries(self):
+        self.scaled_regions = {
             region: np.int_(self.trimmed_profile_length * np.asarray(self.regions[region]))
             for region in self.regions.keys()
         }
 
-
-class TimeSeriesExperiment(Experiment):
-    def __init__(self, raw_image_path: str):
-        super().__init__(raw_image_path)
+    def persist_to_disk(self, parent_dir=None):
+        # TODO
+        raw_img_path = Path(self.raw_image_path)
+        pio.save_images_xarray_to_disk(
+            self.seg_images, raw_img_path.parent.joinpath('processed_images'), raw_img_path.stem, 'seg')
 
 
 if __name__ == '__main__':
