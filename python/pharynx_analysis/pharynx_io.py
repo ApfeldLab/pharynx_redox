@@ -5,7 +5,6 @@ import pandas as pd
 import xarray as xr
 from skimage import io as sk_io
 from skimage.external import tifffile
-from pathlib import Path
 
 from pharynx_analysis import utils
 
