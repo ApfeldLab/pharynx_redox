@@ -9,13 +9,13 @@ from skimage.external import tifffile
 from pharynx_analysis import utils
 
 
-def load_tiff_from_disk(image_path: str) -> np.ndarray:
+def load_tiff_from_disk(image_path: Path) -> np.ndarray:
     """ Load a tiff stack from disk.
 
     :param image_path: path to the image stack
     :return: a numpy array with dimensions (frame, height, width)
     """
-    return sk_io.imread(image_path)
+    return sk_io.imread(str(image_path))
 
 
 def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str, suffix: str):
