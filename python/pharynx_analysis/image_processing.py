@@ -2,6 +2,7 @@ from typing import List, Iterable
 
 import numpy as np
 import xarray as xr
+from numba import jit
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
@@ -112,11 +113,10 @@ def rotate(data, tform, orientation):
 
     """
     # noinspection PyTypeChecker
-    cval = 300
     return transform.rotate(
         transform.warp(
-            data, tform, preserve_range=True, mode='wrap', cval=cval),
-        np.degrees(np.pi / 2 - orientation), mode='edge', cval=cval)
+            data, tform, preserve_range=True, mode='wrap'),
+        np.degrees(np.pi / 2 - orientation), mode='edge')
 
 
 def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
@@ -271,26 +271,24 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: 
     -------
 
     """
-
+    non_tl_wvls = list(filter(lambda x: x != 'TL', fl_stack.wavelength.data))
     raw_intensity_data = xr.DataArray(
         np.zeros(
-            (fl_stack.strain.size, fl_stack.wavelength.size, fl_stack.pair.size, n_points)
+            (fl_stack.strain.size, len(non_tl_wvls), fl_stack.pair.size, n_points)
         ),
         dims=['strain', 'wavelength', 'pair', 'position'],
-        coords={'strain': fl_stack.strain, 'wavelength': fl_stack.wavelength, 'pair': fl_stack.pair}
+        coords={'strain': fl_stack.strain, 'wavelength': non_tl_wvls, 'pair': fl_stack.pair}
     )
 
     xs = np.linspace(x_range[0], x_range[1], n_points)
 
     # TODO: implement non-frame-specific midlines
     for img_idx in range(fl_stack.strain.size):
-        for wvl_idx in range(fl_stack.wavelength.size):
-            wvl = fl_stack.wavelength.data[wvl_idx]
-            if 'tl' not in wvl.lower():
-                for pair in range(fl_stack.pair.size):
-                    img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)
-                    raw_intensity_data[img_idx, wvl_idx, pair, :] = \
-                        measure_under_midline(img, midlines[img_idx][wvl][pair], xs)
+        for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
+            for pair in range(fl_stack.pair.size):
+                img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)
+                raw_intensity_data[img_idx, wvl_idx, pair, :] = \
+                    measure_under_midline(img, midlines[img_idx][wvl][pair], xs)
 
     return raw_intensity_data
 
@@ -308,37 +306,6 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     -------
 
     """
-    # peaks_all = xr.DataArray(
-    #     np.full((intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, 2), np.nan),
-    #     dims=['strain', 'wavelength', 'pair', 'peaks'],
-    #     coords={'strain': intensity_data.strain, 'wavelength': intensity_data.wavelength, 'pair': intensity_data.pair}
-    # )
-    # for img_idx in range(intensity_data.strain.size):
-    #     for wvl_idx in range(intensity_data.wavelength.size):
-    #         if intensity_data.wavelength[wvl_idx] != 'TL':
-    #             for pair_idx in range(intensity_data.pair.size):
-    #                 ys = intensity_data.isel(strain=img_idx, wavelength=wvl_idx, pair=pair_idx).data
-    #                 p, peak_props = find_peaks(ys, distance=.3 * len(ys), prominence=100, wlen=10)
-    #                 # Get 2 largest peaks
-    #                 p = np.argpartition(p, len(p) - 2)[-2:]
-    #                 peaks_all[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)] = p
-    #
-    #                 should_flip = False
-    #                 if len(p) == 1:
-    #                     # Usually if there is only 1 peak, it's the anterior peak
-    #                     if p[0] < len(ys) // 2:
-    #                         should_flip = True
-    #                 if len(p) == 2:
-    #                     proms = peak_props['prominences']
-    #                     if proms[0] > proms[1]:
-    #                         should_flip = True
-    #                     if p[0] < len(ys) - p[1]:
-    #                         should_flip = True
-    #
-    #                 if should_flip:
-    #                     intensity_data[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)] = np.flip(
-    #                         intensity_data[dict(strain=img_idx, wavelength=wvl_idx, pair=pair_idx)])
-
     data = trim_profiles(intensity_data, threshold=2000, new_length=100)
 
     ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
