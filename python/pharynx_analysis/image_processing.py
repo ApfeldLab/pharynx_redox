@@ -2,7 +2,6 @@ from typing import List, Iterable
 
 import numpy as np
 import xarray as xr
-from numba import jit
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
@@ -315,7 +314,8 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
     flipped = np.fliplr(unflipped)
 
-    should_flip = distance.cdist(ref_vecs, unflipped, 'cosine')[0, :] > distance.cdist(ref_vecs, flipped, 'cosine')[0, :]
+    should_flip = distance.cdist(ref_vecs, unflipped, 'cosine')[0, :] > distance.cdist(ref_vecs, flipped, 'cosine')[0,
+                                                                        :]
 
     intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3)
 
@@ -359,11 +359,19 @@ def trim_profile(profile, threshold, new_length):
     return np.interp(new_xs, old_xs, trimmed)
 
 
-def trim_profiles(intensity_data, threshold, new_length):
+def get_trim_boundaries(data, ref_wvl='410', thresh=2000):
+    prof_len = data.position.size
+    l = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=2).data
+    r = prof_len - np.argmax(np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=2).data - 1
+    return l, r
+
+
+def trim_profiles(intensity_data, threshold, new_length, ref_wvl='410'):
     """
     TODO: Documentation
     Parameters
     ----------
+    ref_wvl
     intensity_data
     threshold
     new_length
@@ -372,7 +380,6 @@ def trim_profiles(intensity_data, threshold, new_length):
     -------
 
     """
-    # TODO: use trim boundaries from ref wavelength to trim others within tuple
     trimmed_intensity_data = xr.DataArray(
         np.zeros(
             (intensity_data.strain.size, intensity_data.wavelength.size, intensity_data.pair.size, new_length)
@@ -380,14 +387,22 @@ def trim_profiles(intensity_data, threshold, new_length):
         dims=['strain', 'wavelength', 'pair', 'position'],
         coords={'strain': intensity_data.strain, 'wavelength': intensity_data.wavelength, 'pair': intensity_data.pair}
     )
+
+    l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
+
     for img_idx in range(intensity_data.strain.size):
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
             if 'tl' not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
-                    untrimmed_profile = intensity_data.sel(wavelength=wvl, pair=pair).isel(strain=img_idx).data
-                    trimmed_intensity_data[img_idx, wvl_idx, pair, :] = \
-                        trim_profile(untrimmed_profile, threshold, new_length)
+                    data = intensity_data.sel(wavelength=wvl, pair=pair).isel(strain=img_idx).data
+
+                    trimmed = data[l[img_idx, pair]:r[img_idx, pair]]
+                    new_xs = np.linspace(0, len(trimmed), new_length)
+                    old_xs = np.arange(0, len(trimmed))
+                    resized = np.interp(new_xs, old_xs, trimmed)
+
+                    trimmed_intensity_data[img_idx, wvl_idx, pair, :] = resized
 
     return trimmed_intensity_data
 
