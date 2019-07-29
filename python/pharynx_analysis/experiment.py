@@ -3,12 +3,17 @@ import typing
 from pathlib import Path
 
 import attr
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import tqdm
 import xarray as xr
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.gridspec import GridSpec
 
 from pharynx_analysis import image_processing as ip
 from pharynx_analysis import pharynx_io as pio
+from pharynx_analysis import plots
 
 
 def get_non_tl(data_array):
@@ -34,6 +39,8 @@ class PairExperiment:
 
     strains: np.ndarray = None
     experiment_id: str = None
+
+    exclude_idx = None
 
     # Pipeline Parameters
     midline_smoothing: int = 1e8
@@ -81,7 +88,7 @@ class PairExperiment:
     oxd: xr.DataArray = None
     e: xr.DataArray = None
 
-    region_means: pd.DataFrame = None
+    summary_table: pd.DataFrame = None
     movement: pd.DataFrame = None
 
     def __attrs_post_init__(self):
@@ -91,6 +98,8 @@ class PairExperiment:
         self.load_strains()
         self.scale_region_boundaries()
         self.load_movement_annotation()
+        if self.exclude_idx is None:
+            self.exclude_idx = np.zeros(len(self.strains))
         self.full_pipeline()
 
     def full_pipeline(self):
@@ -104,15 +113,16 @@ class PairExperiment:
         self.measure_under_midlines()
         self.trim_data()
         self.calculate_redox()
-        self.calc_region_means()
+        self.generate_summary_table()
+        self.persist_to_disk()
 
         logging.info(f'Finished full pipeline run for {self.experiment_dir}')
 
     def trim_data(self):
         logging.info('Trimming intensity data')
-        self.trimmed_intensity_data = ip.trim_profiles(
+        self.trimmed_intensity_data = self.add_attributes_to_data_array(ip.trim_profiles(
             self.raw_intensity_data, self.seg_threshold, self.trimmed_profile_length
-        )
+        ))
 
     def calculate_redox(self):
         logging.info('Calculating redox measurements')
@@ -146,6 +156,19 @@ class PairExperiment:
         self.raw_intensity_data.data = np.nan_to_num(self.raw_intensity_data.data)
         self.raw_intensity_data = ip.align_pa(self.raw_intensity_data)
 
+        # Add attributes
+        self.raw_intensity_data = self.add_attributes_to_data_array(self.raw_intensity_data)
+
+    def add_attributes_to_data_array(self, data_array):
+        return data_array.assign_attrs(
+            r_min=self.r_min,
+            r_max=self.r_max,
+            instrument_factor=self.instrument_factor,
+            midpoint_potential=self.midpoint_potential,
+            z=self.z,
+            temperature=self.temperature
+        )
+
     def load_images(self):
         logging.info('Loading Images')
         raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + '.tif')
@@ -153,10 +176,13 @@ class PairExperiment:
         self.raw_image_data = pio.load_images(raw_image_path, self.imaging_scheme, self.strains)
 
     def load_movement_annotation(self):
-        df = pd.read_csv(self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv'))
-        df = df.pivot_table(index='animal', columns=['region', 'pair'], values='movement')
-        df = df.stack('pair')
-        self.movement = df
+        try:
+            df = pd.read_csv(self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv'))
+            df = df.pivot_table(index='animal', columns=['region', 'pair'], values='movement')
+            df = df.stack('pair')
+            self.movement = df
+        except FileNotFoundError:
+            pass
 
     def load_strains(self):
         self.strains = pio.load_strain_map_from_disk(self.experiment_dir.joinpath(self.experiment_id + '-indexer.csv'))
@@ -176,7 +202,7 @@ class PairExperiment:
             for region in self.regions.keys()
         }
 
-    def calc_region_means(self):
+    def generate_summary_table(self):
         data = self.trimmed_intensity_data
         dfs = []
         for region, bounds in self.scaled_regions.items():
@@ -198,10 +224,15 @@ class PairExperiment:
         df = pd.concat(dfs)
         df.reset_index(drop=True, inplace=True)
 
-        self.region_means = df
+        self.summary_table = df
 
         if self.movement is not None:
-            self.region_means = self.region_means.join(self.movement, on=['animal', 'pair'])
+            self.summary_table = self.summary_table.join(self.movement, on=['animal', 'pair'])
+
+        return self.summary_table
+
+    def filter_by_exclude_status(self, data):
+        return data.loc[dict(strain=np.logical_not(self.exclude_idx))]
 
     def persist_to_disk(self, output_dir: str = None):
         if output_dir is None:
@@ -211,12 +242,94 @@ class PairExperiment:
 
         logging.info(f'Saving {self.experiment_id} inside {output_dir}')
 
-        pio.save_images_xarray_to_disk(self.seg_images, output_dir.joinpath('processed_images'), self.experiment_id,
-                                       'seg')
-
         # Persist the region means
-        self.calc_region_means()
-        self.region_means.to_csv(output_dir.joinpath(self.experiment_id + '-region_means.csv'), index=False)
+        summary_table_filename = output_dir.joinpath(self.experiment_id + '-summary_table.csv')
+        logging.info(f'Saving region means to {summary_table_filename}')
+        self.generate_summary_table()
+        self.summary_table.to_csv(summary_table_filename, index=False)
+
+        # Persist the profile data
+        self.persist_profile_data(output_dir, output_format='netcdf')
+
+        # Plots
+        self.generate_reports(output_dir)
+
+    def persist_profile_data(self, output_dir: Path, output_format='netcdf'):
+        if output_format == 'netcdf':
+            profile_data_filename = output_dir.joinpath(self.experiment_id + '-profile_data.nc')
+            logging.info(f'Saving profile data to {profile_data_filename}')
+            self.trimmed_intensity_data.to_netcdf(profile_data_filename)
+
+        else:
+            raise ValueError('invalid profile data persistence type')
+
+    def generate_reports(self, output_dir: Path):
+        logging.info('Generating reports')
+        summary_profile_fig, _ = plots.plot_paired_experiment_summary(self)
+        summary_profile_fig.savefig(output_dir.joinpath('figs', self.experiment_id + '-summary_report.pdf'))
+
+        self.generate_per_animal_reports()
+
+    def generate_per_animal_reports(self, f_name='per_animal_reports.pdf'):
+        output_filename = self.experiment_dir.joinpath('figs', f_name)
+        logging.info(f'Saving per-animal reports to {output_filename}')
+        with PdfPages(str(output_filename)) as pdf:
+            for i in tqdm.trange(len(self.strains)):
+                fig = self.single_animal_diagnostic_plot(i)
+                pdf.savefig(fig)
+                plt.close()
+
+    def single_animal_diagnostic_plot(self, i):
+        fig = plt.figure(constrained_layout=True, figsize=(15, 15))
+        gs = GridSpec(5, 3, figure=fig)
+        midline_xs = np.arange(40, 120)
+
+        for pair in range(self.raw_image_data.pair.size):
+            i410 = self.rot_fl.sel(wavelength='410', pair=pair).isel(strain=i)
+            i470 = self.rot_fl.sel(wavelength='470', pair=pair).isel(strain=i)
+            ax = fig.add_subplot(gs[pair, 0])
+            ax.imshow(i410)
+            ax.plot(midline_xs, self.midlines[i]['410'][pair](midline_xs), color='orange')
+            ax.set_title(f'410-{pair}')
+
+            ax = fig.add_subplot(gs[pair, 1])
+            ax.imshow(i470)
+            ax.plot(midline_xs, self.midlines[i]['470'][pair](midline_xs), color='r')
+            ax.set_title(f'470-{pair}')
+
+            ax = fig.add_subplot(gs[pair, 2])
+            ax.imshow(i410 / i470)
+            ax.plot(midline_xs, self.midlines[i]['410'][pair](midline_xs), color='orange', label='410',
+                    alpha=0.5)
+            ax.plot(midline_xs, self.midlines[i]['470'][pair](midline_xs), color='r', label='470', alpha=0.5)
+            ax.set_title(f'(410/470)-{pair}')
+            ax.legend()
+
+        ax = fig.add_subplot(gs[2, :])
+        for pair in range(self.raw_image_data.pair.size):
+            ax.plot(self.trimmed_intensity_data.sel(wavelength='410', pair=pair).isel(strain=i),
+                    label=f'410-{pair}')
+            ax.plot(self.trimmed_intensity_data.sel(wavelength='470', pair=pair).isel(strain=i),
+                    label=f'470-{pair}')
+        ax.legend()
+
+        ax = fig.add_subplot(gs[3:, :])
+        for pair in range(self.raw_image_data.pair.size):
+            ax.plot(self.trimmed_intensity_data.sel(wavelength='e', pair=pair).isel(strain=i),
+                    label=f'E-{pair}')
+            ax.set_ylim([np.nanquantile(self.trimmed_intensity_data.sel(wavelength='e').data, .01),
+                         np.nanquantile(self.trimmed_intensity_data.sel(wavelength='e').data, .99)])
+        ax.legend()
+
+        plt.suptitle(f'Animal {i} ({self.strains[i]})')
+
+        return fig
+
+    def exclude(self, idx: typing.Union[int, np.ndarray]):
+        self.exclude_idx[idx] = 1
+
+    def unexclude(self, idx: typing.Union[int, np.ndarray]):
+        self.exclude_idx[idx] = 0
 
 
 if __name__ == '__main__':
