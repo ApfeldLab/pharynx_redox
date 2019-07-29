@@ -5,32 +5,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
 from statsmodels.stats.weightstats import DescrStatsW
-from pharynx_analysis.experiment import PairExperiment
-
-
-def generate_save_experiment_summary_plots(experiment: PairExperiment, output_dir=None):
-    if not output_dir:
-        output_dir = Path(experiment.raw_image_path).parent.joinpath('figs')
-
-    # Make output directory if not exists
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    figs = []
-    fig, axes = plot_paired_experiment_summary(experiment)
-    figs.append((fig, 'summary.pdf'))
-
-    for fig, f_name in figs:
-        fig.savefig(output_dir.joinpath(f_name))
 
 
 def plot_paired_experiment_summary(experiment):
-    fig, axes = plt.subplots(3, 2, figsize=(20, 10))
+    fig, axes = plt.subplots(5, 2, figsize=(20, 20))
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='410'),
-                                    regions=experiment.scaled_regions, axes=[axes[0, 0], axes[0, 1]], title='410')
+                                    regions=experiment.scaled_regions, axes=[axes[0, 0], axes[0, 1]], title='410', legend=True)
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='470'),
                                     regions=experiment.scaled_regions, axes=[axes[1, 0], axes[1, 1]], title='470')
+    plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='r'),
+                                    regions=experiment.scaled_regions, axes=[axes[2, 0], axes[2, 1]], title='410/470')
+    plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='oxd'),
+                                    regions=experiment.scaled_regions, axes=[axes[3, 0], axes[3, 1]], title='OxD')
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='e'),
-                                    regions=experiment.scaled_regions, axes=[axes[2, 0], axes[2, 1]], title='470')
+                                    regions=experiment.scaled_regions, axes=[axes[4, 0], axes[4, 1]], title='E')
+    plt.tight_layout()
     return fig, axes
 
 
@@ -108,7 +97,7 @@ def plot_individual_profile_data_by_strain_and_pair(profile_data, cmin, cmax, cm
     plt.tight_layout()
 
 
-def plot_average_by_strain_and_pair(profile_data, ylim=None, regions=None, axes=None, title=None):
+def plot_average_by_strain_and_pair(profile_data, ylim=None, regions=None, axes=None, title=None, legend=False):
     strains = np.unique(profile_data.strain.data)
 
     if 'pair' in profile_data.dims:
@@ -121,11 +110,12 @@ def plot_average_by_strain_and_pair(profile_data, ylim=None, regions=None, axes=
 
             for strain in strains:
                 data = profile_data.isel(pair=i).sel(strain=strain)
-                ax.plot(np.mean(data, axis=0), label=strain)
+                ax.plot(np.mean(data, axis=0), label=f'{strain} (n={profile_data.strain.sel(strain=strain).size})')
                 lower, upper = DescrStatsW(data).tconfint_mean()
                 xs = np.arange(len(lower))
                 ax.fill_between(xs, lower, upper, alpha=0.4)
-                ax.legend()
+                if legend:
+                    ax.legend()
                 if title:
                     ax.set_title(f'{title}-{i}')
                 else:
@@ -148,7 +138,8 @@ def plot_average_by_strain_and_pair(profile_data, ylim=None, regions=None, axes=
             lower, upper = DescrStatsW(data).tconfint_mean()
             xs = np.arange(len(lower))
             ax.fill_between(xs, lower, upper, alpha=0.4)
-            ax.legend()
+            if legend:
+                ax.legend()
             ax.set_title(title)
             if ylim:
                 ax.set_ylim(ylim)
