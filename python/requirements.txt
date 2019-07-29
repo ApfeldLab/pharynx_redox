@@ -50,6 +50,7 @@ MarkupSafe==1.1.1
 matplotlib==3.1.1
 mistune==0.8.4
 more-itertools==7.2.0
+mpldatacursor==0.6.2
 nbconvert==5.5.0
 nbformat==4.4.0
 networkx==2.3
@@ -86,7 +87,10 @@ PyWavelets==1.0.3
 PyYAML==5.1.1
 pyzmq==18.0.2
 qtconsole==4.5.2
+rdata==0.2.1
 requests==2.22.0
+scikit-datasets==0.1.26
+scikit-fda==0.2.3
 scikit-image==0.15.0
 scikit-learn==0.21.2
 scipy==1.3.0
