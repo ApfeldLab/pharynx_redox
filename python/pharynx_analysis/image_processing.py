@@ -2,6 +2,7 @@ from typing import List, Iterable
 
 import numpy as np
 import xarray as xr
+import tqdm
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
@@ -35,7 +36,7 @@ def center_and_rotate_pharynxes(fl_images, seg_images, reference_wavelength='410
     blurred_seg_data = blurred_seg_data > 1000
     blurred_seg.data = blurred_seg_data
 
-    for img_idx in range(fl_images.strain.size):
+    for img_idx in tqdm.trange(fl_images.strain.size):
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
                 # Optimization potential here...
@@ -151,7 +152,7 @@ def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
                  in rot_seg_stack.pair.data]
             for wvl in rot_seg_stack.wavelength.data if 'tl' not in wvl.lower()
         }
-        for img_idx in range(rot_seg_stack.strain.size)
+        for img_idx in tqdm.trange(rot_seg_stack.strain.size)
     ]
 
 
@@ -282,7 +283,7 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: 
     xs = np.linspace(x_range[0], x_range[1], n_points)
 
     # TODO: implement non-frame-specific midlines
-    for img_idx in range(fl_stack.strain.size):
+    for img_idx in tqdm.trange(fl_stack.strain.size):
         for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
             for pair in range(fl_stack.pair.size):
                 img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)
