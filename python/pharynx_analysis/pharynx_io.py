@@ -137,7 +137,7 @@ def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) 
             )
 
 
-def load_strain_map_from_disk(strain_map_path: str) -> np.ndarray:
+def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
     """ Load strain map from disk, generate a 1D array where the index corresponds to the strain of the worm at that index
 
     The strain map is a CSV file which tells the system which maps animal number to strain. It has three columns:
