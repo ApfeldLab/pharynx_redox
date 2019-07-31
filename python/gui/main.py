@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Set up plots
         self.intensity_plot_widget = ProfilePlotGridWidget(
-            self.experiment.trimmed_intensity_data, self.experiment.get_scaled_region_boundaries()
+            self.experiment.trimmed_raw_profiles, self.experiment.get_scaled_region_boundaries()
         )
         self.ui.intensityPlotBox.layout().addWidget(self.intensity_plot_widget)
 
