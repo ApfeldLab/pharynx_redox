@@ -1,16 +1,16 @@
-from pathlib import Path
-
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
 from statsmodels.stats.weightstats import DescrStatsW
+import seaborn as sns
 
 
 def plot_paired_experiment_summary(experiment):
     fig, axes = plt.subplots(5, 2, figsize=(20, 20))
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='410'),
-                                    regions=experiment.scaled_regions, axes=[axes[0, 0], axes[0, 1]], title='410', legend=True)
+                                    regions=experiment.scaled_regions, axes=[axes[0, 0], axes[0, 1]], title='410',
+                                    legend=True)
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='470'),
                                     regions=experiment.scaled_regions, axes=[axes[1, 0], axes[1, 1]], title='470')
     plot_average_by_strain_and_pair(experiment.trimmed_intensity_data.sel(wavelength='r'),
@@ -178,3 +178,36 @@ def plot_multi_profile_by_wvl_and_pair(data, color='royalblue', alpha=.3):
                 axes[row][col].set_title(f'{wvl.data}-{pair}')
 
     return fig, axes
+
+
+def plot_profile_avg_by_strain(profile_data, ax_title=None, alpha=0.05, ax=None):
+    """
+
+    Parameters
+    ----------
+    profile_data
+    ax_title
+    alpha
+    ax
+
+    Returns
+    -------
+
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+    ax.set_title(ax_title)
+    for strain in np.unique(profile_data.strain.data):
+        d = profile_data.sel(strain=strain)
+        ax.plot(np.mean(d, axis=0), label=strain)
+        lower, upper = DescrStatsW(d).tconfint_mean(alpha=alpha)
+        xs = np.arange(len(lower))
+        ax.fill_between(xs, lower, upper, alpha=0.3)
+    ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
+    plt.subplots_adjust(right=0.7)
+
+    return plt.gcf(), ax
+
+def boxplot_by_strain(y, summary_table):
+    return sns.catplot(y=y, x='strain', data=summary_table, kind='box')
