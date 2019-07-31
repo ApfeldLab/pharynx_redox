@@ -1,12 +1,12 @@
-from typing import List, Iterable
+from typing import List, Dict, Union
 
 import numpy as np
-import xarray as xr
 import tqdm
+import xarray as xr
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
-from scipy.spatial import distance
+from scipy.spatial.distance import cdist
 from skimage import measure, transform
 from skimage.measure import label
 
@@ -72,11 +72,13 @@ def extract_largest_binary_object(bin_img):
     return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
 
+# noinspection PyUnresolvedReferences
 def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
     """
 
     Parameters
     ----------
+    threshold
     fl_stack
 
     Returns
@@ -92,7 +94,7 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
     return seg
 
 
-def get_centroids(fl_stack: xr.DataArray, reference_wavelength='410', threshold=1000, gaussian_sigma=6):
+def get_centroids(fl_stack: xr.DataArray, threshold=1000, gaussian_sigma=6):
     image_data = fl_stack.copy()
     image_data.data = ndi.gaussian_filter(image_data.data, sigma=(0, 0, 0, gaussian_sigma, gaussian_sigma))
     image_data.data[image_data.data < threshold] = 0
@@ -119,11 +121,13 @@ def rotate(data, tform, orientation):
         np.degrees(np.pi / 2 - orientation), mode='edge')
 
 
-def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
+def calculate_midlines(rot_seg_stack: xr.DataArray, rot_fl_stack: xr.DataArray,
+                       s=1e8, ext=0) -> List[Dict[str, List[UnivariateSpline]]]:
     """Calculate the midlines for the given stack. Only calculates midlines for NON-TL images
     Parameters
     ----------
-    rot_seg_stack: xr.DataArray
+    rot_fl_stack
+    rot_seg_stack
         The rotated mask with which midlines should be calculated. It should have the following dimensions::
 
             (strain, wavelength, pair, height, width)
@@ -156,12 +160,14 @@ def calculate_midlines(rot_seg_stack, rot_fl_stack, s=1e8, ext=0) -> List[dict]:
     ]
 
 
-def calculate_midline(rot_seg_img, rot_fl, s=1e8, ext=0):
+def calculate_midline(rot_seg_img: Union[np.ndarray, xr.DataArray], rot_fl: Union[np.ndarray, xr.DataArray], s=1e8,
+                      ext=0):
     """Calculate a the midline for a single image. Right now this only works for images that have been centered and aligned
     with their anterior-posterior along the horizontal.
 
     Parameters
     ----------
+    rot_fl
     rot_seg_img: Union[np.ndarray, xr.DataArray]
         The rotated masked pharynx image
     s
@@ -247,7 +253,8 @@ def measure_under_midline(fl: xr.DataArray, mid: UnivariateSpline, xs: np.ndarra
     # return prof
 
 
-def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: tuple, n_points: int) -> xr.DataArray:
+def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[Dict[str, List[UnivariateSpline]]],
+                           x_range: tuple, n_points: int) -> xr.DataArray:
     """
     Parameters
     ----------
@@ -282,7 +289,6 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: Iterable, x_range: 
 
     xs = np.linspace(x_range[0], x_range[1], n_points)
 
-    # TODO: implement non-frame-specific midlines
     for img_idx in tqdm.trange(fl_stack.strain.size):
         for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
             for pair in range(fl_stack.pair.size):
@@ -315,8 +321,7 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
     unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
     flipped = np.fliplr(unflipped)
 
-    should_flip = distance.cdist(ref_vecs, unflipped, 'cosine')[0, :] > distance.cdist(ref_vecs, flipped, 'cosine')[0,
-                                                                        :]
+    should_flip = cdist(ref_vecs, unflipped, 'cosine')[0, :] > cdist(ref_vecs, flipped, 'cosine')[0, :]
 
     intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3)
 
@@ -326,7 +331,6 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
 
     peaks, _ = find_peaks(mean_intensity, distance=.2 * len(mean_intensity), prominence=200, wlen=10)
 
-    # TODO: fix
     if len(peaks) < 2:
         return intensity_data
 
@@ -338,7 +342,6 @@ def align_pa(intensity_data, reference_wavelength='410', reference_pair=0):
 
 def trim_profile(profile, threshold, new_length):
     """
-    TODO: Documentation
     Parameters
     ----------
     profile
@@ -356,20 +359,18 @@ def trim_profile(profile, threshold, new_length):
     new_xs = np.linspace(0, len(trimmed), new_length)
     old_xs = np.arange(0, len(trimmed))
 
-    # TODO: also return first and last idx... ummm why?
     return np.interp(new_xs, old_xs, trimmed)
 
 
 def get_trim_boundaries(data, ref_wvl='410', thresh=2000):
     prof_len = data.position.size
-    l = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=2).data
-    r = prof_len - np.argmax(np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=2).data - 1
-    return l, r
+    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=2).data - 1
+    r_bound = prof_len - np.argmax(np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=2).data
+    return l_bound, r_bound
 
 
 def trim_profiles(intensity_data, threshold, new_length, ref_wvl='410'):
     """
-    TODO: Documentation
     Parameters
     ----------
     ref_wvl
@@ -426,7 +427,9 @@ def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
 
 
 def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
-    """
+    """Convert OxD to redox potential
+
+    NOTE: may return NaN
 
     Parameters
     ----------
@@ -439,7 +442,6 @@ def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
     -------
 
     """
-    # TODO: returns NaN sometimes?
     return midpoint_potential - (8314.462 * (273.15 + temperature) / (z * 96485.3415)) * np.log((1 - oxd) / oxd)
 
 
@@ -448,6 +450,8 @@ def center_of_mass_midline(rot_fl, s, ext):
 
     Parameters
     ----------
+    ext
+    s
     rot_fl
 
     Returns
