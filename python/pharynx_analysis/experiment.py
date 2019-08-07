@@ -52,7 +52,8 @@ class Experiment:
     n_midline_pts: int = 200
     seg_threshold: int = 2000
     trim_threshold: int = 3000
-    reg_lambda = 0.01
+    reg_lambda: float = 0.01
+    frame_specific_midlines: bool = False
 
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
@@ -81,45 +82,12 @@ class Experiment:
         if self.load_from_disk:
             self.load_exp_from_disk()
 
-    def load_images(self):
-        logging.info('Loading Images')
-        raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + '.tif')
-
-        self.raw_image_data = pio.load_images(raw_image_path, self.imaging_scheme, self.strains)
-
-    def add_experiment_metadata_to_data_array(self, data_array):
-        return data_array.assign_attrs(
-            r_min=self.r_min,
-            r_max=self.r_max,
-            instrument_factor=self.instrument_factor,
-            midpoint_potential=self.midpoint_potential,
-            z=self.z,
-            temperature=self.temperature,
-            strategy=self.strategy
-        )
-
-    def flip_at(self, idx):
-        np.fliplr(self.rot_fl[:, idx])
-        np.fliplr(self.rot_seg[:, idx])
-        np.fliplr(self.untrimmed_profiles[:, idx])
-        np.fliplr(self.trimmed_profiles[:, idx])
-
-    def scale_region_boundaries(self):
-        self.scaled_regions = {
-            region: np.int_(self.trimmed_profile_length * np.asarray(self.regions[region]))
-            for region in self.regions.keys()
-        }
-
-    def make_fig_dir(self):
-        fig_dir = self.get_analysis_dir().joinpath('figs')
-        fig_dir.mkdir(parents=True, exist_ok=True)
-        return fig_dir
-
-    def exclude(self, idx: Union[int, np.ndarray]):
-        self.include_idx[idx] = 0
-
-    def unexclude(self, idx: Union[int, np.ndarray]):
-        self.include_idx[idx] = 1
+    ####################################################################################################################
+    # PIPELINE
+    ####################################################################################################################
+    def segment_pharynxes(self):
+        logging.info('Segmenting pharynxes')
+        return ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
     def align_and_center(self):
         logging.info('Centering and rotating pharynxes')
@@ -132,7 +100,8 @@ class Experiment:
 
     def measure_under_midlines(self):
         logging.info('Measuring under midlines')
-        self.untrimmed_profiles = ip.measure_under_midlines(self.rot_fl, self.midlines, n_points=self.n_midline_pts)
+        self.untrimmed_profiles = ip.measure_under_midlines(self.rot_fl, self.midlines, n_points=self.n_midline_pts,
+                                                            frame_specific=self.frame_specific_midlines)
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(self.untrimmed_profiles)
 
@@ -161,22 +130,6 @@ class Experiment:
             self.trimmed_profiles.loc[dict(wavelength='r')])
         self.trimmed_profiles.loc[dict(wavelength='e')] = profile_processing.oxd_to_redox_potential(
             self.trimmed_profiles.loc[dict(wavelength='oxd')])
-
-    def load_movement_annotation(self):
-        try:
-            df = pd.read_csv(self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv'))
-            df = df.pivot_table(index='animal', columns=['region', 'pair'], values='movement')
-            df = df.stack('pair')
-            self.movement = df
-        except FileNotFoundError:
-            pass
-
-    def load_strains(self):
-        self.strains = pio.load_strain_map_from_disk(self.experiment_dir.joinpath(self.experiment_id + '-indexer.csv'))
-
-    def segment_pharynxes(self):
-        logging.info('Segmenting pharynxes')
-        return ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
     def generate_summary_table(self):
         dfs = []
@@ -207,33 +160,59 @@ class Experiment:
 
         return self.summary_table
 
-    def filter_by_exclude_status(self, data):
-        return data.loc[dict(strain=np.logical_not(self.include_idx))]
+    ####################################################################################################################
+    # LIVE EDITING
+    ####################################################################################################################
+    def flip_at(self, idx):
+        np.fliplr(self.rot_fl[:, idx])
+        np.fliplr(self.rot_seg[:, idx])
+        np.fliplr(self.untrimmed_profiles[:, idx])
+        np.fliplr(self.trimmed_profiles[:, idx])
+
+    def exclude(self, idx: Union[int, np.ndarray]):
+        self.include_idx[idx] = 0
+
+    def unexclude(self, idx: Union[int, np.ndarray]):
+        self.include_idx[idx] = 1
+
+    def scale_region_boundaries(self):
+        self.scaled_regions = {
+            region: np.int_(self.trimmed_profile_length * np.asarray(self.regions[region]))
+            for region in self.regions.keys()
+        }
+
+    ####################################################################################################################
+    # PERSISTENCE/IO
+    ####################################################################################################################
+    def load_images(self):
+        logging.info('Loading Images')
+        raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + '.tif')
+
+        self.raw_image_data = pio.load_images(raw_image_path, self.imaging_scheme, self.strains)
+
+    def load_strains(self):
+        self.strains = pio.load_strain_map_from_disk(self.experiment_dir.joinpath(self.experiment_id + '-indexer.csv'))
+
+    def load_movement_annotation(self):
+        try:
+            df = pd.read_csv(self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv'))
+            df = df.pivot_table(index='animal', columns=['region', 'pair'], values='movement')
+            df = df.stack('pair')
+            self.movement = df
+        except FileNotFoundError:
+            pass
 
     def get_analysis_dir(self):
         date_str = datetime.datetime.now().strftime('%Y-%m-%d')
-        analysis_dir = self.experiment_dir.joinpath('analyses', f'{date_str}_{self.strategy}')
+        strategy_str = self.strategy.replace(' ', '_')
+        analysis_dir = self.experiment_dir.joinpath('analyses', f'{date_str}_{strategy_str}')
         analysis_dir.mkdir(parents=True, exist_ok=True)
         return analysis_dir
 
-    def persist_to_disk(self, summary_plots=False):
-        logging.info(f'Saving {self.experiment_id} inside {self.experiment_dir}')
-
-        analysis_dir = self.get_analysis_dir()
-
-        # Persist the region means
-        summary_table_filename = analysis_dir.joinpath(self.experiment_id + '-summary_table.csv')
-        logging.info(f'Saving region means to {summary_table_filename}')
-        self.generate_summary_table()
-        self.summary_table.to_csv(summary_table_filename, index=False)
-
-        # Persist the profile data
-        self.persist_profile_data()
-
-        # Plots
-        if summary_plots:
-            self.save_profile_summary_plots(self.trimmed_profiles)
-            self.save_cat_plots()
+    def make_fig_dir(self):
+        fig_dir = self.get_analysis_dir().joinpath('figs')
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        return fig_dir
 
     def persist_profile_data(self):
         analysis_dir = self.get_analysis_dir()
@@ -288,8 +267,44 @@ class Experiment:
                 )
                 plt.savefig(cat_plot_dir.joinpath(f'violin_regions-{wvl}-{pair}.pdf'))
 
+    def persist_to_disk(self, summary_plots=False):
+        logging.info(f'Saving {self.experiment_id} inside {self.experiment_dir}')
+
+        analysis_dir = self.get_analysis_dir()
+
+        # Persist the region means
+        summary_table_filename = analysis_dir.joinpath(self.experiment_id + '-summary_table.csv')
+        logging.info(f'Saving region means to {summary_table_filename}')
+        self.generate_summary_table()
+        self.summary_table.to_csv(summary_table_filename, index=False)
+
+        # Persist the profile data
+        self.persist_profile_data()
+
+        # Plots
+        if summary_plots:
+            self.save_profile_summary_plots(self.trimmed_profiles)
+            self.save_cat_plots()
+
     def load_exp_from_disk(self):
         pass
+
+    ####################################################################################################################
+    # MISC / HELPER
+    ####################################################################################################################
+    def add_experiment_metadata_to_data_array(self, data_array):
+        return data_array.assign_attrs(
+            r_min=self.r_min,
+            r_max=self.r_max,
+            instrument_factor=self.instrument_factor,
+            midpoint_potential=self.midpoint_potential,
+            z=self.z,
+            temperature=self.temperature,
+            strategy=self.strategy
+        )
+
+    def filter_by_exclude_status(self, data):
+        return data.loc[dict(strain=np.logical_not(self.include_idx))]
 
 
 @attr.s(auto_attribs=True)
@@ -298,7 +313,7 @@ class PairExperiment(Experiment):
     This is the paired ratio experiment
     """
 
-    strategy = "frame-specific midlines with registration"
+    strategy = "frame specific midlines with registration"
 
     # Required initialization parameters
     image_display_order: List[str] = [
@@ -326,6 +341,7 @@ class PairExperiment(Experiment):
 @attr.s(auto_attribs=True)
 class CataExperiment(Experiment):
     strategy: str = "cata"
+    frame_specific_midlines: bool = False
 
     def full_pipeline(self):
         self.load_images()
@@ -361,8 +377,8 @@ class CataExperiment(Experiment):
 
     def measure_under_midlines(self, ref_wvl='410'):
         logging.info('Measuring under midlines')
-        self.untrimmed_profiles = ip.measure_under_midlines(self.rot_fl, self.midlines, n_points=self.n_midline_pts,
-                                                            ref_wvl='410')
+        self.untrimmed_profiles = ip.measure_under_midlines(
+            self.rot_fl, self.midlines, n_points=self.n_midline_pts, frame_specific=self.frame_specific_midlines)
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(self.untrimmed_profiles)
 
