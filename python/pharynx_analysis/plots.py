@@ -1,9 +1,13 @@
+from typing import Dict, Tuple, Union
+
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-from statsmodels.stats.weightstats import DescrStatsW
 import seaborn as sns
+import xarray as xr
+from matplotlib import cm
+from matplotlib.gridspec import GridSpec
+from statsmodels.stats.weightstats import DescrStatsW
 
 
 def plot_paired_experiment_summary(experiment):
@@ -209,5 +213,96 @@ def plot_profile_avg_by_strain(profile_data, ax_title=None, alpha=0.05, ax=None)
 
     return plt.gcf(), ax
 
+
 def boxplot_by_strain(y, summary_table):
     return sns.catplot(y=y, x='strain', data=summary_table, kind='box')
+
+
+def single_animal_diagnostic_plot(animal_idx, rot_fl, midlines,
+                                  profile_data: Union[Tuple[xr.DataArray, xr.DataArray], xr.DataArray],
+                                  wvl_limits: Dict[str, Tuple[float, float]] = None):
+    fig = plt.figure(constrained_layout=True, figsize=(15, 15))
+    grid_spec = GridSpec(5, 4, figure=fig)
+    midline_xs = np.arange(40, 120)
+
+    ax_idx = 0
+    if type(profile_data) == tuple:
+        pairs = profile_data[0].pair.data
+        strains = profile_data[0].strain.data
+    else:
+        pairs = profile_data.pair.data
+        strains = profile_data.strain.data
+
+    # Plot images in first [n_pairs] rows
+    for pair in np.arange(pairs.size):
+        i410 = rot_fl.sel(wavelength='410', pair=pair).isel(strain=animal_idx)
+        i470 = rot_fl.sel(wavelength='470', pair=pair).isel(strain=animal_idx)
+
+        # Plot 410 image
+        ax = fig.add_subplot(grid_spec[pair, 0])
+        ax.imshow(i410)
+        ax.plot(midline_xs, midlines[animal_idx]['410'][pair](midline_xs), color='orange')
+        ax.set_title(f'410-{pair}')
+
+        # Plot 470 image
+        ax = fig.add_subplot(grid_spec[pair, 1])
+        ax.imshow(i470)
+        ax.plot(midline_xs, midlines[animal_idx]['470'][pair](midline_xs), color='r')
+        ax.set_title(f'470-{pair}')
+
+        # Plot Ratio image
+        ax = fig.add_subplot(grid_spec[pair, 2])
+        ax.imshow(i410 / i470)
+        ax.plot(midline_xs, midlines[animal_idx]['410'][pair](midline_xs), color='orange', label='410',
+                alpha=0.5)
+        ax.plot(midline_xs, midlines[animal_idx]['470'][pair](midline_xs), color='r', label='470', alpha=0.5)
+        ax.set_title(f'(410/470)-{pair}')
+        ax.legend()
+        ax_idx += 1
+
+    if type(profile_data) == tuple:
+        starts = [0, 2]
+        ends = [2, 4]
+        times = [0, 1]
+
+    else:
+        starts = [0]
+        ends = [4]
+        times = [0]
+
+    ax_idx_save = ax_idx
+    if type(profile_data) != tuple:
+        profile_data = (profile_data,)
+    for i in times:
+        # Plot intensity profiles
+        prof_data = profile_data[i]
+        ax = fig.add_subplot(grid_spec[ax_idx, starts[times[i]]:ends[times[i]]])
+        for pair in np.arange(pairs.size):
+            ax.plot(prof_data.sel(wavelength='410', pair=pair).isel(strain=animal_idx), label=f'410-{pair}')
+            ax.plot(prof_data.sel(wavelength='470', pair=pair).isel(strain=animal_idx), label=f'470-{pair}')
+            if wvl_limits:
+                ax.set_ylim(wvl_limits.get('intensity', (0, 1.6e4)))
+        ax.legend()
+        ax.set_title('Intensity')
+        ax_idx += 1
+
+        # Plot R, OxD, and E
+        for wvl in ['r', 'oxd', 'e']:
+            ax = fig.add_subplot(grid_spec[ax_idx, starts[times[i]]:ends[times[i]]])
+            for pair in np.arange(pairs.size):
+                ax.plot(prof_data.sel(wavelength=wvl, pair=pair).isel(strain=animal_idx),
+                        label=f'{pair}')
+                if wvl_limits:
+                    ax.set_ylim(wvl_limits.get(wvl))
+                else:
+                    ax.set_ylim([np.nanquantile(prof_data.sel(wavelength=wvl).data, .01),
+                                 np.nanquantile(prof_data.sel(wavelength=wvl).data, .99)])
+            ax.legend()
+            ax.set_title(wvl)
+            ax_idx += 1
+
+        ax_idx = ax_idx_save
+
+    plt.suptitle(f'Animal {animal_idx} ({strains[animal_idx]})')
+
+    return fig
