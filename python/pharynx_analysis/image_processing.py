@@ -265,7 +265,7 @@ def measure_under_midline(fl: xr.DataArray, mid: Polynomial, xs: np.ndarray, thi
 
 
 def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[Dict[str, List[Polynomial]]], n_points: int = 300,
-                           ref_wvl: str = None) -> xr.DataArray:
+                           frame_specific: bool = False) -> xr.DataArray:
     """
     Parameters
     ----------
@@ -282,8 +282,9 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[Dict[str, List
         ```
     n_points: int
         the number of points to sample under the midline
-    ref_wvl
-        the wavelength to use the midline from. If `None`, frame-specific midlines are used
+    frame_specific
+        whether to use a different midline for each frame. if False, a single midline will be used within all
+        wavelengths in a pair
 
     Returns
     -------
@@ -298,20 +299,23 @@ def measure_under_midlines(fl_stack: xr.DataArray, midlines: List[Dict[str, List
         coords={'strain': fl_stack.strain, 'wavelength': non_tl_wvls, 'pair': fl_stack.pair}
     )
 
+    ref_wvl = '410'
+
     for img_idx in tqdm.trange(fl_stack.strain.size):
         for pair in range(fl_stack.pair.size):
             for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
                 img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)
-                if ref_wvl:
-                    mid = midlines[img_idx][ref_wvl][pair]
-                else:
+
+                if frame_specific:
                     mid = midlines[img_idx][wvl][pair]
+                else:
+                    mid = midlines[img_idx][ref_wvl][pair]
 
                 # Why do we use the bounds for the 410 midlines?
                 ref_mid = midlines[img_idx]['410'][pair]
                 xs = np.linspace(ref_mid.domain[0], ref_mid.domain[1], n_points)
-                raw_intensity_data[img_idx, wvl_idx, pair, :] = \
-                    measure_under_midline(img, mid, xs)
+
+                raw_intensity_data[img_idx, wvl_idx, pair, :] = measure_under_midline(img, mid, xs)
 
     raw_intensity_data.values = np.nan_to_num(raw_intensity_data.values)
     return raw_intensity_data
