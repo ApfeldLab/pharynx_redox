@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import List, Dict, Union
 
@@ -53,12 +52,11 @@ class Experiment:
     scaled_regions: dict = None
 
     # Pipeline Parameters
-    midline_smoothing: int = 1e8
     trimmed_profile_length: int = 300
     n_midline_pts: int = 200
     seg_threshold: int = 2000
-    trim_threshold: int = 4000
-    reg_lambda = 0.05
+    trim_threshold: int = 3000
+    reg_lambda = 0.01
 
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
@@ -73,6 +71,22 @@ class Experiment:
 
     summary_table: pd.DataFrame = None
     movement: pd.DataFrame = None
+
+    load_from_disk: bool = False
+
+    def __attrs_post_init__(self):
+        logging.info(f'Starting full pipeline run for {self.experiment_dir}')
+
+        self.experiment_dir = Path(self.experiment_dir)
+        self.experiment_id = self.experiment_dir.stem
+
+        self.load_strains()
+        self.scale_region_boundaries()
+        self.load_movement_annotation()
+        if self.include_idx is None:
+            self.include_idx = np.ones(len(self.strains))
+        if self.load_from_disk:
+            self.load_exp_from_disk()
 
     def load_images(self):
         logging.info('Loading Images')
@@ -117,39 +131,42 @@ class Experiment:
 
     def register(self):
         logging.info('Registering profiles')
-        self.reg_profiles = profile_processing.register_profiles(self.raw_profiles, lam=self.reg_lambda)
+        self.reg_profiles = profile_processing.register_profiles(self.raw_profiles)
 
     def trim_data(self):
         logging.info('Trimming intensity data')
 
-        self.trimmed_raw_profiles = self.add_experiment_metadata_to_data_array(ip.trim_profiles(
+        self.trimmed_raw_profiles = self.add_experiment_metadata_to_data_array(profile_processing.trim_profiles(
             self.raw_profiles, self.trim_threshold, self.trimmed_profile_length
         ))
-        self.trimmed_reg_profiles = self.add_experiment_metadata_to_data_array(ip.trim_profiles(
-            self.reg_profiles, self.trim_threshold, self.trimmed_profile_length
-        ))
+        if self.reg_profiles is not None:
+            self.trimmed_reg_profiles = self.add_experiment_metadata_to_data_array(profile_processing.trim_profiles(
+                self.reg_profiles, self.trim_threshold, self.trimmed_profile_length
+            ))
 
     def calculate_redox(self):
         logging.info('Calculating redox measurements')
 
         # Expand the trimmed_intensity_data to include new wavelengths
         new_wvls = np.append(self.trimmed_raw_profiles.wavelength.data, ['r', 'oxd', 'e'])
+
         self.trimmed_raw_profiles = self.trimmed_raw_profiles.reindex(wavelength=new_wvls)
-        self.trimmed_reg_profiles = self.trimmed_reg_profiles.reindex(wavelength=new_wvls)
 
         self.trimmed_raw_profiles.loc[dict(wavelength='r')] = \
             self.trimmed_raw_profiles.sel(wavelength='410') / self.trimmed_raw_profiles.sel(wavelength='470')
-        self.trimmed_raw_profiles.loc[dict(wavelength='oxd')] = ip.r_to_oxd(
+        self.trimmed_raw_profiles.loc[dict(wavelength='oxd')] = profile_processing.r_to_oxd(
             self.trimmed_raw_profiles.loc[dict(wavelength='r')])
-        self.trimmed_raw_profiles.loc[dict(wavelength='e')] = ip.oxd_to_redox_potential(
+        self.trimmed_raw_profiles.loc[dict(wavelength='e')] = profile_processing.oxd_to_redox_potential(
             self.trimmed_raw_profiles.loc[dict(wavelength='oxd')])
 
-        self.trimmed_reg_profiles.loc[dict(wavelength='r')] = \
-            self.trimmed_reg_profiles.sel(wavelength='410') / self.trimmed_reg_profiles.sel(wavelength='470')
-        self.trimmed_reg_profiles.loc[dict(wavelength='oxd')] = ip.r_to_oxd(
-            self.trimmed_reg_profiles.loc[dict(wavelength='r')])
-        self.trimmed_reg_profiles.loc[dict(wavelength='e')] = ip.oxd_to_redox_potential(
-            self.trimmed_reg_profiles.loc[dict(wavelength='oxd')])
+        if self.reg_profiles is not None:
+            self.trimmed_reg_profiles = self.trimmed_reg_profiles.reindex(wavelength=new_wvls)
+            self.trimmed_reg_profiles.loc[dict(wavelength='r')] = \
+                self.trimmed_reg_profiles.sel(wavelength='410') / self.trimmed_reg_profiles.sel(wavelength='470')
+            self.trimmed_reg_profiles.loc[dict(wavelength='oxd')] = profile_processing.r_to_oxd(
+                self.trimmed_reg_profiles.loc[dict(wavelength='r')])
+            self.trimmed_reg_profiles.loc[dict(wavelength='e')] = profile_processing.oxd_to_redox_potential(
+                self.trimmed_reg_profiles.loc[dict(wavelength='oxd')])
 
     def align_and_center(self):
         logging.info('Centering and rotating pharynxes')
@@ -158,15 +175,11 @@ class Experiment:
     def calculate_midlines(self):
         logging.info('Calculating midlines')
         # noinspection PyTypeChecker
-        self.midlines = ip.calculate_midlines(self.rot_seg, self.rot_fl)
+        self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
 
     def measure_under_midlines(self):
         logging.info('Measuring under midlines')
-        step = self.raw_image_data.x.size // 4
-        self.raw_profiles = ip.measure_under_midlines(
-            self.rot_fl, self.midlines, (step, self.raw_image_data.x.size - step), n_points=self.n_midline_pts
-        )
-        self.raw_profiles.data = np.nan_to_num(self.raw_profiles.data)
+        self.raw_profiles = ip.measure_under_midlines(self.rot_fl, self.midlines, n_points=self.n_midline_pts)
         self.raw_profiles = ip.align_pa(self.raw_profiles)
 
         # Add attributes
@@ -189,28 +202,33 @@ class Experiment:
         return ip.segment_pharynxes(self.raw_image_data, self.seg_threshold)
 
     def generate_summary_table(self):
-        data = self.trimmed_raw_profiles
-        dfs = []
-        for region, bounds in self.scaled_regions.items():
-            region_dfs = []
-            for wvl in data.wavelength.data:
-                sub_df = data[dict(position=range(bounds[0], bounds[1]))] \
-                    .mean(dim='position').sel(wavelength=wvl).to_pandas()
-                sub_df = sub_df.reset_index()
-                sub_df['animal'] = range(len(sub_df))
-                sub_df['region'] = region
-                sub_df['experiment'] = self.experiment_id
-                sub_df = sub_df.melt(
-                    value_vars=data.pair.data, var_name='pair',
-                    id_vars=['animal', 'strain', 'region', 'experiment'], value_name=wvl)
-                region_dfs.append(sub_df)
-            df_tmp = pd.concat(region_dfs, axis=1)
-            df_tmp = df_tmp.loc[:, ~df_tmp.columns.duplicated()]
-            dfs.append(df_tmp)
-        df = pd.concat(dfs)
-        df.reset_index(drop=True, inplace=True)
+        strat_dfs = []
+        for data, strategy in zip((self.trimmed_raw_profiles, self.trimmed_reg_profiles), ("raw", "reg")):
+            if data is not None:
+                dfs = []
+                for region, bounds in self.scaled_regions.items():
+                    region_dfs = []
+                    for wvl in data.wavelength.data:
+                        sub_df = data[dict(position=range(bounds[0], bounds[1]))] \
+                            .mean(dim='position').sel(wavelength=wvl).to_pandas()
+                        sub_df = sub_df.reset_index()
+                        sub_df['animal'] = range(len(sub_df))
+                        sub_df['region'] = region
+                        sub_df['experiment'] = self.experiment_id
+                        sub_df['strategy'] = strategy
+                        sub_df = sub_df.melt(
+                            value_vars=data.pair.data, var_name='pair',
+                            id_vars=['animal', 'strain', 'region', 'experiment', 'strategy'], value_name=wvl)
+                        region_dfs.append(sub_df)
+                    df_tmp = pd.concat(region_dfs, axis=1)
+                    df_tmp = df_tmp.loc[:, ~df_tmp.columns.duplicated()]
+                    dfs.append(df_tmp)
+                df = pd.concat(dfs)
+                df.reset_index(drop=True, inplace=True)
 
-        self.summary_table = df
+                strat_dfs.append(df)
+
+        self.summary_table = pd.concat(strat_dfs)
 
         if self.movement is not None:
             self.summary_table = self.summary_table.join(self.movement, on=['animal', 'pair'])
@@ -220,31 +238,44 @@ class Experiment:
     def filter_by_exclude_status(self, data):
         return data.loc[dict(strain=np.logical_not(self.include_idx))]
 
-    def persist_to_disk(self):
-        output_dir = self.experiment_dir
-        logging.info(f'Saving {self.experiment_id} inside {output_dir}')
+    def persist_to_disk(self, summary_plots=False, individual_plots=False):
+        logging.info(f'Saving {self.experiment_id} inside {self.experiment_dir}')
 
         # Persist the region means
-        summary_table_filename = output_dir.joinpath(self.experiment_id + '-summary_table.csv')
+        summary_table_filename = self.experiment_dir.joinpath(self.experiment_id + '-summary_table.csv')
         logging.info(f'Saving region means to {summary_table_filename}')
         self.generate_summary_table()
         self.summary_table.to_csv(summary_table_filename, index=False)
 
         # Persist the profile data
-        self.persist_profile_data(output_dir, output_format='netcdf')
+        self.persist_profile_data()
 
         # Plots
-        self.save_profile_summary_plots(self.trimmed_reg_profiles, self.experiment_id)
-        self.save_cat_plots()
+        if summary_plots:
+            self.save_profile_summary_plots(self.trimmed_reg_profiles, self.experiment_id)
+            self.save_cat_plots()
 
-    def persist_profile_data(self, output_dir: Path, output_format='netcdf'):
-        if output_format == 'netcdf':
-            profile_data_filename = output_dir.joinpath(self.experiment_id + '-profile_data.nc')
-            logging.info(f'Saving profile data to {profile_data_filename}')
-            self.trimmed_raw_profiles.to_netcdf(profile_data_filename)
+    def persist_profile_data(self):
+        profile_data_raw_filename = self.experiment_dir.joinpath(self.experiment_id + '-profile_data_raw.nc')
+        logging.info(f'Saving raw profile data to {profile_data_raw_filename}')
+        self.trimmed_raw_profiles.to_netcdf(profile_data_raw_filename)
 
-        else:
-            raise ValueError('invalid profile data persistence type')
+        if self.reg_profiles is not None:
+            profile_data_reg_filename = self.experiment_dir.joinpath(self.experiment_id + '-profile_data_reg.nc')
+            logging.info(f'Saving reg profile data to {profile_data_reg_filename}')
+            self.trimmed_reg_profiles.to_netcdf(profile_data_reg_filename)
+
+    def load_profile_data(self):
+        profile_data_raw_filename = self.experiment_dir.joinpath(self.experiment_id + '-profile_data_raw.nc')
+        logging.info(f'Loading raw profile data to {profile_data_raw_filename}')
+        self.trimmed_raw_profiles = xr.open_dataarray(profile_data_raw_filename)
+
+        profile_data_reg_filename = self.experiment_dir.joinpath(self.experiment_id + '-profile_data_reg.nc')
+        logging.info(f'Loading reg profile data to {profile_data_reg_filename}')
+        self.trimmed_reg_profiles = xr.open_dataarray(profile_data_reg_filename)
+
+    def load_summary_table(self):
+        self.summary_table = pd.read_csv(self.experiment_dir.joinpath(self.experiment_id + '-summary_table.csv'))
 
     def save_profile_summary_plots(self, prof_data: xr.DataArray, fname_stem: str):
         fig_dir = self.make_fig_dir()
@@ -291,9 +322,12 @@ class Experiment:
         logging.info(f'Saving per-animal reports to {output_filename}')
         with PdfPages(str(output_filename)) as pdf:
             for i in tqdm.trange(len(self.strains)):
-                fig = self.single_animal_diagnostic_plot(i)
+                plt.clf()
+                fig = plots.single_animal_diagnostic_plot(
+                    i, self.rot_fl, self.midlines, (self.trimmed_raw_profiles, self.trimmed_reg_profiles)
+                )
                 pdf.savefig(fig)
-                plt.close()
+                plt.close(fig)
 
     def single_animal_diagnostic_plot(self, i):
         fig = plt.figure(constrained_layout=True, figsize=(15, 15))
@@ -341,6 +375,9 @@ class Experiment:
 
         return fig
 
+    def load_exp_from_disk(self):
+        pass
+
 
 @attr.s(auto_attribs=True)
 class PairExperiment(Experiment):
@@ -348,22 +385,13 @@ class PairExperiment(Experiment):
     This is the paired ratio experiment
     """
 
+    strategy = "frame-specific midlines with registration"
+
     # Required initialization parameters
     image_display_order: List[str] = [
         '410_1', '470_1', 'r1',
         '410_2', '470_2', 'r2'
     ]
-
-    def __attrs_post_init__(self):
-        logging.info(f'Starting full pipeline run for {self.experiment_dir}')
-        self.experiment_dir = Path(self.experiment_dir)
-        self.experiment_id = self.experiment_dir.stem
-        self.load_strains()
-        self.scale_region_boundaries()
-        self.load_movement_annotation()
-        if self.include_idx is None:
-            self.include_idx = np.ones(len(self.strains))
-        self.full_pipeline()
 
     def full_pipeline(self):
         self.load_images()
@@ -377,10 +405,62 @@ class PairExperiment(Experiment):
         self.trim_data()
         self.calculate_redox()
         self.generate_summary_table()
+        self.persist_to_disk(summary_plots=False)
 
         logging.info(f'Finished full pipeline run for {self.experiment_dir}')
 
 
+@attr.s(auto_attribs=True)
+class CataExperiment(Experiment):
+
+    strategy = "cata"
+
+    def full_pipeline(self):
+        self.load_images()
+        self.scale_region_boundaries()
+        if self.seg_images is None:
+            self.seg_images = self.segment_pharynxes()
+        self.align_and_center()
+        self.calculate_midlines()
+        self.measure_under_midlines()
+        self.trim_data()
+        self.calculate_redox()
+        self.generate_summary_table()
+        self.persist_to_disk(summary_plots=False)
+
+        logging.info(f'Finished full Cata pipeline run for {self.experiment_dir}')
+
+    def segment_pharynxes(self):
+        ref_wvl = '410'
+        seg_images = super().segment_pharynxes()
+
+        # In Cata's pipeline, the fluorescent images are also masked
+        for animal_idx in np.arange(seg_images.strain.size):
+            for wvl_idx in np.arange(seg_images.wavelength.size):
+                for pair in seg_images.pair:
+                    ref_seg = seg_images.sel(wavelength=ref_wvl, pair=pair).isel(strain=animal_idx)
+                    img = self.raw_image_data.isel(strain=animal_idx, wavelength=wvl_idx, pair=pair)
+
+                    masked = ref_seg * img
+
+                    self.raw_image_data[animal_idx, wvl_idx, pair] = masked
+
+        return seg_images
+
+    def measure_under_midlines(self, ref_wvl='410'):
+        logging.info('Measuring under midlines')
+        self.raw_profiles = ip.measure_under_midlines(self.rot_fl, self.midlines, n_points=self.n_midline_pts,
+                                                      ref_wvl='410')
+        self.raw_profiles = ip.align_pa(self.raw_profiles)
+
+        # Add attributes
+        self.raw_profiles = self.add_experiment_metadata_to_data_array(self.raw_profiles)
+
+
 if __name__ == '__main__':
+    import logging
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG, datefmt='%I:%M:%S')
     experiment_path = Path("/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/")
     ex = PairExperiment(experiment_path, "TL/470/410/470/410")
+    ex.full_pipeline()

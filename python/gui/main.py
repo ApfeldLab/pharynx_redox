@@ -1,4 +1,3 @@
-import pickle
 from pathlib import Path
 
 import pandas as pd
@@ -26,15 +25,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frame = 0
 
         # Load Experiment
-        if self.reload:
-            img_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif"
-            strain_map_path = "/Users/sean/code/wormAnalysis/data/paired_ratio_movement_data_sean/2017_02_22-HD233_SAY47/indexer.csv"
-
-            strains = pio.load_strain_map_from_disk(strain_map_path)
-            self.experiment = experiment.PairExperiment(img_path, "TL/470_1/410_1/470_2/410_2", strains)
-            pickle.dump(self.experiment, open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'wb'))
-        else:
-            self.experiment = pickle.load(open('/Users/sean/code/wormAnalysis/data/experiment.pickle', 'rb'))
+        exp_dir = Path("/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/")
+        self.experiment = experiment.PairExperiment(exp_dir, "TL/470/410/470/410")
 
         self.initialize_slider()
         self.initialize_table()

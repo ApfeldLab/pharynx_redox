@@ -4,11 +4,11 @@
 
 %  Last modified 26 July 2006
 
-addpath ('c:\Program Files\matlab\fdaM')
-addpath ('c:\Program Files\matlab\fdaM\examples\pinch')
+% addpath ('c:\Program Files\matlab\fdaM')
+% addpath ('c:\Program Files\matlab\fdaM\examples\pinch')
 
 %  ------------------  input the data  --------------------
-
+ 
 % fid = fopen('pinch.dat','rt');
 % pinchvec = fscanf(fid,'%f');
 % force    = reshape(pinchvec, [20,151])';
