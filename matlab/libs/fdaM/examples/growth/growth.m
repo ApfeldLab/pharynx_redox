@@ -1040,7 +1040,7 @@ plot(fit(:),accdist(:), 'o')
 [bdryind,Area] = convhull(y);
 
 figure(4)
-plot(y(bdryind,1),ybdryindK,2),'o-')
+plot(y(bdryind,1),y(bdryindK,2),'o-')
 
 %  compute delaunay triangulation
 
