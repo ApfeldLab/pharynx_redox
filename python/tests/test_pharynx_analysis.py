@@ -10,7 +10,9 @@ class TestPharynxAnalysis:
         'imaging_scheme': 'TL/470/410/470/410',
         'n_animals': 123,
         'n_frames': 615,
-        'n_wavelengths': 5,
+        'n_wavelengths': 3,
+        'unique_wavelengths': ['TL', '470', '410'],
+        'n_pairs': 2,
         'img_w': 174,
         'img_h': 130,
         'unique_strains': ['HD233', 'SAY47'],
@@ -36,14 +38,15 @@ class TestPharynxAnalysis:
 
         assert img_stack.shape[0] == self.img_stk_0['n_animals']
         assert img_stack.shape[1] == self.img_stk_0['n_wavelengths']
-        assert img_stack.shape[2] == self.img_stk_0['img_h']
-        assert img_stack.shape[3] == self.img_stk_0['img_w']
+        assert img_stack.shape[2] == self.img_stk_0['n_pairs']
+        assert img_stack.shape[3] == self.img_stk_0['img_h']
+        assert img_stack.shape[4] == self.img_stk_0['img_w']
 
     def test_load_images_dimension_ordering(self):
         img_stack = pio.load_images(self.img_stk_0['img_path'], self.img_stk_0['imaging_scheme'],
                                     pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path']))
 
-        assert img_stack.dims == ('strain', 'wavelength', 'y', 'x')
+        assert img_stack.dims == ('strain', 'wavelength', 'pair', 'y', 'x')
 
     def test_load_strain_map_shape(self):
         strains = pio.load_strain_map_from_disk(self.img_stk_0['strain_map_path'])
