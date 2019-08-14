@@ -10,6 +10,7 @@ from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
 from skimage import measure, transform
 from skimage.measure import label
+from skimage.transform import warp, AffineTransform
 
 from pharynx_analysis import profile_processing
 
@@ -381,3 +382,11 @@ def center_of_mass_midline(rot_fl, s, ext):
     for i in xs:
         midline_ys.append(np.average(ys, weights=rot_fl[:, i].data))
     return UnivariateSpline(xs, np.array(midline_ys), s=s, ext=ext)
+
+
+def shift(image, vector):
+    transform = AffineTransform(translation=vector)
+    shifted = warp(image, transform, mode='wrap', preserve_range=True)
+
+    shifted = shifted.astype(image.dtype)
+    return shifted
