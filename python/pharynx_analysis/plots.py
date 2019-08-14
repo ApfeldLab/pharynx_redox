@@ -306,3 +306,15 @@ def single_animal_diagnostic_plot(animal_idx, rot_fl, midlines,
     plt.suptitle(f'Animal {animal_idx} ({strains[animal_idx]})')
 
     return fig
+
+
+def plot_profile_avg_with_bounds(data, ax=None, confint_alpha=0.05, label=None, **kwargs):
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    ax.plot(np.mean(data, axis=0), label=label, **kwargs)
+    lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
+    xs = np.arange(len(lower))
+    ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
+
+    return ax
