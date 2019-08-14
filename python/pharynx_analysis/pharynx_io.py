@@ -18,12 +18,14 @@ def load_tiff_from_disk(image_path: Path) -> np.ndarray:
     return sk_io.imread(str(image_path))
 
 
-def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str, suffix: str):
+def save_images_xarray_to_disk(
+    imgs: xr.DataArray, dir_path: str, stem: str, suffix: str
+):
     dir_path = Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
-            final_path = dir_path.joinpath(f'{stem}-{wvl}-{pair}-{suffix}.tif')
+            final_path = dir_path.joinpath(f"{stem}-{wvl}-{pair}-{suffix}.tif")
             if imgs.data.dtype == np.bool:
                 data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
             else:
@@ -32,7 +34,7 @@ def save_images_xarray_to_disk(imgs: xr.DataArray, dir_path: str, stem: str, suf
             tifffile.imsave(str(final_path), data)
 
 
-def process_imaging_scheme_str(imaging_scheme_str: str, delimiter='/') -> [(str, int)]:
+def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str, int)]:
     """Split the imaging scheme string by the given delimiter, and return [(wavelength, nth_occurrence), ...]
 
     :param imaging_scheme_str: A string of wavelengths which indicate the order in which images were taken, separated by the delimiter
@@ -42,7 +44,9 @@ def process_imaging_scheme_str(imaging_scheme_str: str, delimiter='/') -> [(str,
     return utils.create_occurrence_count_tuples(imaging_scheme_str.split(delimiter))
 
 
-def load_images(intercalated_image_stack_path: str, imaging_scheme: str, strain_map: [str]) -> xr.DataArray:
+def load_images(
+    intercalated_image_stack_path: str, imaging_scheme: str, strain_map: [str]
+) -> xr.DataArray:
     """ Loads the images specified by the path into an xarray.DataArray, organized by strain and wavelength.
     
     The wavelengths are split up according to the `imaging_scheme`, which specifies the order of the wavelengths taken
@@ -82,32 +86,40 @@ def load_images(intercalated_image_stack_path: str, imaging_scheme: str, strain_
 
     """
     intercalated_image_stack = load_tiff_from_disk(intercalated_image_stack_path)
-    lambdas_with_counts = process_imaging_scheme_str(imaging_scheme, '/')
+    lambdas_with_counts = process_imaging_scheme_str(imaging_scheme, "/")
     lambdas = np.array([l[0] for l in lambdas_with_counts])
     pairs = [l[1] for l in lambdas_with_counts]
-    unique_lambdas = [lambdas[idx] for idx in sorted(np.unique(lambdas, return_index=True)[1])]
+    unique_lambdas = [
+        lambdas[idx] for idx in sorted(np.unique(lambdas, return_index=True)[1])
+    ]
     n_animals = intercalated_image_stack.shape[0] // len(lambdas)
     img_height = intercalated_image_stack.shape[1]
     img_width = intercalated_image_stack.shape[2]
 
     tmp_img_stack = np.reshape(
-        intercalated_image_stack,
-        (n_animals, len(lambdas), img_height, img_width)
+        intercalated_image_stack, (n_animals, len(lambdas), img_height, img_width)
     )
 
     reshaped_img_stack = np.empty(
-        (n_animals, len(np.unique(lambdas)), np.max(pairs) + 1, intercalated_image_stack.shape[1],
-         intercalated_image_stack.shape[2]),
-        dtype=intercalated_image_stack.dtype
+        (
+            n_animals,
+            len(np.unique(lambdas)),
+            np.max(pairs) + 1,
+            intercalated_image_stack.shape[1],
+            intercalated_image_stack.shape[2],
+        ),
+        dtype=intercalated_image_stack.dtype,
     )
 
     for i, (wvl, pair) in enumerate(lambdas_with_counts):
         j = np.where(lambdas == wvl)[0][0]
         reshaped_img_stack[:, j, pair, :, :] = tmp_img_stack[:, i, :, :]
 
-    return xr.DataArray(reshaped_img_stack,
-                        dims=['strain', 'wavelength', 'pair', 'y', 'x'],
-                        coords={'wavelength': unique_lambdas, 'strain': strain_map})
+    return xr.DataArray(
+        reshaped_img_stack,
+        dims=["strain", "wavelength", "pair", "y", "x"],
+        coords={"wavelength": unique_lambdas, "strain": strain_map},
+    )
 
 
 def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) -> None:
@@ -132,8 +144,8 @@ def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) 
     for wvl in images.wavelength.data:
         for pair in images.pair.data:
             tifffile.imsave(
-                str(dir_path.joinpath(f'{prefix}-{wvl}-{pair}.tif').absolute()),
-                images.sel(wavelength=wvl, pair=pair).data
+                str(dir_path.joinpath(f"{prefix}-{wvl}-{pair}.tif").absolute()),
+                images.sel(wavelength=wvl, pair=pair).data,
             )
 
 
@@ -153,4 +165,8 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
     """
     strain_map_df = pd.read_csv(strain_map_path)
     return np.concatenate(
-        [np.repeat(x.strain, x.end_animal - x.start_animal + 1) for x in strain_map_df.itertuples()]).flatten()
+        [
+            np.repeat(x.strain, x.end_animal - x.start_animal + 1)
+            for x in strain_map_df.itertuples()
+        ]
+    ).flatten()

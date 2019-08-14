@@ -17,7 +17,9 @@ class Ui_LoadExperimentDialog(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.buttonBox = QtWidgets.QDialogButtonBox(LoadExperimentDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
         self.buttonBox.setObjectName("buttonBox")
         self.gridLayout_2.addWidget(self.buttonBox, 2, 0, 1, 1)
         self.gridLayout = QtWidgets.QGridLayout()
@@ -54,7 +56,9 @@ class Ui_LoadExperimentDialog(object):
         self.gridLayout.addWidget(self.comboBox, 3, 1, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem)
         self.pushButton_2 = QtWidgets.QPushButton(LoadExperimentDialog)
         self.pushButton_2.setObjectName("pushButton_2")
@@ -62,7 +66,9 @@ class Ui_LoadExperimentDialog(object):
         self.pushButton_3 = QtWidgets.QPushButton(LoadExperimentDialog)
         self.pushButton_3.setObjectName("pushButton_3")
         self.verticalLayout.addWidget(self.pushButton_3)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem1)
         self.gridLayout.addLayout(self.verticalLayout, 2, 0, 1, 1)
         self.gridLayout_2.addLayout(self.gridLayout, 1, 0, 1, 1)
@@ -77,7 +83,9 @@ class Ui_LoadExperimentDialog(object):
 
     def retranslateUi(self, LoadExperimentDialog):
         _translate = QtCore.QCoreApplication.translate
-        LoadExperimentDialog.setWindowTitle(_translate("LoadExperimentDialog", "Load Experiment"))
+        LoadExperimentDialog.setWindowTitle(
+            _translate("LoadExperimentDialog", "Load Experiment")
+        )
         item = self.tableWidget.horizontalHeaderItem(0)
         item.setText(_translate("LoadExperimentDialog", "Strain"))
         item = self.tableWidget.horizontalHeaderItem(1)
@@ -86,14 +94,20 @@ class Ui_LoadExperimentDialog(object):
         item.setText(_translate("LoadExperimentDialog", "End Animal"))
         self.pushButton.setText(_translate("LoadExperimentDialog", "Select Image File"))
         self.label_2.setText(_translate("LoadExperimentDialog", "Imaging Strategy"))
-        self.comboBox.setItemText(0, _translate("LoadExperimentDialog", "TL/410/470/410/470"))
-        self.comboBox.setItemText(1, _translate("LoadExperimentDialog", "TL/470/410/470/410"))
-        self.comboBox.setItemText(2, _translate("LoadExperimentDialog", "410/470/410/470"))
-        self.comboBox.setItemText(3, _translate("LoadExperimentDialog", "470/410/470/410"))
+        self.comboBox.setItemText(
+            0, _translate("LoadExperimentDialog", "TL/410/470/410/470")
+        )
+        self.comboBox.setItemText(
+            1, _translate("LoadExperimentDialog", "TL/470/410/470/410")
+        )
+        self.comboBox.setItemText(
+            2, _translate("LoadExperimentDialog", "410/470/410/470")
+        )
+        self.comboBox.setItemText(
+            3, _translate("LoadExperimentDialog", "470/410/470/410")
+        )
         self.comboBox.setItemText(4, _translate("LoadExperimentDialog", "410/470"))
         self.comboBox.setItemText(5, _translate("LoadExperimentDialog", "470/410"))
         self.pushButton_2.setText(_translate("LoadExperimentDialog", "Add Row"))
         self.pushButton_3.setText(_translate("LoadExperimentDialog", "Delete Row"))
         self.label.setText(_translate("LoadExperimentDialog", "Load Raw Image Stack"))
-
-
