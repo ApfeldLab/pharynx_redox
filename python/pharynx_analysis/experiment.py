@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 import xarray as xr
 from scipy.interpolate import UnivariateSpline
+import logging
 
 from pharynx_analysis import (image_processing as ip, profile_processing, pharynx_io as pio, plots)
 
@@ -54,6 +55,7 @@ class Experiment:
     trim_threshold: int = 3000
     reg_lambda: float = 0.01
     frame_specific_midlines: bool = False
+    should_register: bool = False
 
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
@@ -68,8 +70,9 @@ class Experiment:
 
     load_from_disk: bool = False
 
+    save_summary_plots: bool = False
+
     def __attrs_post_init__(self):
-        logging.info(f'Starting full pipeline run for {self.experiment_dir}')
 
         self.experiment_dir = Path(self.experiment_dir)
         self.experiment_id = self.experiment_dir.stem
@@ -313,7 +316,7 @@ class PairExperiment(Experiment):
     This is the paired ratio experiment
     """
 
-    strategy = "frame specific midlines with registration"
+    strategy: str = "frame specific midlines with registration"
 
     # Required initialization parameters
     image_display_order: List[str] = [
@@ -322,6 +325,7 @@ class PairExperiment(Experiment):
     ]
 
     def full_pipeline(self):
+        logging.info(f'Starting full pipeline run for {self.experiment_dir}')
         self.load_images()
         self.scale_region_boundaries()
         if self.seg_images is None:
@@ -329,11 +333,12 @@ class PairExperiment(Experiment):
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
-        self.register()
+        if self.should_register:
+            self.register()
         self.trim_data()
         self.calculate_redox()
         self.generate_summary_table()
-        self.persist_to_disk(summary_plots=True)
+        self.persist_to_disk(summary_plots=self.save_summary_plots)
 
         logging.info(f'Finished full pipeline run for {self.experiment_dir}')
 
@@ -344,6 +349,7 @@ class CataExperiment(Experiment):
     frame_specific_midlines: bool = False
 
     def full_pipeline(self):
+        logging.info(f'Starting full pipeline run for {self.experiment_dir}')
         self.load_images()
         self.scale_region_boundaries()
         if self.seg_images is None:
@@ -354,7 +360,7 @@ class CataExperiment(Experiment):
         self.trim_data()
         self.calculate_redox()
         self.generate_summary_table()
-        self.persist_to_disk(summary_plots=True)
+        self.persist_to_disk(summary_plots=self.save_summary_plots)
 
         logging.info(f'Finished full Cata pipeline run for {self.experiment_dir}')
 
