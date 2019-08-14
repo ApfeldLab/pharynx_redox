@@ -14,7 +14,6 @@ from pharynx_analysis import experiment
 
 
 class MainWindow(QtWidgets.QMainWindow):
-
     def __init__(self, reload=False):
         super(MainWindow, self).__init__()
         self.reload = reload
@@ -25,27 +24,34 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frame = 0
 
         # Load Experiment
-        exp_dir = Path("/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/")
+        exp_dir = Path(
+            "/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/"
+        )
         self.experiment = experiment.PairExperiment(exp_dir, "TL/470/410/470/410")
 
         self.initialize_slider()
         self.initialize_table()
 
         # Set up images
-        self.rot_image_grid = ImageGridWidget(self.experiment.rot_fl,
-                                              midlines=self.experiment.midlines,
-                                              ratio_images=self.experiment.rot_ratios,
-                                              image_display_order=self.experiment.image_display_order)
-        self.raw_image_grid = ImageGridWidget(self.experiment.fl_images,
-                                              ratio_images=self.experiment.rot_ratios,
-                                              image_display_order=self.experiment.image_display_order)
+        self.rot_image_grid = ImageGridWidget(
+            self.experiment.rot_fl,
+            midlines=self.experiment.midlines,
+            ratio_images=self.experiment.rot_ratios,
+            image_display_order=self.experiment.image_display_order,
+        )
+        self.raw_image_grid = ImageGridWidget(
+            self.experiment.fl_images,
+            ratio_images=self.experiment.rot_ratios,
+            image_display_order=self.experiment.image_display_order,
+        )
 
         self.ui.rotatedImagesBox.layout().addWidget(self.rot_image_grid)
         self.ui.rawImagesBox.layout().addWidget(self.raw_image_grid)
 
         # Set up plots
         self.intensity_plot_widget = ProfilePlotGridWidget(
-            self.experiment.trimmed_raw_profiles, self.experiment.get_scaled_region_boundaries()
+            self.experiment.trimmed_raw_profiles,
+            self.experiment.get_scaled_region_boundaries(),
         )
         self.ui.intensityPlotBox.layout().addWidget(self.intensity_plot_widget)
 
@@ -63,7 +69,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.set_frame(self.frame - 1)
 
     def set_frame(self, new_frame):
-        self.frame = max(0, min(self.experiment.raw_image_data.strain.size - 1, new_frame))
+        self.frame = max(
+            0, min(self.experiment.raw_image_data.strain.size - 1, new_frame)
+        )
         self.ui.horizontalSlider.setValue(self.frame)
         self.ui.label.setText(str(self.frame))
         self.rot_image_grid.set_frame(self.frame)
@@ -82,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initialize_table(self):
         table_data = [
-            {'Strain': self.experiment.strain_map[i]}
+            {"Strain": self.experiment.strain_map[i]}
             for i in range(len(self.experiment.strain_map) - 1)
         ]
         self.ui.tableWidget.setData(table_data)
@@ -91,7 +99,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 class MetaLoaderWindow(QtWidgets.QMainWindow):
-
     def __init__(self):
         super(MetaLoaderWindow, self).__init__()
 
@@ -108,11 +115,10 @@ class MetaLoaderWindow(QtWidgets.QMainWindow):
         self.hide()
 
     def get_directory(self):
-        fname = QFileDialog.getExistingDirectory(self, 'Select Experiment Directory')
+        fname = QFileDialog.getExistingDirectory(self, "Select Experiment Directory")
 
 
 class LoadRawImageWindow(QtWidgets.QDialog):
-
     def __init__(self):
         super(LoadRawImageWindow, self).__init__()
 
@@ -134,10 +140,10 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.indexer_df = pd.DataFrame()
 
     def get_raw_image_file_name(self):
-        f_name = QFileDialog.getOpenFileName(self, filter='Image Files (*.tif *.tiff)')
+        f_name = QFileDialog.getOpenFileName(self, filter="Image Files (*.tif *.tiff)")
         file_path = Path(f_name[0])
         for fp in file_path.parent.iterdir():
-            if 'indexer' in fp.name:
+            if "indexer" in fp.name:
                 self.indexer_df = pd.read_csv(fp.absolute())
                 self.update_strain_table()
         self.ui.imageFileLineEdit.setText(str(file_path.absolute()))
@@ -148,10 +154,12 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         return
 
     def update_strain_table(self):
-        self.ui.strainTable.setData(self.indexer_df.to_dict(orient='records'))
+        self.ui.strainTable.setData(self.indexer_df.to_dict(orient="records"))
 
     def handle_add_new_row(self):
-        self.indexer_df = self.indexer_df.append({'Strain': '', 'Start Animal': 0, 'End Animal': 0}, ignore_index=True)
+        self.indexer_df = self.indexer_df.append(
+            {"Strain": "", "Start Animal": 0, "End Animal": 0}, ignore_index=True
+        )
         self.update_strain_table()
         return
 
@@ -172,9 +180,9 @@ class LoadRawImageWindow(QtWidgets.QDialog):
         self.verify_inputs()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # TODO: resize recursion bug
-    pg.setConfigOptions(imageAxisOrder='row-major', antialias=True)
+    pg.setConfigOptions(imageAxisOrder="row-major", antialias=True)
     qapp = QtWidgets.QApplication([])
     # window = MainWindow(reload=False)
     window = MetaLoaderWindow()
