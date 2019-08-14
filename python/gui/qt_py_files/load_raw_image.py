@@ -17,7 +17,9 @@ class Ui_LoadRawImageFileDialog(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.buttonBox = QtWidgets.QDialogButtonBox(LoadRawImageFileDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
         self.buttonBox.setObjectName("buttonBox")
         self.gridLayout_2.addWidget(self.buttonBox, 2, 0, 1, 1)
         self.gridLayout = QtWidgets.QGridLayout()
@@ -33,7 +35,9 @@ class Ui_LoadRawImageFileDialog(object):
         self.gridLayout.addWidget(self.selectImageFilePushButton, 1, 0, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem)
         self.addRowPushButton = QtWidgets.QPushButton(LoadRawImageFileDialog)
         self.addRowPushButton.setObjectName("addRowPushButton")
@@ -41,7 +45,9 @@ class Ui_LoadRawImageFileDialog(object):
         self.deleteRowPushButton = QtWidgets.QPushButton(LoadRawImageFileDialog)
         self.deleteRowPushButton.setObjectName("deleteRowPushButton")
         self.verticalLayout.addWidget(self.deleteRowPushButton)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem1)
         self.gridLayout.addLayout(self.verticalLayout, 3, 0, 1, 1)
         self.imageFileLineEdit = QtWidgets.QLineEdit(LoadRawImageFileDialog)
@@ -50,7 +56,9 @@ class Ui_LoadRawImageFileDialog(object):
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.strainTable = TableWidget(LoadRawImageFileDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.strainTable.sizePolicy().hasHeightForWidth())
@@ -71,7 +79,9 @@ class Ui_LoadRawImageFileDialog(object):
         self.strainTable.verticalHeader().setCascadingSectionResizes(False)
         self.strainTable.verticalHeader().setSortIndicatorShown(False)
         self.horizontalLayout_2.addWidget(self.strainTable)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_2.addItem(spacerItem2)
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 1, 1, 1)
         self.gridLayout_2.addLayout(self.gridLayout, 1, 0, 1, 1)
@@ -86,12 +96,20 @@ class Ui_LoadRawImageFileDialog(object):
 
     def retranslateUi(self, LoadRawImageFileDialog):
         _translate = QtCore.QCoreApplication.translate
-        LoadRawImageFileDialog.setWindowTitle(_translate("LoadRawImageFileDialog", "Load Raw Image File"))
-        self.imagingStrategyLineEdit.setText(_translate("LoadRawImageFileDialog", "TL/410/470/410/470"))
+        LoadRawImageFileDialog.setWindowTitle(
+            _translate("LoadRawImageFileDialog", "Load Raw Image File")
+        )
+        self.imagingStrategyLineEdit.setText(
+            _translate("LoadRawImageFileDialog", "TL/410/470/410/470")
+        )
         self.label_2.setText(_translate("LoadRawImageFileDialog", "Imaging Strategy"))
-        self.selectImageFilePushButton.setText(_translate("LoadRawImageFileDialog", "Select Image File"))
+        self.selectImageFilePushButton.setText(
+            _translate("LoadRawImageFileDialog", "Select Image File")
+        )
         self.addRowPushButton.setText(_translate("LoadRawImageFileDialog", "Add Row"))
-        self.deleteRowPushButton.setText(_translate("LoadRawImageFileDialog", "Delete Row"))
+        self.deleteRowPushButton.setText(
+            _translate("LoadRawImageFileDialog", "Delete Row")
+        )
         self.strainTable.setSortingEnabled(False)
         item = self.strainTable.horizontalHeaderItem(0)
         item.setText(_translate("LoadRawImageFileDialog", "Strain"))

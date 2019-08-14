@@ -7,7 +7,9 @@ from pyqtgraph import GraphicsLayoutWidget, ImageItem, ViewBox
 class ImageGridWidget(GraphicsLayoutWidget):
     # TODO Docs
 
-    def __init__(self, fl_images, ratio_images, image_display_order, midlines=None, **kwargs):
+    def __init__(
+        self, fl_images, ratio_images, image_display_order, midlines=None, **kwargs
+    ):
         super(ImageGridWidget, self).__init__(**kwargs)
         self.image_stack_set = fl_images
         self.ratio_images = ratio_images
@@ -19,12 +21,16 @@ class ImageGridWidget(GraphicsLayoutWidget):
         self.n_animals = self.image_stack_set.strain.size
 
         self.image_items = {
-            wvl: ImageItem(image=fl_images.sel(wavelength=wvl)[self.frame].data, border='w')
+            wvl: ImageItem(
+                image=fl_images.sel(wavelength=wvl)[self.frame].data, border="w"
+            )
             for wvl in self.wavelengths
         }
 
         for i in [0, 1]:
-            self.image_items[f'r{i + 1}'] = ImageItem(image=ratio_images.isel(pair=i)[self.frame].data, border='w')
+            self.image_items[f"r{i + 1}"] = ImageItem(
+                image=ratio_images.isel(pair=i)[self.frame].data, border="w"
+            )
 
         self.image_viewboxes = {}
         for i, wvl in enumerate(image_display_order):
@@ -36,12 +42,16 @@ class ImageGridWidget(GraphicsLayoutWidget):
 
             # add label
             # TODO: make image legends nicer
-            wvl_label = pg.TextItem(text=f'{wvl}')
+            wvl_label = pg.TextItem(text=f"{wvl}")
             self.image_viewboxes[wvl].addItem(wvl_label)
 
             if i > 0:
-                self.image_viewboxes[wvl].linkView(ViewBox.XAxis, self.image_viewboxes[self.wavelengths[0]])
-                self.image_viewboxes[wvl].linkView(ViewBox.YAxis, self.image_viewboxes[self.wavelengths[0]])
+                self.image_viewboxes[wvl].linkView(
+                    ViewBox.XAxis, self.image_viewboxes[self.wavelengths[0]]
+                )
+                self.image_viewboxes[wvl].linkView(
+                    ViewBox.YAxis, self.image_viewboxes[self.wavelengths[0]]
+                )
 
         # Draw Midlines
         if self.midlines:
@@ -51,50 +61,68 @@ class ImageGridWidget(GraphicsLayoutWidget):
             }
             self.midline_ys = {
                 wvl: np.array(
-                    [self.midlines[wvl][frame](self.midline_xs[wvl][frame]) for frame in range(self.n_animals)])
+                    [
+                        self.midlines[wvl][frame](self.midline_xs[wvl][frame])
+                        for frame in range(self.n_animals)
+                    ]
+                )
                 for wvl in self.wavelengths
             }
             for wvl in self.wavelengths:
-                self.midline_plots[wvl] = pg.PlotDataItem(pen={'color': 'r', 'width': 2})
+                self.midline_plots[wvl] = pg.PlotDataItem(
+                    pen={"color": "r", "width": 2}
+                )
                 self.image_viewboxes[wvl].addItem(self.midline_plots[wvl])
 
             self.ratio_midline_xs = {
                 i: {
                     wvl: self.midline_xs[wvl].copy()
-                    for wvl in [f'410_{i + 1}', f'470_{i + 1}']
-                } for i in [0, 1]
+                    for wvl in [f"410_{i + 1}", f"470_{i + 1}"]
+                }
+                for i in [0, 1]
             }
             self.ratio_midline_ys = {
                 i: {
                     wvl: self.midline_ys[wvl].copy()
-                    for wvl in [f'410_{i + 1}', f'470_{i + 1}']
-                } for i in [0, 1]
+                    for wvl in [f"410_{i + 1}", f"470_{i + 1}"]
+                }
+                for i in [0, 1]
             }
 
             for i in [0, 1]:
                 for j, wvl in enumerate(self.ratio_midline_xs[i].keys()):
-                    self.midline_plots[f'r{i + 1}_{wvl}'] = pg.PlotDataItem(pen=pg.intColor(j))
-                    self.image_viewboxes[f'r{i + 1}'].addItem(self.midline_plots[f'r{i + 1}_{wvl}'])
+                    self.midline_plots[f"r{i + 1}_{wvl}"] = pg.PlotDataItem(
+                        pen=pg.intColor(j)
+                    )
+                    self.image_viewboxes[f"r{i + 1}"].addItem(
+                        self.midline_plots[f"r{i + 1}_{wvl}"]
+                    )
 
         self.set_frame(self.frame)
 
     def update_midlines(self):
         for wvl in self.wavelengths:
-            self.midline_plots[wvl].setData(x=self.midline_xs[wvl][self.frame], y=self.midline_ys[wvl][self.frame])
+            self.midline_plots[wvl].setData(
+                x=self.midline_xs[wvl][self.frame], y=self.midline_ys[wvl][self.frame]
+            )
 
         for i in [0, 1]:
             for j, wvl in enumerate(self.ratio_midline_xs[i].keys()):
-                self.midline_plots[f'r{i + 1}_{wvl}'].setData(
+                self.midline_plots[f"r{i + 1}_{wvl}"].setData(
                     x=self.ratio_midline_xs[i][wvl][self.frame],
-                    y=self.ratio_midline_ys[i][wvl][self.frame]
+                    y=self.ratio_midline_ys[i][wvl][self.frame],
                 )
 
     def update_images(self):
         for wvl in self.wavelengths:
-            self.image_items[wvl].setImage(self.image_stack_set.sel(wavelength=wvl)[self.frame].data)
+            self.image_items[wvl].setImage(
+                self.image_stack_set.sel(wavelength=wvl)[self.frame].data
+            )
         for i in [0, 1]:
-            wvl = f'r{i + 1}'
-            self.image_items[wvl].setImage(self.ratio_images.isel(pair=i)[self.frame].data)
+            wvl = f"r{i + 1}"
+            self.image_items[wvl].setImage(
+                self.ratio_images.isel(pair=i)[self.frame].data
+            )
 
     def set_frame(self, frame):
         self.frame = frame
@@ -118,7 +146,9 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
         for wvl in self.wavelengths:
             self.means[wvl] = {}
             for strain in self.profile_data.strain.data:
-                self.means[wvl][strain] = self.profile_data.sel(wavelength=wvl, strain=strain).mean(dim='strain')
+                self.means[wvl][strain] = self.profile_data.sel(
+                    wavelength=wvl, strain=strain
+                ).mean(dim="strain")
         self.legends = {}
 
         self.idx_plot = {}
@@ -127,14 +157,18 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
         for i, wvl in enumerate(self.wavelengths):
             if (i > 0) and (i % 2 == 0):
                 self.nextRow()
-            self.plots[wvl] = self.addPlot(title=wvl, background='w')
+            self.plots[wvl] = self.addPlot(title=wvl, background="w")
             self.plots[wvl].setYRange(2e3, 1.55e4)
             self.plots[wvl].setXRange(0, 100)
             self.plots[wvl].disableAutoRange()
-            self.idx_plot[wvl] = self.plots[wvl].plot(x=self.xs,
-                                                      y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
-            self.mean_plot[wvl] = self.plots[wvl].plot(x=self.xs, y=self.means[wvl][self.current_strain].data,
-                                                       pen={'color': 'r'})
+            self.idx_plot[wvl] = self.plots[wvl].plot(
+                x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data
+            )
+            self.mean_plot[wvl] = self.plots[wvl].plot(
+                x=self.xs,
+                y=self.means[wvl][self.current_strain].data,
+                pen={"color": "r"},
+            )
             self.linear_regions[wvl] = pg.LinearRegionItem()
 
         # TODO address region plot boundaries
@@ -155,12 +189,20 @@ class ProfilePlotGridWidget(GraphicsLayoutWidget):
         for wvl in self.wavelengths:
             strain = self.profile_data.strain.data[self.frame]
             if strain is not self.current_strain:
-                self.mean_plot[wvl].setData(x=self.xs, y=self.means[wvl][strain].data, pen={'color': 'r'})
+                self.mean_plot[wvl].setData(
+                    x=self.xs, y=self.means[wvl][strain].data, pen={"color": "r"}
+                )
                 self.current_strain = strain
-            self.idx_plot[wvl].setData(x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data)
+            self.idx_plot[wvl].setData(
+                x=self.xs, y=self.profile_data.sel(wavelength=wvl)[self.frame].data
+            )
 
     def _mean_wvl_by_strain(self, wvl):
-        return self.profile_data.sel(wavelength=wvl).groupby('strain', restore_coord_dims=False).mean(dim='strain')
+        return (
+            self.profile_data.sel(wavelength=wvl)
+            .groupby("strain", restore_coord_dims=False)
+            .mean(dim="strain")
+        )
 
 
 class PandasModel(QtCore.QAbstractTableModel):

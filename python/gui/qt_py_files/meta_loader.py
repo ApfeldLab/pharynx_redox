@@ -27,6 +27,6 @@ class Ui_MetaLoader(object):
         _translate = QtCore.QCoreApplication.translate
         MetaLoader.setWindowTitle(_translate("MetaLoader", "Load"))
         self.loadRawImageButton.setText(_translate("MetaLoader", "Load Raw Image File"))
-        self.loadExperimentButton.setText(_translate("MetaLoader", "Load Experiment Directory"))
-
-
+        self.loadExperimentButton.setText(
+            _translate("MetaLoader", "Load Experiment Directory")
+        )
