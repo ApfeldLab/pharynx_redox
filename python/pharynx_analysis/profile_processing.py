@@ -6,6 +6,9 @@ from scipy.interpolate import UnivariateSpline
 
 
 # noinspection PyUnresolvedReferences
+from sklearn.preprocessing import scale
+
+
 def register_profiles(
     raw_profile_data,
     f_n_basis=64,
@@ -48,6 +51,15 @@ def register_profiles(
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470.T
 
     return reg_profile_data
+
+
+def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
+    scaled = data.copy()
+    for wvl in scaled.wavelength:
+        for pair in scaled.pair:
+            unscaled = scaled.sel(wavelength=wvl, pair=pair).values
+            scaled.loc[dict(wavelength=wvl, pair=pair)] = scale(unscaled, axis=1)
+    return scaled
 
 
 def smooth_profile(profile_data: xr.DataArray, s: int = 1e6):

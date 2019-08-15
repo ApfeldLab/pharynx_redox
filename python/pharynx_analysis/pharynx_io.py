@@ -170,3 +170,11 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
             for x in strain_map_df.itertuples()
         ]
     ).flatten()
+
+
+def load_all_rot_fl():
+    return xr.load_dataarray('../data/paired_ratio/all_rot_fl.nc')
+
+
+def load_all_rot_seg():
+    return xr.load_dataarray('../data/paired_ratio/all_rot_seg.nc')

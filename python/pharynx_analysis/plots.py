@@ -1,11 +1,14 @@
 from typing import Dict, Tuple, Union
 
+from pharynx_analysis.profile_processing import scale_by_wvl
+
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import xarray as xr
-from matplotlib import cm
+from matplotlib import cm, gridspec
 from matplotlib.gridspec import GridSpec
 from statsmodels.stats.weightstats import DescrStatsW
 
@@ -69,7 +72,7 @@ def plot_individual_profile_data_by_strain_and_pair(
     linewidth
     ylim
     alpha
-    figsize
+    figsize : object
     cmap_boundary_trim
 
     Returns
@@ -386,6 +389,185 @@ def single_animal_diagnostic_plot(
     plt.suptitle(f"Animal {animal_idx} ({strains[animal_idx]})")
 
     return fig
+
+
+def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
+    n_cols = 3
+    n_rows = 4
+    f = plt.figure(figsize=(col_w * n_cols, row_h * n_rows))
+    gs = gridspec.GridSpec(n_rows, n_cols, figure=f)
+
+    def gridify_axis(ax):
+        ax.grid(b=True, which="major", axis="x")
+
+    r_clim = [1, 2]
+    rr_clim = [0, 0.2]
+
+    sc_raw = scale_by_wvl(ex_raw.untrimmed_profiles)
+    sc_reg = scale_by_wvl(ex_reg.untrimmed_profiles)
+
+    for pair in [0, 1]:
+        col = pair
+        # Raw Intensity
+        ax = f.add_subplot(gs[0, col])
+        ax.plot(sc_raw.sel(wavelength="410", pair=pair).isel(strain=i), label="410")
+        ax.plot(sc_raw.sel(wavelength="470", pair=pair).isel(strain=i), label="470")
+        ax.plot(sc_reg.sel(wavelength="470", pair=pair).isel(strain=i), label="r470")
+        ax.legend(loc="upper left")
+        ax.set_title(fr"I_{pair} Raw")
+        ax.set_ylim([-2, 2])
+        gridify_axis(ax)
+
+        # Diff Raw Intensity
+        ax = f.add_subplot(gs[1, col])
+        ax.plot(
+            np.diff(sc_raw.sel(wavelength="410", pair=pair).isel(strain=i)), label="410"
+        )
+        ax.plot(
+            np.diff(sc_raw.sel(wavelength="470", pair=pair).isel(strain=i)), label="470"
+        )
+        ax.plot(
+            np.diff(sc_reg.sel(wavelength="470", pair=pair).isel(strain=i)),
+            label="r470",
+        )
+        ax.set_title(fr"diff(I_{pair})")
+        ax.set_ylim([-0.3, 0.3])
+        gridify_axis(ax)
+
+        # (Raw, Reg) Ratios
+        ax = f.add_subplot(gs[2, col])
+        ax.plot(
+            ex_raw.untrimmed_profiles.sel(wavelength="410", pair=pair).isel(strain=i)
+            / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=pair).isel(strain=i),
+            color="k",
+            label="raw",
+        )
+
+        ax.plot(
+            ex_reg.untrimmed_profiles.sel(wavelength="410", pair=pair).isel(strain=i)
+            / ex_reg.untrimmed_profiles.sel(wavelength="470", pair=pair).isel(strain=i),
+            color="r",
+            label="reg",
+        )
+        ax.legend(loc="upper right")
+        ax.set_ylim([1, 2])
+        ax.set_title(fr"410/470 ({pair})")
+        gridify_axis(ax)
+
+    # Error
+    ax = f.add_subplot(gs[3, 1])
+    ax.plot(
+        np.abs(
+            1
+            - (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+            )
+            / (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+            )
+        ),
+        label="Raw0/Raw1",
+        color="black",
+    )
+    ax.plot(
+        np.abs(
+            1
+            - (
+                ex_reg.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                / ex_reg.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+            )
+            / (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+            )
+        ),
+        label="Reg1/Raw0",
+        color="purple",
+    )
+    gridify_axis(ax)
+    ax.set_ylim(rr_clim)
+    ax.set_title("|1-(r0/r1)|")
+    ax.legend(loc="upper right")
+
+    ax = f.add_subplot(gs[3, 0])
+    ax.plot(
+        np.abs(
+            1
+            - (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+            )
+            / (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+            )
+        ),
+        label="Raw0/Raw1",
+        color="black",
+    )
+    ax.plot(
+        np.abs(
+            1
+            - (
+                ex_reg.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                / ex_reg.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+            )
+            / (
+                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+            )
+        ),
+        label="Reg0/Raw1",
+        color="red",
+    )
+    gridify_axis(ax)
+    ax.set_ylim(rr_clim)
+    ax.set_title("|1-(r_REG/r_RAW)|")
+    ax.legend(loc="upper right")
+
+    # Images
+    def clip_im(ax):
+        ax.set_xlim(45, 125)
+        ax.set_ylim(50, 80)
+
+    ax = f.add_subplot(gs[0, 2])
+    R0 = ex_raw.rot_fl.sel(wavelength="410", pair=0).isel(strain=i) / ex_raw.rot_fl.sel(
+        wavelength="470", pair=0
+    ).isel(strain=i)
+    im = ax.imshow(R0)
+    im.set_clim(r_clim)
+    clip_im(ax)
+    ax.set_title("R0")
+    ax.plot(*ex_raw.midlines[i]["410"][0].linspace(), color="r", linewidth=3)
+
+    ax = f.add_subplot(gs[1, 2])
+    R1 = ex_raw.rot_fl.sel(wavelength="410", pair=1).isel(strain=i) / ex_raw.rot_fl.sel(
+        wavelength="470", pair=1
+    ).isel(strain=i)
+    im = ax.imshow(R1)
+    im.set_clim(r_clim)
+    clip_im(ax)
+    ax.set_title("R1")
+    ax.plot(*ex_raw.midlines[i]["410"][1].linspace(), color="r", linewidth=3)
+
+    ax = f.add_subplot(gs[2, 2])
+    RR = np.abs(1 - (R0 / R1))
+    im = ax.imshow(RR)
+    im.set_clim(rr_clim)
+    clip_im(ax)
+    ax.set_title("|1 - R0/R1|")
+
+    m0 = ex_raw.movement.loc[pd.IndexSlice[i, 0], :]
+    m1 = ex_raw.movement.loc[pd.IndexSlice[i, 1], :]
+    plt.suptitle(
+        f"{ex_raw.experiment_id} --(Animal {i})-- mvmt(T:{m0['tip']}/{m1['tip']} | SoT:{m0['sides_of_tip']}/{m1['sides_of_tip']} | A:{m0['anterior']}/{m1['anterior']} | P:{m0['posterior']}/{m1['posterior']})"
+    )
+
+    f.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    return f
 
 
 def plot_profile_avg_with_bounds(
