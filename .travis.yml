@@ -20,7 +20,7 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create --quiet --name test-environment --file python/requirements.txt
+  - conda create --channel defaults --quiet --name test-environment --file python/requirements.txt
   - source activate test-environment
   - python setup.py install
 
