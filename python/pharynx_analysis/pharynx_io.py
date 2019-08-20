@@ -10,22 +10,57 @@ from pharynx_analysis import utils
 
 
 def load_tiff_from_disk(image_path: Path) -> np.ndarray:
-    """ Load a tiff stack from disk.
+    """
+    Load a tiff file from disk
 
-    :param image_path: path to the image stack
-    :return: a numpy array with dimensions (frame, height, width)
+    Parameters
+    ----------
+    image_path: Path
+        the path to the image file
+
+    Returns
+    -------
+    img: np.ndarray of shape
+        the image stack as a numpy array with the following dimensions::
+
+            (n_images, height, width)
+
     """
     return sk_io.imread(str(image_path))
 
 
 def save_images_xarray_to_disk(
-    imgs: xr.DataArray, dir_path: str, stem: str, suffix: str
-):
+    imgs: xr.DataArray, dir_path: str, prefix: str = None, suffix: str = None
+) -> None:
+    """
+    Save the given image stack to disk inside the given directory, separated by
+    wavelength and pair
+
+    Parameters
+    ----------
+    imgs
+        the images to save to disk
+    dir_path
+        the directory to save the images in;
+    prefix: optional
+        a string with which to prepend the filenames
+    suffix: optional
+        a string with which to append the filenames
+
+    Returns
+    -------
+    """
     dir_path = Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
+
+    if prefix is not None:
+        prefix = f"{prefix}-"
+    if suffix is not None:
+        suffix = f"-{suffix}"
+
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
-            final_path = dir_path.joinpath(f"{stem}-{wvl}-{pair}-{suffix}.tif")
+            final_path = dir_path.joinpath(f"{prefix}{wvl}-{pair}{suffix}.tif")
             if imgs.data.dtype == np.bool:
                 data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
             else:
@@ -35,11 +70,26 @@ def save_images_xarray_to_disk(
 
 
 def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str, int)]:
-    """Split the imaging scheme string by the given delimiter, and return [(wavelength, nth_occurrence), ...]
+    """
+    Split the imaging scheme string by the given delimiter, and return
+    [(wavelength, nth_occurrence), ...]
 
-    :param imaging_scheme_str: A string of wavelengths which indicate the order in which images were taken, separated by the delimiter
-    :param delimiter: a string which separates the wavelengths in the imaging scheme string
-    :return: a list [(wavelength, nth_occurrence), ...]
+    Examples
+    --------
+    >>> process_imaging_scheme_str("TL/470/410/470/410", delimiter='/')
+    [("TL", 0), ("470", 0), ("410", 0), ("470", 1), ("410", 1)]
+
+    Parameters
+    ----------
+    imaging_scheme_str
+        A string of wavelengths which indicate the order in which images were taken, separated by the delimiter
+    delimiter
+        a string which separates the wavelengths in the imaging scheme string
+
+    Returns
+    -------
+    list
+        [(wavelength, nth_occurrence), ...]
     """
     return utils.create_occurrence_count_tuples(imaging_scheme_str.split(delimiter))
 
@@ -47,43 +97,48 @@ def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str,
 def load_images(
     intercalated_image_stack_path: str, imaging_scheme: str, strain_map: [str]
 ) -> xr.DataArray:
-    """ Loads the images specified by the path into an xarray.DataArray, organized by strain and wavelength.
+    """
+    Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,
+    organized by strain, wavelength, and pair.
     
-    The wavelengths are split up according to the `imaging_scheme`, which specifies the order of the wavelengths taken
-    during imaging. Transmitted light should be represented as "TL". The wavelengths should be separated by
-    a single "/".
+    Parameters
+    ----------
+    intercalated_image_stack_path
+        the path to the raw image stack
+    imaging_scheme
+        a string denoting the order of the wavelengths used during imaging
 
-    Example `imaging_scheme`: "TL/470/410/470".
+        Transmitted light should be represented as ``TL``. The wavelengths should be
+        separated by ``/``.
 
-    The resultant stack is split up by strain. This information is provided by the `strains` parameter, which should be
-    a list containing strings corresponding to the strain of each animal. Thus, the length of the `strains` list must
-    be the same as the number of animals imaged.
+        E.g.::
 
+            TL/470/410/470/410
+    strain_map
+        a list of strain names, corresponding to the strain of each animal. The length
+        must therefore be the same as the number of animals imaged.
 
-    HOW TO ACCESS THE RESULTANT DATA:
+    Returns
+    -------
+    img_stack: xr.DataArray
+        A multi-dimensional array of the form::
 
-    The data is returned in the form of an `xarray.DataArray` object. This is very similar to (and indeed uses for its
-    implementation) a numpy ndarray. The major difference (exploited by this code-base) is that dimensions may be
-    accessed by labels in addition to the traditional index access.
+            (frame, wavelength, pair, height, width)
 
-    The data is organized as a 5-d matrix according to the following structure:
-        (frame, wavelength, pair, height, width)
+        The data is returned in the form of an `xarray.DataArray` object. This is very
+        similar to (and indeed uses for its implementation) a numpy ndarray. The major
+        difference (exploited by this code-base) is that dimensions may be accessed by
+        labels in addition to the traditional index access.
 
-    For example, all transmitted-light images for the strain HD233 may be accessed as follows:
+        For example, all transmitted-light images for the strain HD233 may be accessed
+        as follows::
 
-        >> all_images = load_images(intercalated_image_stack_path, imaging_scheme, strains)
-        >> all_images.data.shape
-        (123, 3, 2, 130, 174)
-        >> only_tl = all_images.sel(strain='HD233', wavelength='TL', pair=0)
-        >> only_tl.data.shape
-        (60, 130, 174)
-
-
-    :param intercalated_image_stack_path: the path to the raw image stack
-    :param imaging_scheme: a string denoting the order of the wavelengths used during imaging
-    :param strain_map: a list of strain names, corresponding to the strain of each animal
-    :return: An `xarray.DataArray` with the form (frame, wavelength, y, x)
-
+            >> all_images = load_images(intercalated_image_stack_path, imaging_scheme, strains)
+            >> all_images.data.shape
+            (123, 3, 2, 130, 174)
+            >> only_tl = all_images.sel(strain='HD233', wavelength='TL', pair=0)
+            >> only_tl.data.shape
+            (60, 130, 174)
     """
     intercalated_image_stack = load_tiff_from_disk(intercalated_image_stack_path)
     lambdas_with_counts = process_imaging_scheme_str(imaging_scheme, "/")
@@ -150,18 +205,29 @@ def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) 
 
 
 def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
-    """ Load strain map from disk, generate a 1D array where the index corresponds to the strain of the worm at that index
+    """
+    Load strain map from disk, generate a 1D array where the index corresponds to the
+    strain of the worm at that index
 
-    The strain map is a CSV file which tells the system which maps animal number to strain. It has three columns:
-    Strain, Start_Animal, and End_Animal.
+    Parameters
+    ----------
+    strain_map_path
+        the path to strain map
 
-    A valid strain map might look like this:
-        Strain,Start_Animal,End_Animal
-        HD233,1,60
-        SAY47,61,123
+        The strain map is a CSV file which tells the system which maps animal number to
+        strain. It has three columns: ``Strain, Start_Animal, and End_Animal``.
 
-    :param strain_map_path: path to strain map
-    :return: a numpy array of strings where the index corresponds to the strain of the worm at that index
+        A valid strain map might look like this::
+
+            Strain,Start_Animal,End_Animal
+            HD233,1,60
+            SAY47,61,123
+
+    Returns
+    -------
+    numpy.ndarray
+        an array of strings where the index corresponds to the strain of the worm at
+        that index
     """
     strain_map_df = pd.read_csv(strain_map_path)
     return np.concatenate(
@@ -173,8 +239,8 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
 
 
 def load_all_rot_fl():
-    return xr.load_dataarray('../data/paired_ratio/all_rot_fl.nc')
+    return xr.load_dataarray("../data/paired_ratio/all_rot_fl.nc")
 
 
 def load_all_rot_seg():
-    return xr.load_dataarray('../data/paired_ratio/all_rot_seg.nc')
+    return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")
