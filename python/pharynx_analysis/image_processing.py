@@ -19,7 +19,7 @@ def get_lr_bounds(
     rot_seg_stack: xr.DataArray, pad: int = 0, ref_wvl: str = "410", ref_pair: int = 0
 ) -> np.ndarray:
     """
-    Get the Left and Right boundaries of the rotated pharynxes
+    Get the left and right boundaries of the rotated pharynxes
     Parameters
     ----------
     rot_seg_stack
@@ -27,15 +27,15 @@ def get_lr_bounds(
     pad
         the amount of padding on the left/right of the  bounds
     ref_wvl
-        the wavelength to use as reference
+        the wavelength to use for calculating bounds
     ref_pair
-        the pair to use as reference
+        the pair to use for calculating bounds
 
     Returns
     -------
     bounds
-        An (m, 2) array where m = number of animals,  the  first column is the left bound and the second column is the right
-        bound
+        An (m, 2) array where m = number of animals,  the  first column is the left bound and the second column is the
+        right bound
     """
     imgs = rot_seg_stack.sel(wavelength=ref_wvl, pair=ref_pair)
     bounds = np.zeros((imgs.strain.size, 2))  # (0, (x, y))
@@ -50,17 +50,29 @@ def center_and_rotate_pharynxes(
 ) -> (np.ndarray, np.ndarray):
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
-    that the pharynx is in the center of the image, with its anterior on the left
+    that the pharynx is in the center of the image, with its anterior on the left.
 
     Parameters
     ----------
     fl_images
+        The fluorescence images to rotate and align
     seg_images
+        The segmented images to rotate and align
     reference_wavelength
+        The wavelength to use for calculating center of mass and angle of orientation
 
     Returns
     -------
+    (rotated_fl_stack, rotated_seg_stack)
+        A 2-tuple where the first item is the rotated fluorescence stack and the second is the rotated mask stack
 
+    Notes
+    -----
+    This function uses the a reference wavelength to calculate the center of mass and angle of orientation, then applies
+    the according translation to all wavelengths for that animal/pair.
+
+    The current implementation uses a gaussian blur on the fluorescence images and segments that to calculate the
+    centroid and the orientation angle.
     """
     img_center_y, img_center_x = (
         fl_images.y.size // 2,
@@ -118,26 +130,51 @@ def center_and_rotate_pharynxes(
     return fl_rotated_stack, seg_rotated_stack
 
 
-def extract_largest_binary_object(bin_img):
+def extract_largest_binary_object(
+    bin_img: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+    """
+    Extracts the largest binary object from the given binary image
+
+    Parameters
+    ----------
+    bin_img
+        The binary image to process
+
+    Returns
+    -------
+    bin_img
+        The binary image containing only the largest binary object from the input
+
+    """
     labels = label(bin_img)
     if labels.max() == 0:
-        # No connected components (TL images)
+        # If there are no objects in the image... simply return the image
         return bin_img
     return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
 
 # noinspection PyUnresolvedReferences
-def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
+def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataArray:
     """
+    Segment the pharynxes in the given fluorescence image stack
 
     Parameters
     ----------
-    threshold
     fl_stack
+        the images to segment
+    threshold
+        pixels with brightness above this intensity are considered to be in the pharynx
 
     Returns
     -------
+    seg
+        the image stack containing the segmented masks of the pharynxes in the input fl_stack
 
+    Notes
+    -----
+    This function currently uses a static threshold to segment, then extracts the largest binary object. More
+    sophisticated segmentation strategies should be tried in the future.
     """
     seg = fl_stack > threshold
     for img_idx in range(fl_stack.strain.size):
@@ -151,6 +188,24 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold=2000):
 
 
 def get_centroids(fl_stack: xr.DataArray, threshold=1000, gaussian_sigma=6):
+    """
+    Obtain the centers-of-mass for each pharynx in the given fluorescence image stack
+
+    Parameters
+    ----------
+    fl_stack
+        the fluorescence image stack to measure
+    threshold
+        the segmentation threshold for the blurred pharynx images
+    gaussian_sigma
+        the degree to blur the pharynxes before segmentation
+
+    Returns
+    -------
+    centroids
+        the centers-of-mass of each pharynx in the given stack
+
+    """
     image_data = fl_stack.copy()
     image_data.data = ndi.gaussian_filter(
         image_data.data, sigma=(0, 0, 0, gaussian_sigma, gaussian_sigma)
@@ -158,23 +213,31 @@ def get_centroids(fl_stack: xr.DataArray, threshold=1000, gaussian_sigma=6):
     image_data.data[image_data.data < threshold] = 0
     image_data.data[image_data.data > threshold] = 1
 
+    # TODO finish implementation
 
-def rotate(data, tform, orientation):
+
+def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation):
     """
+    Rotate the
 
     Parameters
     ----------
-    data
+    img
+        the image to rotate
     tform
+        the translation matrix to apply
     orientation
+        the angle of orientation (in radians)
 
     Returns
     -------
+    rotated
+        the translated and rotated image
 
     """
     # noinspection PyTypeChecker
     return transform.rotate(
-        transform.warp(data, tform, preserve_range=True, mode="wrap"),
+        transform.warp(img, tform, preserve_range=True, mode="wrap"),
         np.degrees(np.pi / 2 - orientation),
         mode="edge",
     )
@@ -183,27 +246,33 @@ def rotate(data, tform, orientation):
 def calculate_midlines(
     rot_seg_stack: xr.DataArray, degree: int = 4
 ) -> List[Dict[str, List[Polynomial]]]:
-    """Calculate the midlines for the given stack. Only calculates midlines for NON-TL images
+    """
+    Calculate a midline for each animal in the given stack
+
     Parameters
     ----------
     rot_seg_stack
-        The rotated mask with which midlines should be calculated. It should have the following dimensions::
+        The rotated mask with which midlines should be calculated.
 
-            (strain, wavelength, pair, height, width)
     degree
         The degree of the polynomial fit
 
     Returns
     -------
-    list
+    list of dict
         A list of dictionaries with the following structure::
 
             [
                 {
                     wavelength0: [midline_pair_0, midline_pair_1, ...],
                     wavelength1: [midline_pair_0, midline_pair_1, ...]
-                }
+                },
+                ...
             ]
+
+    See Also
+    --------
+    calculate_midline
     """
     return [
         {
@@ -224,21 +293,29 @@ def calculate_midlines(
 def calculate_midline(
     rot_seg_img: Union[np.ndarray, xr.DataArray], degree: int = 4, pad: int = 5
 ) -> Polynomial:
-    """Calculate a the midline for a single image. Right now this only works for images that have been centered and aligned
-    with their anterior-posterior along the horizontal.
+    """
+    Calculate a the midline for a single image by fitting a polynomial to the segmented
+    pharynx
 
     Parameters
     ----------
-    pad
-    degree
     rot_seg_img: Union[np.ndarray, xr.DataArray]
         The rotated masked pharynx image
+    degree
+        the degree of the polynomial
+    pad
+        the number of pixels to "pad" the domain of the midline with respect to the
+        boundaries of the segmentation mask
 
     Returns
     -------
-    UnivariateSpline
-        An approximation of the midline of the pharynx for this frame
+    Polynomial
+        the estimated midline
 
+    Notes
+    -----
+    Right now this only works for images that have been centered and aligned with their
+    anterior-posterior along the horizontal.
     """
     rp = measure.regionprops(measure.label(rot_seg_img))[0]
     xs, ys = rp.coords[:, 1], rp.coords[:, 0]
@@ -371,17 +448,49 @@ def measure_under_midlines(
     return raw_intensity_data
 
 
-def align_pa(intensity_data, reference_wavelength="410", reference_pair=0):
+def align_pa(
+    intensity_data: xr.DataArray,
+    reference_wavelength: str = "410",
+    reference_pair: int = 0,
+) -> xr.DataArray:
     """
+    Given intensity profile data, flip each animal along their anterior-posterior axis
+    if necessary, so that all face the same direction
 
     Parameters
     ----------
     intensity_data
-    reference_pair
-    reference_wavelength
+        the data to align
+    reference_pair: optional
+        the pair to calculate the alignment for
+    reference_wavelength: optional
+        the wavelength to calculate the alignment for
 
     Returns
     -------
+    aligned_intensity_data
+        the PA-aligned intensity data
+
+    Notes
+    -----
+    The alignments are calculated for a single wavelength and pair for each animal, then
+    applied to all wavelengths and pairs for that animal.
+
+    The algorithm works as follows:
+
+        - take the derivative of the (trimmed) intensity profiles (this accounts for
+          differences in absolute intensity between animals)
+        - use the first animal in the stack as the reference profile
+        - for all animals:
+
+           - compare a forward and reverse profile to the reference profile (using the
+             cosine-similarity metric)
+           - keep either the forward or reverse profile accordingly
+
+        - finally, determine the location of the peaks in the *average* profile
+
+            - reverse all profiles if necessary (this will be necessary if the first
+              animal happens to be reversed)
 
     """
     data = intensity_data
@@ -422,8 +531,9 @@ def align_pa(intensity_data, reference_wavelength="410", reference_pair=0):
     return intensity_data
 
 
-def center_of_mass_midline(rot_fl, s, ext):
-    """ Calculate the midline using the Center of Mass method
+def center_of_mass_midline(rot_fl: xr.DataArray, s: float, ext: str):
+    """
+    Calculate the midline using the Center of Mass method
 
     Parameters
     ----------
@@ -443,9 +553,25 @@ def center_of_mass_midline(rot_fl, s, ext):
     return UnivariateSpline(xs, np.array(midline_ys), s=s, ext=ext)
 
 
-def shift(image, vector):
-    transform = AffineTransform(translation=vector)
-    shifted = warp(image, transform, mode="wrap", preserve_range=True)
+def shift(image: np.ndarray, vector: np.ndarray) -> np.ndarray:
+    """
+    Translate the image according to the given movement vector
+
+    Parameters
+    ----------
+    image
+        the image to translate
+    vector :
+        translation parameters ``(dx, dy)``
+
+    Returns
+    -------
+    img: np.ndarray
+        the translated image
+
+    """
+    tform = AffineTransform(translation=vector)
+    shifted = warp(image, tform, mode="wrap", preserve_range=True)
 
     shifted = shifted.astype(image.dtype)
     return shifted
