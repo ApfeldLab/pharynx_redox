@@ -17,7 +17,7 @@ coverage==4.5.3
 coveralls==1.8.2
 cryptography==2.7
 cycler==0.10.0
-cytoolz==0.10.0
+#cytoolz==0.10.0
 dask==2.2.0
 decorator==4.4.0
 defusedxml==0.6.0
@@ -42,12 +42,8 @@ jupyter-console==6.0.0
 jupyter-core==4.5.0
 kiwisolver==1.1.0
 MarkupSafe==1.1.1
-matlabengineforpython===R2018a
 matplotlib==3.1.0
 mistune==0.8.4
-mkl-fft==1.0.14
-mkl-random==1.0.2
-mkl-service==2.0.2
 more-itertools==7.2.0
 nbconvert==5.5.0
 nbformat==4.4.0

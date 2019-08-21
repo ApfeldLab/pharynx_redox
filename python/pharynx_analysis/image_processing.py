@@ -9,7 +9,6 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
 from skimage import measure, transform
-from skimage.measure import label
 from skimage.transform import warp, AffineTransform
 
 from pharynx_analysis import profile_processing
@@ -147,7 +146,7 @@ def extract_largest_binary_object(
         The binary image containing only the largest binary object from the input
 
     """
-    labels = label(bin_img)
+    labels = measure.label(bin_img)
     if labels.max() == 0:
         # If there are no objects in the image... simply return the image
         return bin_img
@@ -348,13 +347,10 @@ def measure_under_midline(
 
     """
     if thickness == 0:
-        # ys = xr.DataArray(mid(xs), dims="z")
-        # xs = xr.DataArray(xs, dims="z")
         ys = mid(xs)
         fl = np.asarray(fl)
 
         return ndi.map_coordinates(fl, np.stack([ys, xs]), order=1)
-        # return fl.interp(x=xs, y=ys).data.T
     else:
         ys = mid(xs)
         der = mid.deriv()
