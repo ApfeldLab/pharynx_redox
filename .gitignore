@@ -1,8 +1,6 @@
 # Project-Specific
 data/
-*.tif
-*.tiff
-*.csv
+data_nithin/
 
 .idea/
 
