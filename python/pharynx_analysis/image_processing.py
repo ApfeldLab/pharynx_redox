@@ -271,9 +271,13 @@ def measure_under_midline(
 
     """
     if thickness == 0:
-        ys = xr.DataArray(mid(xs), dims="z")
-        xs = xr.DataArray(xs, dims="z")
-        return fl.interp(x=xs, y=ys).data.T
+        # ys = xr.DataArray(mid(xs), dims="z")
+        # xs = xr.DataArray(xs, dims="z")
+        ys = mid(xs)
+        fl = np.asarray(fl)
+
+        return ndi.map_coordinates(fl, np.stack([ys, xs]), order=1)
+        # return fl.interp(x=xs, y=ys).data.T
     else:
         ys = mid(xs)
         der = mid.deriv()
@@ -332,7 +336,6 @@ def measure_under_midlines(
 
     Returns
     -------
-
     """
     non_tl_wvls = list(filter(lambda x: x != "TL", fl_stack.wavelength.data))
     raw_intensity_data = xr.DataArray(
@@ -444,8 +447,8 @@ def center_of_mass_midline(rot_fl, s, ext):
 
 
 def shift(image, vector):
-    transform = AffineTransform(translation=vector)
-    shifted = warp(image, transform, mode="wrap", preserve_range=True)
+    transform_matrix = AffineTransform(translation=vector)
+    shifted = warp(image, transform_matrix, mode="wrap", preserve_range=True)
 
     shifted = shifted.astype(image.dtype)
     return shifted

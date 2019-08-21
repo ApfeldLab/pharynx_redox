@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import numpy as np
@@ -173,8 +174,9 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
 
 
 def load_all_rot_fl():
-    return xr.load_dataarray('../data/paired_ratio/all_rot_fl.nc')
+    return xr.load_dataarray('../../data/paired_ratio/all_rot_fl.nc')
 
 
 def load_all_rot_seg():
-    return xr.load_dataarray('../data/paired_ratio/all_rot_seg.nc')
+    Path(os.path.realpath(__file__)).joinpath('')
+    return xr.load_dataarray('../../data/paired_ratio/all_rot_seg.nc')

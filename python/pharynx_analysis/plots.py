@@ -1,5 +1,7 @@
 from typing import Dict, Tuple, Union
 
+from tqdm import tqdm
+
 from pharynx_analysis.profile_processing import scale_by_wvl
 
 import matplotlib.colors
@@ -11,6 +13,7 @@ import xarray as xr
 from matplotlib import cm, gridspec
 from matplotlib.gridspec import GridSpec
 from statsmodels.stats.weightstats import DescrStatsW
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 def plot_paired_experiment_summary(experiment):
@@ -207,7 +210,7 @@ def plot_average_by_strain_and_pair(
 
 
 def add_regions_to_axis(
-    ax, regions, label_dist_bottom_percent=0.03, label_x_offset_percent=0.005, alpha=0.1
+    ax, regions, label_dist_bottom_percent=0.03, label_x_offset_percent=0.005, alpha=0.1, **kwargs
 ):
     min_y, max_y = ax.get_ylim()
     min_x, max_x = ax.get_xlim()
@@ -216,7 +219,7 @@ def add_regions_to_axis(
     text_x_offset = (max_x - min_x) * label_x_offset_percent
 
     for region, bounds in regions.items():
-        ax.axvspan(bounds[0], bounds[1], alpha=alpha)
+        ax.axvspan(bounds[0], bounds[1], alpha=alpha, **kwargs)
         ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
 
@@ -460,12 +463,12 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
         np.abs(
             1
             - (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
             )
             / (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
             )
         ),
         label="Raw0/Raw1",
@@ -479,8 +482,8 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
                 / ex_reg.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
             )
             / (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
             )
         ),
         label="Reg1/Raw0",
@@ -496,12 +499,12 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
         np.abs(
             1
             - (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=0).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
             )
             / (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
             )
         ),
         label="Raw0/Raw1",
@@ -515,8 +518,8 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
                 / ex_reg.untrimmed_profiles.sel(wavelength="470", pair=0).isel(strain=i)
             )
             / (
-                    ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
-                    / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
+                ex_raw.untrimmed_profiles.sel(wavelength="410", pair=1).isel(strain=i)
+                / ex_raw.untrimmed_profiles.sel(wavelength="470", pair=1).isel(strain=i)
             )
         ),
         label="Reg0/Raw1",
@@ -570,13 +573,22 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
     return f
 
 
+def save_reg_diagnostics(ex_raw, ex_reg, output_filepath):
+
+    with PdfPages(output_filepath) as pdf:
+        for i in tqdm(range(ex_raw.strains.size)):
+            f = plot_reg_diagnostic(ex_raw, ex_reg, i)
+            pdf.savefig()
+            plt.close(f)
+
+
 def plot_profile_avg_with_bounds(
     data, ax=None, confint_alpha=0.05, label=None, **kwargs
 ):
     if ax is None:
         fig, ax = plt.subplots()
 
-    ax.plot(np.mean(data, axis=0), label=label, **kwargs)
+    ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     xs = np.arange(len(lower))
     ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
