@@ -62,6 +62,10 @@ class Experiment:
     frame_specific_midlines: bool = False
     should_register: bool = False
 
+    sm_lam: int = 2
+    rough_lam: float = 0.316
+    warp_lam: int = 100
+
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
 
@@ -124,7 +128,10 @@ class Experiment:
     def register(self):
         logging.info("Registering profiles")
         self.untrimmed_profiles = profile_processing.register_profiles(
-            self.untrimmed_profiles
+            self.untrimmed_profiles,
+            sm_lam=self.sm_lam,
+            rough_lam=self.rough_lam,
+            warp_lam=self.warp_lam,
         )
 
     def trim_data(self):
@@ -372,6 +379,7 @@ class PairExperiment(Experiment):
     """
 
     strategy: str = "frame specific midlines with registration"
+    should_register: bool = True
 
     # Required initialization parameters
     image_display_order: List[str] = ["410_1", "470_1", "r1", "410_2", "470_2", "r2"]

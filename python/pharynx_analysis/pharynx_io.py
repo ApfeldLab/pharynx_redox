@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +26,7 @@ def load_tiff_from_disk(image_path: Path) -> np.ndarray:
             (n_images, height, width)
 
     """
-    return sk_io.imread(str(image_path))
+    return tifffile.imread(str(image_path))
 
 
 def save_images_xarray_to_disk(
@@ -96,7 +95,7 @@ def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str,
 
 
 def load_images(
-    intercalated_image_stack_path: str, imaging_scheme: str, strain_map: [str]
+    intercalated_image_stack_path: Path, imaging_scheme: str, strain_map: [str]
 ) -> xr.DataArray:
     """
     Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,
