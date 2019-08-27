@@ -5,6 +5,33 @@ import pandas as pd
 from skimage.measure import regionprops, label
 
 
+def jaccard(im1, im2):
+    """
+    Computes the Jaccard metric, a measure of set similarity.
+
+    Parameters
+    ----------
+    im1 : array-like, bool
+        Any array of arbitrary size. If not boolean, will be converted.
+    im2 : array-like, bool
+        Any other array of identical size. If not boolean, will be converted.
+
+    Returns
+    -------
+    jaccard : float
+        Jaccard metric returned is a float on range [0,1].
+        Maximum similarity = 1
+        No similarity = 0
+    """
+    im1 = np.asarray(im1).astype(np.bool)
+    im2 = np.asarray(im2).astype(np.bool)
+
+    intersection = np.logical_and(im1, im2)
+    union = np.logical_or(im1, im2)
+
+    return intersection.sum() / float(union.sum())
+
+
 def create_occurrence_count_tuples(l: iter) -> [(object, int)]:
     # TODO: test
     """ Given a list of things, return a list of tuples (item, nth_occurrence)

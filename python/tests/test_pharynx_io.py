@@ -28,7 +28,6 @@ class TestPharynxAnalysis:
         "n_SAY47": 63,
     }
 
-    # IO
     def test_load_tiff_from_disk_shape(self):
         img_stack = pio.load_tiff_from_disk(self.img_stk_0["img_path"])
 

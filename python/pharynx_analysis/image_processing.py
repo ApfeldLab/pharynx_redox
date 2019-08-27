@@ -33,15 +33,15 @@ def get_lr_bounds(
     Returns
     -------
     bounds
-        An (m, 2) array where m = number of animals,  the  first column is the left bound and the second column is the
-        right bound
+        An (m, 2) array where m = number of animals, the first column is the left bound
+        and the second column is the right bound
     """
     imgs = rot_seg_stack.sel(wavelength=ref_wvl, pair=ref_pair)
     bounds = np.zeros((imgs.strain.size, 2))  # (0, (x, y))
     for i, img in enumerate(imgs):
-        l, _, _, r = measure.regionprops(measure.label(img))[0].bbox
-        bounds[i, :] = [l - pad, r + pad]
-    return bounds
+        _, l, _, r = measure.regionprops(measure.label(img))[0].bbox
+        bounds[i, :] = [l - pad, r + pad - 1]
+    return bounds.astype(np.int)
 
 
 def center_and_rotate_pharynxes(
