@@ -210,7 +210,12 @@ def plot_average_by_strain_and_pair(
 
 
 def add_regions_to_axis(
-    ax, regions, label_dist_bottom_percent=0.03, label_x_offset_percent=0.005, alpha=0.1, **kwargs
+    ax,
+    regions,
+    label_dist_bottom_percent=0.03,
+    label_x_offset_percent=0.005,
+    alpha=0.1,
+    **kwargs,
 ):
     min_y, max_y = ax.get_ylim()
     min_x, max_x = ax.get_xlim()
@@ -394,7 +399,7 @@ def single_animal_diagnostic_plot(
     return fig
 
 
-def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
+def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3, **params):
     n_cols = 3
     n_rows = 4
     f = plt.figure(figsize=(col_w * n_cols, row_h * n_rows))
@@ -568,16 +573,30 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3):
         f"{ex_raw.experiment_id} --(Animal {i})-- mvmt(T:{m0['tip']}/{m1['tip']} | SoT:{m0['sides_of_tip']}/{m1['sides_of_tip']} | A:{m0['anterior']}/{m1['anterior']} | P:{m0['posterior']}/{m1['posterior']})"
     )
 
+    # Parameter box
+    textstr = "\n".join([f"{k}={v}" for k, v in params.items()])
+    props = dict(boxstyle="round", facecolor="wheat")
+    ax = f.add_subplot(gs[3, 2])
+    ax.text(
+        0.05,
+        0.95,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=14,
+        verticalalignment="top",
+        bbox=props,
+    )
+    ax.axis("off")
+
     f.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     return f
 
 
-def save_reg_diagnostics(ex_raw, ex_reg, output_filepath):
-
+def save_reg_diagnostics(ex_raw, ex_reg, output_filepath, **params):
     with PdfPages(output_filepath) as pdf:
         for i in tqdm(range(ex_raw.strains.size)):
-            f = plot_reg_diagnostic(ex_raw, ex_reg, i)
+            f = plot_reg_diagnostic(ex_raw, ex_reg, i, **params)
             pdf.savefig()
             plt.close(f)
 

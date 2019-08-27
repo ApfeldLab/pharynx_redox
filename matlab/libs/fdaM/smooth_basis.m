@@ -140,6 +140,8 @@ if lambda < 0
     lambda = 0;
 end
 
+lambda = double(lambda);
+
 %  set up default fdnames
 
 deffdnames = cell(1,3);
@@ -323,7 +325,7 @@ if strcmp(method, 'chol')
             Bnorm   = sqrt(sum(sum(Bmat.^2)));
             pennorm = sqrt(sum(sum(penmat.^2)));
             condno  = pennorm/Bnorm;
-            if lambda*condno > 1e12
+            if double(lambda)*condno > 1e12
                 lambda = 1e12/condno;
                 warning('Wid2:reduce', ...
                     ['LAMBDA reduced to ',num2str(lambda), ...
@@ -333,7 +335,7 @@ if strcmp(method, 'chol')
                 penmat = [penmat,          zeros(nbasis,q); ...
                           zeros(q,nbasis), zeros(q,q)];
             end
-            Bmat = Bmat + lambda.*penmat;
+            Bmat = Bmat + double(lambda).*penmat;
         else
             penmat = zeros(nbasis);
             Bmat   = Bmat0;

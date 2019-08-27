@@ -4,48 +4,57 @@ import numpy as np
 import xarray as xr
 from scipy.interpolate import UnivariateSpline
 
-
-# noinspection PyUnresolvedReferences
 from sklearn.preprocessing import scale
 
 
+# noinspection PyUnresolvedReferences
 def register_profiles(
-    raw_profile_data,
-    f_n_basis=64,
-    f_order=4,
-    f_deriv_penalty=2,
-    f_lambda=1e-6,
-    warp_n_basis=6,
-    warp_order=4,
-    warp_deriv_penalty=2,
-    warp_lambda=5e3,
-):
+    raw_profile_data: xr.DataArray, sm_lam=2, rough_lam=0.316, warp_lam=100
+) -> xr.DataArray:
+    """
+    Register 470 channels into 410 using elastic registration
+
+    This function uses MATLAB subprocess to do actual registration.
+
+    Parameters
+    ----------
+    sm_lam
+        The smoothing constraint for the "smooth" data, which will be used for
+        registration
+    rough_lam
+        The smoothing constraint for the "rough" data, which is what will be returned
+        as the measurement data
+    warp_lam
+        The smoothing constraint for the warp function
+    raw_profile_data
+        The profile data to register
+
+    Returns
+    -------
+    registered_data
+        The registered profile data
+
+    """
     reg_profile_data = raw_profile_data.copy()
     eng = matlab.engine.start_matlab()
     for pair in raw_profile_data.pair.data:
         data410 = matlab.double(
-            raw_profile_data.sel(pair=pair, wavelength="410").values.tolist()
+            raw_profile_data.sel(pair=pair, wavelength="410").values.T.tolist()
         )
         data470 = matlab.double(
-            raw_profile_data.sel(pair=pair, wavelength="470").values.tolist()
+            raw_profile_data.sel(pair=pair, wavelength="470").values.T.tolist()
         )
 
-        r410, r470 = map(
-            np.asarray,
-            eng.register_pairs(
-                data410,
-                data470,
-                np.float(f_n_basis),
-                np.float(f_order),
-                np.float(f_deriv_penalty),
-                np.float(f_lambda),
-                np.float(warp_n_basis),
-                np.float(warp_order),
-                np.float(warp_deriv_penalty),
-                np.float(warp_lambda),
-                nargout=2,
-            ),
+        reg_data = eng.smoothRoughRegisterDiscretize(
+            data410,
+            data470,
+            sm_lam,
+            rough_lam,
+            warp_lam,
+            raw_profile_data.position.size,
+            nargout=2,
         )
+        r410, r470 = map(np.asarray, reg_data)
 
         reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410.T
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470.T

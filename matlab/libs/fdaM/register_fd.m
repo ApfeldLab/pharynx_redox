@@ -1,4 +1,4 @@
-function [regfd, warpfd, Wfd, shift, Fstr, iternum] = ...
+        function [regfd, warpfd, Wfd, shift, Fstr, iternum] = ...
               register_fd(y0fd, yfd, Wfd0Par, periodic, ...
                          crit, conv, iterlim, dbglev)
 %REGISTERFD registers a set of curves YFD to a target function Y0FD.
@@ -99,7 +99,7 @@ else
     end
 end
 if ndimy0 == 3 && ydim(3) ~= y0dim(3)
-    error('Third dimension of Y0FD does not match that of YFD.');
+    error('Third dimenszion of Y0FD does not match that of YFD.');
 end
 
 %  check Wfd0Par object
@@ -127,6 +127,7 @@ nderiv = getnderiv(Lfdobj);
 %  set up LAMBDA
 
 lambda = getlambda(Wfd0Par);
+lambda = double(lambda);
 
 %  Check functions W defining warping functions
 %  this must be of the B-spline type.  If a constant basis
