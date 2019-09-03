@@ -19,6 +19,10 @@ def load_all_movement(meta_dir: Union[Path, str]) -> pd.DataFrame:
     return pd.concat(pd.read_csv(x) for x in sorted(meta_dir.glob("**/*mvmt.csv")))
 
 
+def get_resid_rr_pairs(pair1, pair2):
+    return np.power(np.e, np.abs(np.log(pair1 / pair2) - 1))
+
+
 def get_resid_rr(data):
     return (
         np.power(
