@@ -62,9 +62,9 @@ class Experiment:
     frame_specific_midlines: bool = False
     should_register: bool = False
 
-    sm_lam: int = 2
-    rough_lam: float = 0.316
-    warp_lam: int = 100
+    sm_lam: int = 1e-5
+    rough_lam: float = 1e-7
+    warp_lam: int = 1e-1
 
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
@@ -127,12 +127,13 @@ class Experiment:
 
     def register(self):
         logging.info("Registering profiles")
-        self.untrimmed_profiles = profile_processing.register_profiles(
+        reg_data = profile_processing.register_profiles(
             self.untrimmed_profiles,
-            sm_lam=self.sm_lam,
-            rough_lam=self.rough_lam,
+            smooth_lambda=self.sm_lam,
+            rough_lambda=self.rough_lam,
             warp_lam=self.warp_lam,
         )
+        self.untrimmed_profiles = reg_data.reg_data
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -329,6 +330,7 @@ class Experiment:
                     data=self.summary_table[self.summary_table.pair == pair],
                 )
                 plt.savefig(cat_plot_dir.joinpath(f"violin_regions-{wvl}-{pair}.pdf"))
+                plt.close()
 
     def persist_to_disk(self, summary_plots=False):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
@@ -401,6 +403,11 @@ class PairExperiment(Experiment):
         self.persist_to_disk(summary_plots=self.save_summary_plots)
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
+
+
+class MovingMidlinesExperiment(PairExperiment):
+    def measure_under_midlines(self):
+        pass
 
 
 @attr.s(auto_attribs=True)

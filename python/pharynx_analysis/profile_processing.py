@@ -1,16 +1,82 @@
-import matlab
-import matlab.engine
+import collections
+
 import numpy as np
 import xarray as xr
 from scipy.interpolate import UnivariateSpline
+import skfda
+from skfda.representation.basis import BSpline
+from skfda.preprocessing.smoothing import BasisSmoother
 
 from sklearn.preprocessing import scale
+
+RegData = collections.namedtuple("RegData", "r410 r470 warp reg_data")
+
+
+def smooth_profile_data(profile_data, order=5, nbasis=200, smoothing_parameter=1e-8):
+    fd = skfda.FDataGrid(profile_data)
+    basis = BSpline(order=order, nbasis=nbasis)
+    smoother = BasisSmoother(
+        basis, smoothing_parameter=smoothing_parameter, method="qr"
+    )
+    fd_smooth = smoother.fit_transform(fd)
+
+    return fd_smooth, basis
+
+
+def register_pair(
+    data1,
+    data2,
+    smooth_lambda=1e-5,
+    rough_lambda=1e-7,
+    warp_lam=1e-1,
+    smooth_nbasis=64,
+    rough_nbasis=200,
+):
+    pos_size = data1.shape[-1]
+
+    f1_sm, _ = smooth_profile_data(
+        data1, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
+    )
+    f2_sm, _ = smooth_profile_data(
+        data2, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
+    )
+
+    f1_rough, _ = smooth_profile_data(
+        data1, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
+    )
+    f2_rough, _ = smooth_profile_data(
+        data2, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
+    )
+
+    # Resample
+    f1_sm = f1_sm.to_grid(np.linspace(*f1_sm.domain_range[0], pos_size))
+    f2_sm = f2_sm.to_grid(np.linspace(*f2_sm.domain_range[0], pos_size))
+
+    # We want to register with the derivatives
+    d1_sm = f1_sm.derivative()
+    d2_sm = f2_sm.derivative()
+
+    # Calculate the warp
+    warp = skfda.preprocessing.registration.elastic_registration_warping(
+        d1_sm, d2_sm, lam=warp_lam
+    )
+
+    # Apply inverse warp to 470
+    warp_inv = skfda.preprocessing.registration.invert_warping(warp)
+    f2_rough = f2_rough.compose(warp_inv)
+
+    return f1_rough, f2_rough
 
 
 # noinspection PyUnresolvedReferences
 def register_profiles(
-    raw_profile_data: xr.DataArray, sm_lam=2, rough_lam=0.316, warp_lam=100
-) -> xr.DataArray:
+    raw_profile_data: xr.DataArray,
+    smooth_lambda=1e-5,
+    rough_lambda=1e-7,
+    warp_lam=1e-1,
+    smooth_nbasis=64,
+    rough_nbasis=200,
+) -> RegData:
     """
     Register 470 channels into 410 using elastic registration
 
@@ -18,10 +84,10 @@ def register_profiles(
 
     Parameters
     ----------
-    sm_lam
+    smooth_lambda
         The smoothing constraint for the "smooth" data, which will be used for
         registration
-    rough_lam
+    rough_lambda
         The smoothing constraint for the "rough" data, which is what will be returned
         as the measurement data
     warp_lam
@@ -31,35 +97,74 @@ def register_profiles(
 
     Returns
     -------
-    registered_data
-        The registered profile data
+    RegData
+        A named tuple containing::
+
+            (r410, r470, warp, reg_profile_data)
+
+        r410, r470, and warp are lists indexed by pair, reg_profile_data is an
+        xr.DataArray with the same structure as raw_profile_data
+
 
     """
     reg_profile_data = raw_profile_data.copy()
-    eng = matlab.engine.start_matlab()
+
+    pos_size = raw_profile_data.position.size
+
+    # lists indexed by pair
+    f410 = []
+    f470 = []
+    warps = []
+
+    # Register each pair separately
     for pair in raw_profile_data.pair.data:
-        data410 = matlab.double(
-            raw_profile_data.sel(pair=pair, wavelength="410").values.T.tolist()
+        i410 = raw_profile_data.sel(wavelength="410", pair=pair).values
+        i470 = raw_profile_data.sel(wavelength="470", pair=pair).values
+
+        f410_sm, _ = smooth_profile_data(
+            i410, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
         )
-        data470 = matlab.double(
-            raw_profile_data.sel(pair=pair, wavelength="470").values.T.tolist()
+        f470_sm, _ = smooth_profile_data(
+            i470, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
         )
 
-        reg_data = eng.smoothRoughRegisterDiscretize(
-            data410,
-            data470,
-            sm_lam,
-            rough_lam,
-            warp_lam,
-            raw_profile_data.position.size,
-            nargout=2,
+        f410_rough, _ = smooth_profile_data(
+            i410, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
         )
-        r410, r470 = map(np.asarray, reg_data)
+        f470_rough, _ = smooth_profile_data(
+            i470, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
+        )
 
-        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410.T
-        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470.T
+        # Resample
+        f410_sm = f410_sm.to_grid(np.linspace(*f410_sm.domain_range[0], pos_size))
+        f470_sm = f470_sm.to_grid(np.linspace(*f470_sm.domain_range[0], pos_size))
 
-    return reg_profile_data
+        # We want to register with the derivatives
+        d410_sm = f410_sm.derivative()
+        d470_sm = f470_sm.derivative()
+
+        # Calculate the warp
+        warp = skfda.preprocessing.registration.elastic_registration_warping(
+            d410_sm, d470_sm, lam=warp_lam
+        )
+
+        # Apply inverse warp to 470
+        warp_inv = skfda.preprocessing.registration.invert_warping(warp)
+        f470_rough = f470_rough.compose(warp_inv)
+
+        f410.append(f410_rough)
+        f470.append(f470_rough)
+        warps.append(warp)
+
+        # Save the quantized data
+        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = np.squeeze(
+            f410_rough.data_matrix
+        )
+        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = np.squeeze(
+            f470_rough.data_matrix
+        )
+
+    return RegData(f410, f470, warps, reg_profile_data)
 
 
 def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
