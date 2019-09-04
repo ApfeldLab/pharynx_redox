@@ -32,6 +32,23 @@ def register_pair(
     smooth_nbasis=64,
     rough_nbasis=200,
 ):
+    """
+    TODO: documentation
+
+    Parameters
+    ----------
+    data1
+    data2
+    smooth_lambda
+    rough_lambda
+    warp_lam
+    smooth_nbasis
+    rough_nbasis
+
+    Returns
+    -------
+
+    """
     pos_size = data1.shape[-1]
 
     f1_sm, _ = smooth_profile_data(
@@ -65,7 +82,7 @@ def register_pair(
     warp_inv = skfda.preprocessing.registration.invert_warping(warp)
     f2_rough = f2_rough.compose(warp_inv)
 
-    return f1_rough, f2_rough
+    return f1_rough, f2_rough, warp
 
 
 # noinspection PyUnresolvedReferences
