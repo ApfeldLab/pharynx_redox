@@ -404,6 +404,8 @@ class PairExperiment(Experiment):
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
 
+        return self
+
 
 class MovingMidlinesExperiment(PairExperiment):
     def measure_under_midlines(self):
@@ -430,6 +432,8 @@ class CataExperiment(Experiment):
         self.persist_to_disk(summary_plots=self.save_summary_plots)
 
         logging.info(f"Finished full Cata pipeline run for {self.experiment_dir}")
+
+        return self
 
     def segment_pharynxes(self):
         ref_wvl = "410"

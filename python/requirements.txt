@@ -49,7 +49,6 @@ llvmlite==0.29.0
 macholib==1.11
 Markdown==3.1.1
 MarkupSafe==1.1.1
-matlabengineforpython===R2018a
 matplotlib==3.1.1
 mistune==0.8.4
 more-itertools==7.2.0

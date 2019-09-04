@@ -324,7 +324,7 @@ def calculate_midline(
 
 
 def measure_under_midline(
-    fl: xr.DataArray, mid: Polynomial, xs: np.ndarray, thickness: float = 0.0
+    fl: xr.DataArray, mid: Polynomial, n_points: int = 100, thickness: float = 0.0
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -335,8 +335,8 @@ def measure_under_midline(
         The fluorescence image to measure
     mid
         The midline under which to measure
-    xs
-        The x-coordinates to evaluate the midline at
+    n_points
+        The number of points to measure under
     thickness
         The thickness of the line to measure under. WARNING: this is a lot slower right now
 
@@ -347,12 +347,11 @@ def measure_under_midline(
 
     """
     if thickness == 0:
-        ys = mid(xs)
+        xs, ys = mid.linspace(n=n_points)
         fl = np.asarray(fl)
-
         return ndi.map_coordinates(fl, np.stack([ys, xs]), order=1)
     else:
-        ys = mid(xs)
+        xs, ys = mid.linspace()
         der = mid.deriv()
         normal_slopes = -1 / der(xs)
         normal_thetas = np.arctan(normal_slopes)
@@ -435,12 +434,8 @@ def measure_under_midlines(
                 else:
                     mid = midlines[img_idx][ref_wvl][pair]
 
-                # Why do we use the bounds for the 410 midlines?
-                ref_mid = midlines[img_idx]["410"][pair]
-                xs = np.linspace(ref_mid.domain[0], ref_mid.domain[1], n_points)
-
                 raw_intensity_data[img_idx, wvl_idx, pair, :] = measure_under_midline(
-                    img, mid, xs
+                    img, mid, n_points
                 )
 
     raw_intensity_data.values = np.nan_to_num(raw_intensity_data.values)
