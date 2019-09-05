@@ -3,18 +3,19 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+########################################################
 Welcome to Ratiometric Pharynx Analysis's documentation!
-========================================================
+########################################################
 
-Introduction
-============
-
-This is the introduction
+This package facilitates accurate measurement of cytosolic redox state
+inside the pharynx of *C. elegans*, as well as the organization and analysis of that
+data.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   installation
    api_reference
 
 
