@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
 
-from pharynx_analysis import utils
+from pharynx_redox import utils
 
 
 def load_tiff_from_disk(image_path: Path) -> np.ndarray:

@@ -4,11 +4,21 @@ API reference
 
 This page provides an auto-generated summary of the APIs used for pharynx analysis.
 
+Experiment
+==========
+This module contains the experiment data structures and classes - the central objects
+that manage data and perform the measurement extraction, quantification, and analysis.
+
+.. py:currentmodule:: pharynx_redox.experiment
+
+.. automodule:: pharynx_redox.experiment
+
+
 Pharynx IO
 ==========
 This module coordinates loading data from and saving data to disk.
 
-.. py:currentmodule:: pharynx_analysis.pharynx_io
+.. py:currentmodule:: pharynx_redox.pharynx_io
 
 .. autosummary::
 
@@ -21,7 +31,7 @@ This module coordinates loading data from and saving data to disk.
     load_all_rot_fl
     load_all_rot_seg
 
-.. automodule:: pharynx_analysis.pharynx_io
+.. automodule:: pharynx_redox.pharynx_io
     :members:
 
 Image Processing
@@ -29,7 +39,7 @@ Image Processing
 This module contains the code for processing images, including segmentation, midline
 calculation and measurement, translation, binary morphological operations, etc.
 
-.. automodule:: pharynx_analysis.image_processing
+.. automodule:: pharynx_redox.image_processing
     :members:
 
 Profile Processing
@@ -37,5 +47,5 @@ Profile Processing
 This module contains the code for processing the measured profiles, including functions
 for transforming ratios to OxD and E, trimming profiles, and registering profiles.
 
-.. automodule:: pharynx_analysis.profile_processing
+.. automodule:: pharynx_redox.profile_processing
     :members:
