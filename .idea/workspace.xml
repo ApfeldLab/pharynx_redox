@@ -1,58 +1,209 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="eefd127d-219c-411d-a6c5-8e49df6923a3" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ImageJ Jython/testing.py" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/New_Macros.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/New_Macros.ijm copy" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/Old_Macros.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/Window_Arrange.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/mask_.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/max_circle_polylin.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/polyline.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/roi_coords.ijm" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ImageJ Macros/test.ijm" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/wormAnalysis.iml" afterPath="$PROJECT_DIR$/.idea/wormAnalysis.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ImageJ Macros/poly_coords.ijm" afterPath="$PROJECT_DIR$/ImageJ Macros/poly_coords.ijm" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ImageJ Macros/threshold.ijm" afterPath="$PROJECT_DIR$/ImageJ Macros/threshold.ijm" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/matlab/cm_and_cb_utilities/cmapping.m" afterPath="$PROJECT_DIR$/matlab/cm_and_cb_utilities/cmapping.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/matlab/sean/Experiment/ChannelRegister.m" afterPath="$PROJECT_DIR$/matlab/sean/Experiment/ChannelRegister.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/matlab/sean/Experiment/Experiment.m" afterPath="$PROJECT_DIR$/matlab/sean/Experiment/Experiment.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/matlab/sean/makeWormFd_SJ.m" afterPath="$PROJECT_DIR$/matlab/sean/makeWormFd_SJ.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/matlab/sean/regionMeans.m" afterPath="$PROJECT_DIR$/matlab/sean/regionMeans.m" />
+    <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/wormAnalysis.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/.dockerignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/Makefile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/Makefile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/make.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/source/api_reference.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/source/conf.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/source/index.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/docs/source/installation.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/assets/1x/icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/assets/2x/icon@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/assets/3x/icon@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/assets/4x/icon@4x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/icon.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/gui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/gui_pyqtgraph.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/load_experiment.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/load_raw_image.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/meta_loader.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/gui.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/gui_pyqtgraph.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/load_experiment.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/load_raw_image.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/meta_loader.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/remake_qt_ui.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/gui/widgets.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/CNN Movement Detection.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Figures for Paper.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Full-Pipeline Number Crunchin'.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/MATLAB FDA.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Midline Thickness.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Nithin.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Plotting Fun.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Segmentation Classical.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Movement Analysis.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Movement.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Shift Stability Analysis.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/U-Net Segmentation.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/all_exp_regions.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/big_regions.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/skFDA.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/notebooks/untitled.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/data_analysis.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/experiment.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/image_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/pharynx_io.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/plots.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/profile_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/ex0.pickle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/fl_0.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/fl_0_rot.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_0/2017_02_22-HD233_SAY47-indexer.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_0/2017_02_22-HD233_SAY47.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0-bad.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0_rot.tif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_image_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_pharynx_io.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_profile_processing.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/tests/test_utils.py" beforeDir="false" />
     </list>
-    <ignored path="$PROJECT_DIR$/plugins/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
-    <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="CompilerWorkspaceConfiguration">
-    <option name="MAKE_PROJECT_ON_SAVE" value="true" />
-  </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/wormAnalysis$cluster.coverage" NAME="cluster Coverage Results" MODIFIED="1524171728446" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/wormAnalysis$classify.coverage" NAME="classify Coverage Results" MODIFIED="1524084853762" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/python$poly_editor.coverage" NAME="poly_editor Coverage Results" MODIFIED="1561568173017" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gui" />
+    <SUITE FILE_PATH="coverage/python$test_pharynx_analysis.coverage" NAME="test_pharynx_analysis Coverage Results" MODIFIED="1561222104678" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$All_Tests.coverage" NAME="All Tests Coverage Results" MODIFIED="1561225490947" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/python$main.coverage" NAME="main Coverage Results" MODIFIED="1561676224225" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="CoverageViewManager">
+    <option name="myElementSize" value="275" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="testing.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/ImageJ Jython/testing.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="17" lean-forward="false" selection-start-line="0" selection-start-column="17" selection-end-line="0" selection-end-column="17" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <splitter split-orientation="horizontal" split-proportion="0.38138333">
+      <split-first>
+        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
+              <provider selected="true" editor-type-id="restructured-text-editor" />
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="510">
+                  <caret line="35" column="81" selection-start-line="35" selection-start-column="81" selection-end-line="35" selection-end-column="81" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+        </leaf>
+      </split-first>
+      <split-second>
+        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/pharynx_analysis/image_processing.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="2535">
+                  <caret line="404" column="8" selection-start-line="404" selection-start-column="8" selection-end-line="404" selection-end-column="8" />
+                  <folding>
+                    <element signature="e#566#1404#0" />
+                    <element signature="e#566#1097#1" />
+                    <element signature="e#1265#1371#0" />
+                    <element signature="e#1529#2562#1" />
+                    <element signature="e#2606#2659#0" />
+                    <element signature="e#3122#3154#0" />
+                    <element signature="e#4127#4222#0" />
+                    <element signature="e#4876#5377#0" />
+                    <element signature="e#4876#5153#1" />
+                    <element signature="e#5224#5312#0" />
+                    <element signature="e#5508#6526#0" />
+                    <element signature="e#5508#6090#1" />
+                    <element signature="e#6178#6511#0" />
+                    <element signature="e#6238#6511#0" />
+                    <element signature="e#6293#6511#0" />
+                    <element signature="e#6610#7357#0" />
+                    <element signature="e#6610#7062#1" />
+                    <element signature="e#7434#7922#0" />
+                    <element signature="e#7434#7718#1" />
+                    <element signature="e#8042#9116#0" />
+                    <element signature="e#8042#8663#1" />
+                    <element signature="e#8675#9116#0" />
+                    <element signature="e#8685#9048#0" />
+                    <element signature="e#8704#8946#0" />
+                    <element signature="e#9243#10154#0" />
+                    <element signature="e#9243#9883#1" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/pharynx_analysis/profile_processing.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="90">
+                  <caret line="15" selection-start-line="15" selection-end-line="15" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/pharynx_analysis/pharynx_io.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="3570">
+                  <caret line="245" selection-start-line="245" selection-end-line="245" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/docs/build/index.html">
+              <provider selected="true" editor-type-id="text-editor" />
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/docs/source/index.rst">
+              <provider selected="true" editor-type-id="restructured-text-editor" />
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/docs/source/installation.rst">
+              <provider selected="true" editor-type-id="restructured-text-editor" />
+            </entry>
+          </file>
+        </leaf>
+      </split-second>
+    </splitter>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -61,107 +212,142 @@
       </list>
     </option>
   </component>
-  <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>skimage.</find>
+      <find>table</find>
+      <find>, projection='thin'</find>
+      <find>self.lines[wvl][self.frame]</find>
+      <find>matlab</find>
+      <find>matlabj</find>
+    </findStrings>
+    <replaceStrings>
+      <replace />
+      <replace>self.pts[wvl]</replace>
+      <replace>self.lines[wvl]</replace>
+    </replaceStrings>
   </component>
-  <component name="GradleLocalSettings">
-    <option name="externalProjectsViewState">
-      <projects_view />
+  <component name="Git.Settings">
+    <option name="PREVIOUS_COMMIT_AUTHORS">
+      <list>
+        <option value="Sean Johnsen &lt;sean.b.johnsen@gmail.com&gt;" />
+      </list>
     </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/src-plugins/my_plugins/Demo_Plugin.java" />
-        <option value="$PROJECT_DIR$/classify.py" />
-        <option value="$PROJECT_DIR$/cluster.py" />
-        <option value="$PROJECT_DIR$/feats.py" />
-        <option value="$PROJECT_DIR$/ImageJ Jython/testing.py" />
+        <option value="$PROJECT_DIR$/mainpy.py" />
+        <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/io.py" />
+        <option value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/pyqtgraph/imageview/ImageView.py" />
+        <option value="$PROJECT_DIR$/gui/poly_editor.py" />
+        <option value="$PROJECT_DIR$/gui/splineWidget.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/Experiment.py" />
+        <option value="$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/pyqtgraph/graphicsItems/ImageItem.py" />
+        <option value="$PROJECT_DIR$/gui/main_pyqtgraph.py" />
+        <option value="$PROJECT_DIR$/gui/qt_py_files/main_pyqtgraph.py" />
+        <option value="$PROJECT_DIR$/gui/remake_qt_ui.sh" />
+        <option value="$PROJECT_DIR$/gui/remake_qt_ui.py" />
+        <option value="$PROJECT_DIR$/gui/widgets.py" />
+        <option value="$USER_HOME$/Desktop/experiment.json" />
+        <option value="$PROJECT_DIR$/gui/plots.py" />
+        <option value="$PROJECT_DIR$/docs/source/introduction.rst" />
+        <option value="$PROJECT_DIR$/gui/main.py" />
+        <option value="$PROJECT_DIR$/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv" />
+        <option value="$PROJECT_DIR$/tests/test_pharynx_analysis.py" />
+        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/../Dockerfile" />
+        <option value="$PROJECT_DIR$/.dockerignore" />
+        <option value="$PROJECT_DIR$/.coveralls.yml" />
+        <option value="$PROJECT_DIR$/../.travis.yml" />
+        <option value="$PROJECT_DIR$/../test.sh" />
+        <option value="$PROJECT_DIR$/tests/test_pharynx_io.py" />
+        <option value="$PROJECT_DIR$/tests/test_image_processing.py" />
+        <option value="$PROJECT_DIR$/tests/test_profile_processing.py" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/plots.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/utils.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/experiment.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/data_analysis.py" />
+        <option value="$PROJECT_DIR$/tests/test_utils.py" />
+        <option value="$PROJECT_DIR$/Dockerfile" />
+        <option value="$PROJECT_DIR$/requirements.txt" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/profile_processing.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/image_processing.py" />
+        <option value="$PROJECT_DIR$/pharynx_analysis/pharynx_io.py" />
+        <option value="$PROJECT_DIR$/docs/source/installation.rst" />
+        <option value="$PROJECT_DIR$/docs/source/conf.py" />
+        <option value="$PROJECT_DIR$/docs/source/api_reference.rst" />
+        <option value="$PROJECT_DIR$/docs/source/index.rst" />
       </list>
     </option>
   </component>
-  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
-  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
-  <component name="JsFlowSettings">
-    <service-enabled>false</service-enabled>
-    <exe-path />
-    <annotation-enable>false</annotation-enable>
-    <other-services-enabled>false</other-services-enabled>
-  </component>
-  <component name="JsGulpfileManager">
-    <detection-done>true</detection-done>
-    <sorting>DEFINITION_ORDER</sorting>
-  </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="840" />
     <option name="y" value="23" />
-    <option name="width" value="840" />
-    <option name="height" value="1027" />
+    <option name="width" value="1920" />
+    <option name="height" value="1057" />
   </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
-      <flattenPackages />
-      <showMembers />
-      <showModules />
-      <showLibraryContents />
-      <hideEmptyPackages />
-      <abbreviatePackageNames />
-      <autoscrollToSource />
-      <autoscrollFromSource />
-      <sortByType />
-      <manualOrder />
+    <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="wormAnalysis" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="wormAnalysis" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="wormAnalysis" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="wormAnalysis" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="ImageJ Jython" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
+          <expand>
+            <path>
+              <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
+              <item name="code" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
+              <item name="code" type="462c0819:PsiDirectoryNode" />
+              <item name="wormAnalysis" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
+              <item name="code" type="462c0819:PsiDirectoryNode" />
+              <item name="wormAnalysis" type="462c0819:PsiDirectoryNode" />
+              <item name=".idea" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
         </subPane>
       </pane>
-      <pane id="Scratches" />
-      <pane id="Scope" />
-      <pane id="PackagesPane" />
-      <pane id="AndroidView" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-    <property name="last_opened_file_path" value="$USER_HOME$/jython2.5.2/bin/jython" />
-    <property name="project.structure.last.edited" value="Project" />
-    <property name="project.structure.proportion" value="0.0" />
-    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="NewWatcherDialog.advanced.open" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="Python" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
-      <console-settings module-name="wormAnalysis" is-module-sdk="true">
-        <option name="myUseModuleSdk" value="true" />
-        <option name="myModuleName" value="wormAnalysis" />
+      <console-settings>
+        <option name="useSoftWraps" value="true" />
       </console-settings>
     </option>
+  </component>
+  <component name="PyCoverageOptionsProvider">
+    <option name="myUseBundledCoveragePy" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/notebooks" />
+      <recent name="$PROJECT_DIR$/.." />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/pharynx_analysis" />
+      <recent name="$PROJECT_DIR$/gui/qt_py_files" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -175,378 +361,977 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.cluster">
-    <configuration default="false" name="classify" type="PythonConfigurationType" factoryName="Python" temporary="true">
+  <component name="RunManager" selected="Python tests.pytest for test_utils.TestUtils">
+    <configuration name="scratch" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="python" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/classify.py" />
-      <option name="PARAMETERS" value="$USER_HOME$/Desktop/R410_410_HD233_High_Movement_03_16_by5.tif" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <method />
-    </configuration>
-    <configuration default="false" name="cluster" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/cluster.py" />
-      <option name="PARAMETERS" value="$USER_HOME$/Desktop/test.tif 2" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <method />
-    </configuration>
-    <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
+      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="TARGET" value="" />
-      <option name="SETTINGS_FILE" value="" />
-      <option name="CUSTOM_SETTINGS" value="false" />
-      <option name="USE_OPTIONS" value="false" />
-      <option name="OPTIONS" value="" />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavaScriptTestRunnerJest" factoryName="Jest">
-      <node-interpreter value="project" />
-      <working-dir value="" />
-      <envs />
-      <scope-kind value="ALL" />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavaScriptTestRunnerProtractor" factoryName="Protractor">
-      <config-file value="" />
-      <node-interpreter value="project" />
-      <envs />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
-      <method />
-    </configuration>
-    <configuration default="true" type="PyBehaveRunConfigurationType" factoryName="Behave">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="ADDITIONAL_ARGS" value="" />
-      <method />
-    </configuration>
-    <configuration default="true" type="PyLettuceRunConfigurationType" factoryName="Lettuce">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="ADDITIONAL_ARGS" value="" />
-      <method />
-    </configuration>
-    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
-      <method />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
     </configuration>
-    <configuration default="true" type="Tox" factoryName="Tox">
+    <configuration name="All Tests" type="tests" factoryName="py.test">
+      <module name="python" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs />
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/worm/bin/python" />
       <option name="WORKING_DIRECTORY" value="" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <module name="wormAnalysis" />
-      <method />
-    </configuration>
-    <configuration default="true" type="js.build_tools.gulp" factoryName="Gulp.js">
-      <node-interpreter>project</node-interpreter>
-      <node-options />
-      <gulpfile />
-      <tasks />
-      <arguments />
-      <envs />
-      <method />
-    </configuration>
-    <configuration default="true" type="js.build_tools.npm" factoryName="npm">
-      <command value="run" />
-      <scripts />
-      <node-interpreter value="project" />
-      <envs />
-      <method />
-    </configuration>
-    <configuration default="true" type="tests" factoryName="Doctests">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="" />
-      <option name="CLASS_NAME" value="" />
-      <option name="METHOD_NAME" value="" />
-      <option name="FOLDER_NAME" value="" />
-      <option name="TEST_TYPE" value="TEST_SCRIPT" />
-      <option name="PATTERN" value="" />
-      <option name="USE_PATTERN" value="false" />
-      <method />
-    </configuration>
-    <configuration default="true" type="tests" factoryName="Nosetests">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="wormAnalysis" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="_new_regexPattern" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;.&quot;" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;--disable-pytest-warnings --showlocals&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
       <option name="_new_targetType" value="&quot;PATH&quot;" />
-      <method />
+      <method v="2" />
     </configuration>
-    <list size="2">
-      <item index="0" class="java.lang.String" itemvalue="Python.classify" />
-      <item index="1" class="java.lang.String" itemvalue="Python.cluster" />
+    <configuration default="true" type="tests" factoryName="py.test">
+      <module name="python" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/bin/python" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="python" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_image_processing.TestImageProcessing.test_center_and_rotate&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for test_image_processing.TestImageProcessing.test_get_lr_bounds_padding" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="python" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_image_processing.TestImageProcessing.test_get_lr_bounds_padding&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for test_utils.TestProfileProcessing" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="python" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_utils.TestProfileProcessing&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for test_utils.TestUtils" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="python" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python-zUhjj0fC/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_utils.TestUtils&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.scratch" />
+      <item itemvalue="Python tests.All Tests" />
+      <item itemvalue="Python tests.pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" />
+      <item itemvalue="Python tests.pytest for test_image_processing.TestImageProcessing.test_get_lr_bounds_padding" />
+      <item itemvalue="Python tests.pytest for test_utils.TestProfileProcessing" />
+      <item itemvalue="Python tests.pytest for test_utils.TestUtils" />
     </list>
     <recent_temporary>
-      <list size="2">
-        <item index="0" class="java.lang.String" itemvalue="Python.cluster" />
-        <item index="1" class="java.lang.String" itemvalue="Python.classify" />
+      <list>
+        <item itemvalue="Python tests.pytest for test_utils.TestUtils" />
+        <item itemvalue="Python tests.pytest for test_utils.TestProfileProcessing" />
+        <item itemvalue="Python.scratch" />
+        <item itemvalue="Python tests.pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" />
+        <item itemvalue="Python tests.pytest for test_image_processing.TestImageProcessing.test_get_lr_bounds_padding" />
       </list>
     </recent_temporary>
   </component>
-  <component name="ShelveChangesManager" show_recycled="false">
-    <option name="remove_strategy" value="false" />
+  <component name="StructureViewFactory">
+    <option name="ACTIVE_ACTIONS" value=",SHOW_FIELDS,SHOW_INHERITED" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="eefd127d-219c-411d-a6c5-8e49df6923a3" name="Default" comment="" />
-      <created>1493473098534</created>
+      <changelist id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="" />
+      <created>1561180617073</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1493473098534</updated>
+      <updated>1561180617073</updated>
+      <workItem from="1561726826786" duration="33000" />
+      <workItem from="1561726882174" duration="18120000" />
+      <workItem from="1561750941459" duration="2171000" />
+      <workItem from="1561985730289" duration="21254000" />
+      <workItem from="1562074559318" duration="29243000" />
+      <workItem from="1562346702129" duration="2204000" />
+      <workItem from="1562596389074" duration="12385000" />
+      <workItem from="1562680279620" duration="36000" />
+      <workItem from="1562680340310" duration="59000" />
+      <workItem from="1562680402959" duration="16058000" />
+      <workItem from="1562788792571" duration="1927000" />
+      <workItem from="1562852341799" duration="90000" />
+      <workItem from="1562857579331" duration="24287000" />
+      <workItem from="1563197174258" duration="14359000" />
+      <workItem from="1563370707921" duration="2805000" />
+      <workItem from="1563889345891" duration="59071000" />
+      <workItem from="1564579046441" duration="2280000" />
+      <workItem from="1564582383378" duration="23044000" />
+      <workItem from="1565103101277" duration="6385000" />
+      <workItem from="1565184303433" duration="12156000" />
+      <workItem from="1565356542651" duration="1905000" />
+      <workItem from="1565616472187" duration="8778000" />
+      <workItem from="1565874782362" duration="3952000" />
+      <workItem from="1565962051134" duration="2132000" />
+      <workItem from="1566393387311" duration="19568000" />
+      <workItem from="1566573176079" duration="9952000" />
+      <workItem from="1566883860649" duration="4341000" />
+      <workItem from="1566932956679" duration="1086000" />
+      <workItem from="1566998676875" duration="1812000" />
+      <workItem from="1567084109722" duration="1029000" />
+      <workItem from="1567085180020" duration="7277000" />
+      <workItem from="1567172305387" duration="1232000" />
+      <workItem from="1567519819063" duration="8269000" />
+      <workItem from="1567603349508" duration="6033000" />
+      <workItem from="1567691600751" duration="3892000" />
+      <workItem from="1567700951582" duration="15000" />
+      <workItem from="1567700998406" duration="11000" />
+      <workItem from="1567701022368" duration="70000" />
     </task>
+    <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
+      <created>1561988522548</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1561988522548</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Strain table updates with scrollbar">
+      <created>1562685000572</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1562685000572</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Rearrange GUI files">
+      <created>1562777237192</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1562777237192</updated>
+    </task>
+    <task id="LOCAL-00004" summary="fix tests">
+      <created>1565789060285</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789060285</updated>
+    </task>
+    <task id="LOCAL-00005" summary="add new plot">
+      <created>1565789080960</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789080960</updated>
+    </task>
+    <task id="LOCAL-00006" summary="notebooks">
+      <created>1565789092245</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789092245</updated>
+    </task>
+    <task id="LOCAL-00007" summary="add data analysis module">
+      <created>1565789181021</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789181021</updated>
+    </task>
+    <task id="LOCAL-00008" summary="add shift method to image analysis">
+      <created>1565789201926</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789201926</updated>
+    </task>
+    <task id="LOCAL-00009" summary="add logging">
+      <created>1565789221364</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1565789221364</updated>
+    </task>
+    <task id="LOCAL-00010" summary="improve registration... use derivatives. different smoothing">
+      <created>1566883615077</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1566883615078</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
+  <component name="TestHistory">
+    <history-entry file="All_Tests - 2019.08.21 at 14h 17m 35s.xml">
+      <configuration name="All Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate - 2019.08.21 at 14h 18m 06s.xml">
+      <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate - 2019.08.21 at 14h 18m 39s.xml">
+      <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate - 2019.08.21 at 14h 21m 19s.xml">
+      <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" configurationId="tests" />
+    </history-entry>
+    <history-entry file="All_Tests - 2019.08.21 at 14h 22m 31s.xml">
+      <configuration name="All Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_utils_TestProfileProcessing - 2019.09.03 at 10h 35m 40s.xml">
+      <configuration name="pytest for test_utils.TestProfileProcessing" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_utils_TestProfileProcessing - 2019.09.03 at 10h 39m 51s.xml">
+      <configuration name="pytest for test_utils.TestProfileProcessing" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_utils_TestProfileProcessing - 2019.09.03 at 10h 39m 55s.xml">
+      <configuration name="pytest for test_utils.TestProfileProcessing" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_utils_TestProfileProcessing - 2019.09.03 at 10h 40m 21s.xml">
+      <configuration name="pytest for test_utils.TestProfileProcessing" configurationId="tests" />
+    </history-entry>
+    <history-entry file="pytest_for_test_utils_TestUtils - 2019.09.03 at 14h 31m 28s.xml">
+      <configuration name="pytest for test_utils.TestUtils" configurationId="tests" />
+    </history-entry>
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="329321000" />
+  </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+  </component>
   <component name="ToolWindowManager">
-    <frame x="840" y="23" width="840" height="1027" extended-state="0" />
+    <frame x="0" y="23" width="1920" height="1057" extended-state="0" />
     <layout>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32941177" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32941177" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25814536" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24937344" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Problems" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.73678756" visible="true" weight="0.17784877" />
+      <window_info id="Structure" order="1" sideWeight="0.26321244" side_tool="true" visible="true" weight="0.17784877" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.3284974" />
+      <window_info anchor="bottom" x="123" y="112" width="1440" height="861" id="Run" order="2" sideWeight="0.4978678" weight="0.1119171" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49733758" weight="0.30259067" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" weight="0.33903742" />
+      <window_info anchor="bottom" id="Docker" order="7" />
+      <window_info anchor="bottom" id="Version Control" order="8" sideWeight="0.4981685" weight="0.25" />
+      <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.50183153" side_tool="true" weight="0.40685225" />
+      <window_info anchor="bottom" id="Terminal" order="11" weight="0.3284974" />
+      <window_info anchor="bottom" id="Python Console" order="12" weight="0.25906736" />
+      <window_info anchor="bottom" id="Jupyter" order="13" weight="0.32953367" />
+      <window_info anchor="bottom" id="Messages" order="14" />
+      <window_info anchor="bottom" id="Concurrent Activities Diagram" order="15" weight="0.32976446" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" sideWeight="0.4980595" weight="0.43077743" />
+      <window_info anchor="right" id="Database" order="4" />
+      <window_info anchor="right" id="Coverage" order="5" sideWeight="0.50259066" side_tool="true" weight="0.35714287" />
+      <window_info anchor="right" id="Json Parser" order="6" weight="0.32969433" />
+      <window_info anchor="right" id="Key Promoter X" order="7" weight="0.32995737" />
+      <window_info anchor="right" x="0" y="0" width="430" height="857" id="Documentation" order="8" sideWeight="0.5020747" side_tool="true" weight="0.5532481" />
     </layout>
+    <layout-to-restore>
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.49868765" visible="true" weight="0.03275109" />
+      <window_info id="Structure" order="1" sideWeight="0.5013123" side_tool="true" weight="0.11727079" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Concurrent Activities Diagram" order="0" weight="0.32976446" />
+      <window_info anchor="bottom" id="Message" order="1" />
+      <window_info anchor="bottom" id="Find" order="2" weight="0.3284974" />
+      <window_info anchor="bottom" id="Run" order="3" sideWeight="0.4978678" weight="0.18181819" />
+      <window_info anchor="bottom" id="Debug" order="4" sideWeight="0.49840087" weight="0.05388601" />
+      <window_info anchor="bottom" id="Cvs" order="5" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="6" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="7" weight="0.33903742" />
+      <window_info anchor="bottom" id="Docker" order="8" />
+      <window_info anchor="bottom" id="Version Control" order="9" weight="0.03208556" />
+      <window_info anchor="bottom" id="Database Changes" order="10" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Event Log" order="11" sideWeight="0.5021322" side_tool="true" weight="0.2611399" />
+      <window_info anchor="bottom" id="Terminal" order="12" weight="0.3284974" />
+      <window_info anchor="bottom" id="Python Console" order="13" weight="0.31917098" />
+      <window_info anchor="bottom" id="Jupyter" order="14" weight="0.32953367" />
+      <window_info anchor="bottom" id="Messages" order="15" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" sideWeight="0.4979253" weight="0.55277187" />
+      <window_info anchor="right" id="Database" order="4" />
+      <window_info anchor="right" id="Coverage" order="5" side_tool="true" weight="0.32967034" />
+      <window_info anchor="right" id="Json Parser" order="6" />
+      <window_info anchor="right" id="Key Promoter X" order="7" weight="0.32995737" />
+      <window_info anchor="right" x="0" y="0" width="430" height="857" id="Documentation" order="8" sideWeight="0.5020747" side_tool="true" weight="0.5532481" />
+    </layout-to-restore>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="processedProjectFiles" value="true" />
+    <option name="version" value="1" />
   </component>
-  <component name="VcsContentAnnotationSettings">
-    <option name="myLimit" value="2678400000" />
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="requirements.txt" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="RECENTLY_FILTERED_USER_GROUPS">
+                <collection />
+              </option>
+              <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
+                <collection />
+              </option>
+              <option name="COLUMN_ORDER">
+                <list>
+                  <option value="0" />
+                  <option value="1" />
+                  <option value="2" />
+                  <option value="3" />
+                </list>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list />
+          </value>
+        </entry>
+        <entry key="User">
+          <value>
+            <list />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <ignored-roots>
-      <path value="$PROJECT_DIR$/.." />
-    </ignored-roots>
+    <MESSAGE value="rudimentary GUI with python backend for analysis" />
+    <MESSAGE value="Strain table updates with scrollbar" />
+    <MESSAGE value="Rearrange GUI files" />
+    <MESSAGE value="fix tests" />
+    <MESSAGE value="add new plot" />
+    <MESSAGE value="notebooks" />
+    <MESSAGE value="add data analysis module" />
+    <MESSAGE value="add shift method to image analysis" />
+    <MESSAGE value="add logging" />
+    <MESSAGE value="improve registration... use derivatives. different smoothing" />
+    <option name="LAST_COMMIT_MESSAGE" value="improve registration... use derivatives. different smoothing" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
-    <watches-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/gui/qt_py_files/main_pyqtgraph.py</url>
+          <line>14</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint suspend="NONE" type="python-exception">
+          <dependency id="0" />
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
   </component>
-  <component name="antWorkspaceConfiguration">
-    <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
-    <option name="FILTER_TARGETS" value="false" />
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/python$experiment.coverage" NAME="experiment Coverage Results" MODIFIED="1565113569732" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pharynx_analysis" />
+    <SUITE FILE_PATH="coverage/python$remake_qt_ui.coverage" NAME="remake_qt_ui Coverage Results" MODIFIED="1562787771169" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gui" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate.coverage" NAME="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate Coverage Results" MODIFIED="1566411669279" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$image_processing.coverage" NAME="image_processing Coverage Results" MODIFIED="1563899305254" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pharynx_analysis" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_image_processing_TestImageProcessing_test_get_lr_bounds.coverage" NAME="pytest for test_image_processing.TestImageProcessing.test_get_lr_bounds Coverage Results" MODIFIED="1566410088974" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_image_processing_TestImageProcessing_test_get_lr_bounds_padding.coverage" NAME="pytest for test_image_processing.TestImageProcessing.test_get_lr_bounds_padding Coverage Results" MODIFIED="1566410237214" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_pharynx_io_TestPharynxAnalysis.coverage" NAME="pytest for test_pharynx_io.TestPharynxAnalysis Coverage Results" MODIFIED="1566401432799" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_utils_TestUtils.coverage" NAME="pytest for test_utils.TestUtils Coverage Results" MODIFIED="1567535484066" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$All_Tests.coverage" NAME="All Tests Coverage Results" MODIFIED="1566411684030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/python$main_pyqtgraph.coverage" NAME="main_pyqtgraph Coverage Results" MODIFIED="1562770172771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gui" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_utils_TestProfileProcessing.coverage" NAME="pytest for test_utils.TestProfileProcessing Coverage Results" MODIFIED="1567521617769" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/python$scratch.coverage" NAME="scratch Coverage Results" MODIFIED="1567101104663" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
+    <SUITE FILE_PATH="coverage/python$main.coverage" NAME="main Coverage Results" MODIFIED="1562789813519" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/python$pytest_for_test_pharynx_analysis_TestPharynxAnalysis.coverage" NAME="pytest for test_pharynx_analysis.TestPharynxAnalysis Coverage Results" MODIFIED="1565789028220" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+  </component>
+  <component name="debuggerHistoryManager">
+    <expressions id="evaluateCodeFragment">
+      <expression>
+        <expression-string>plt.plot(reg_data.reg_data.sel(wavelength='410', pair=0)[0])
+plt.show()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>plt.plot(reg_data.reg_data.sel(wavelength='410', pair=0)[0])</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>plt.plot(self.untrimmed_profiles.sel(wavelength='410', pair=0)[0])
+plt.show()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>plt.plot(self.untrimmed_profiles.sel(wavelength='410', pair=0)[0])</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>from matplotlib import pyplot as plt</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>reg_data.reg_data</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>raw_profile_data.strain.size</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>raw_profile_data</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>reg_data</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+    </expressions>
+    <expressions id="breakpointCondition">
+      <expression>
+        <expression-string>wvl == '470_1'</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+    </expressions>
+    <expressions id="watch">
+      <expression>
+        <expression-string>wvl</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>pair</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>wvl_idx</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>img_idx</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+    </expressions>
+    <expressions id="evaluateExpression">
+      <expression>
+        <expression-string>tifffile.imread(image_path)</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>sk_io.imread(image_path)</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>midlines[0]['410'][0]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>midlines[0]['410']</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>midlines[0]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>midlines</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>midlines[img_idx][wvl][pair]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>np.zeros(
+            (fl_stack.strain.size, len(non_tl_wvls), fl_stack.pair.size, n_points)
+        )</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>len(non_tl_wvls)</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>raw_intensity_data[img_idx, wvl_idx, pair]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+    </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/ImageJ Jython/testing.py">
+    <entry file="file://$PROJECT_DIR$/gui/qt_py_files/load_raw_image.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+        <state relative-caret-position="135">
+          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/classify.py" />
-    <entry file="file://$PROJECT_DIR$/cluster.py" />
-    <entry file="file://$PROJECT_DIR$/src-plugins/my_plugins/Demo_Plugin.java" />
-    <entry file="file://$PROJECT_DIR$/src-plugins/my_plugins/Demo_Plugin.java" />
-    <entry file="file://$PROJECT_DIR$/X.csv" />
-    <entry file="file://$PROJECT_DIR$/classify.py" />
-    <entry file="file://$PROJECT_DIR$/cluster.py" />
-    <entry file="file://$PROJECT_DIR$/feats.py" />
-    <entry file="file://$PROJECT_DIR$/ImageJ Jython/testing.py">
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/pyqtgraph/widgets/TableWidget.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="17" lean-forward="false" selection-start-line="0" selection-start-column="17" selection-end-line="0" selection-end-column="17" />
-          <folding />
+        <state relative-caret-position="6945">
+          <caret line="466" selection-start-line="466" selection-end-line="466" />
         </state>
       </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/widgets.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2790">
+          <caret line="189" column="19" selection-start-line="189" selection-start-column="19" selection-end-line="189" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/qt_py_files/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/remake_qt_ui.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" selection-start-line="13" selection-end-line="13" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Desktop/experiment.json" />
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/scipy/interpolate/fitpack2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="250">
+          <caret line="299" selection-start-line="299" selection-end-line="299" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/scipy/interpolate/interpolate.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36405">
+          <caret line="2427" column="54" selection-start-line="2427" selection-start-column="54" selection-end-line="2427" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/skimage/measure/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="21" selection-start-line="13" selection-start-column="21" selection-end-line="13" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/skimage/measure/profile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-90">
+          <caret line="59" column="24" selection-start-line="59" selection-start-column="24" selection-end-line="59" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.local/share/virtualenvs/python-zUhjj0fC/lib/python3.7/site-packages/skimage/transform/_warps.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="626">
+          <caret line="729" column="19" selection-start-line="729" selection-start-column="19" selection-end-line="729" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/xarray/core/common.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="180" selection-start-line="180" selection-end-line="180" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Downloads/plot_kernel_smoothing.py" />
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/scipy/interpolate/fitpack2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-192">
+          <caret line="166" column="8" selection-start-line="166" selection-start-column="8" selection-end-line="166" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/scipy/spatial/distance.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="312">
+          <caret line="2411" column="4" selection-start-line="2411" selection-start-column="4" selection-end-line="2411" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="400">
+          <caret line="28" column="58" selection-start-line="28" selection-start-column="58" selection-end-line="28" selection-end-column="58" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/typing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="806" selection-start-line="806" selection-end-line="806" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="FIRST">
+          <first_editor>
+            <caret column="111" selection-start-column="111" selection-end-column="111" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv">
+      <provider selected="true" editor-type-id="csv-text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" selection-start-line="1" selection-end-line="1" />
+        </state>
+      </provider>
+      <provider editor-type-id="csv-table-editor">
+        <state showInfoPanel="true" fixedHeaders="false" rowLines="3" />
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/skimage/transform/_warps.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="9990">
+          <caret line="675" column="67" selection-start-line="675" selection-start-column="67" selection-end-line="675" selection-end-column="67" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test_pharynx_analysis.py" />
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/skimage/measure/_label.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="4" selection-start-line="3" selection-start-column="4" selection-end-line="3" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/skimage/measure/profile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="313">
+          <caret line="73" column="4" selection-start-line="73" selection-start-column="4" selection-end-line="73" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.dockerignore">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../.coveralls.yml" />
+    <entry file="file://$PROJECT_DIR$/../.travis.yml" />
+    <entry file="file://$PROJECT_DIR$/../test.sh" />
+    <entry file="file://$PROJECT_DIR$/docs/make.bat">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/Makefile">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/unet_model.py" />
+    <entry file="file://$PROJECT_DIR$/tests/test_image_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="705">
+          <caret line="57" column="43" selection-start-line="57" selection-start-column="43" selection-end-line="57" selection-end-column="43" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/plots.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3012">
+          <caret line="615" selection-start-line="615" selection-end-line="615" />
+          <folding>
+            <element signature="e#1871#4820#0" />
+            <element signature="e#1871#2088#1" />
+            <element signature="e#2392#3744#0" />
+            <element signature="e#2507#3744#0" />
+            <element signature="e#2542#3744#0" />
+            <element signature="e#3011#3169#0" />
+            <element signature="e#3289#3744#0" />
+            <element signature="e#3310#3492#0" />
+            <element signature="e#3763#4796#0" />
+            <element signature="e#3846#4796#0" />
+            <element signature="e#4229#4331#0" />
+            <element signature="e#4387#4796#0" />
+            <element signature="e#4408#4570#0" />
+            <element signature="e#4946#6675#0" />
+            <element signature="e#5037#6018#0" />
+            <element signature="e#5225#5997#0" />
+            <element signature="e#5264#5924#0" />
+            <element signature="e#6038#6675#0" />
+            <element signature="e#6193#6656#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test_profile_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test_pharynx_io.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/scikit_fda-0.2.3-py3.7-macosx-10.14-x86_64.egg/skfda/preprocessing/registration/_elastic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="871">
+          <caret line="307" column="27" selection-start-line="307" selection-start-column="27" selection-end-line="307" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/scikit_fda-0.2.3-py3.7-macosx-10.14-x86_64.egg/skfda/representation/grid.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="871">
+          <caret line="149" column="19" selection-start-line="149" selection-start-column="19" selection-end-line="149" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="21" selection-start-line="15" selection-start-column="21" selection-end-line="15" selection-end-column="21" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Dockerfile">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="504">
+          <caret line="28" column="32" selection-start-line="28" selection-start-column="32" selection-end-line="28" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/experiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="585">
+          <caret line="57" column="16" selection-start-line="57" selection-start-column="16" selection-end-line="57" selection-end-column="16" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/test_utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="13" selection-start-line="13" selection-end-line="13" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/data_analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="630">
+          <caret line="46" column="25" selection-start-line="46" selection-start-column="25" selection-end-line="46" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="10" column="22" selection-start-line="10" selection-start-column="22" selection-end-line="10" selection-end-column="22" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="705">
+          <caret line="47" column="15" selection-start-line="47" selection-start-column="15" selection-end-line="47" selection-end-column="15" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
+      <provider selected="true" editor-type-id="restructured-text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="510">
+          <caret line="35" column="81" selection-start-line="35" selection-start-column="81" selection-end-line="35" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/image_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2535">
+          <caret line="404" column="8" selection-start-line="404" selection-start-column="8" selection-end-line="404" selection-end-column="8" />
+          <folding>
+            <element signature="e#566#1404#0" />
+            <element signature="e#566#1097#1" />
+            <element signature="e#1265#1371#0" />
+            <element signature="e#1529#2562#1" />
+            <element signature="e#2606#2659#0" />
+            <element signature="e#3122#3154#0" />
+            <element signature="e#4127#4222#0" />
+            <element signature="e#4876#5377#0" />
+            <element signature="e#4876#5153#1" />
+            <element signature="e#5224#5312#0" />
+            <element signature="e#5508#6526#0" />
+            <element signature="e#5508#6090#1" />
+            <element signature="e#6178#6511#0" />
+            <element signature="e#6238#6511#0" />
+            <element signature="e#6293#6511#0" />
+            <element signature="e#6610#7357#0" />
+            <element signature="e#6610#7062#1" />
+            <element signature="e#7434#7922#0" />
+            <element signature="e#7434#7718#1" />
+            <element signature="e#8042#9116#0" />
+            <element signature="e#8042#8663#1" />
+            <element signature="e#8675#9116#0" />
+            <element signature="e#8685#9048#0" />
+            <element signature="e#8704#8946#0" />
+            <element signature="e#9243#10154#0" />
+            <element signature="e#9243#9883#1" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/profile_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="15" selection-start-line="15" selection-end-line="15" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_analysis/pharynx_io.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3570">
+          <caret line="245" selection-start-line="245" selection-end-line="245" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/build/index.html">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/installation.rst">
+      <provider selected="true" editor-type-id="restructured-text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/index.rst">
+      <provider selected="true" editor-type-id="restructured-text-editor" />
     </entry>
   </component>
   <component name="masterDetails">
     <states>
-      <state key="ArtifactsStructureConfigurable.UI">
-        <settings>
-          <artifact-editor />
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="FacetStructureConfigurable.UI">
-        <settings>
-          <last-edited>No facets are configured</last-edited>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="GlobalLibrariesConfigurable.UI">
-        <settings>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="JdkListConfigurable.UI">
-        <settings>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="ModuleStructureConfigurable.UI">
-        <settings>
-          <last-edited>ImageJ1-Plugins-IntelliJ</last-edited>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-                <option value="0.6" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="ProjectJDKs.UI">
-        <settings>
-          <last-edited>1.8</last-edited>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-      <state key="ProjectLibrariesConfigurable.UI">
+      <state key="Copyright.UI">
         <settings>
           <splitter-proportions>
             <option name="proportions">
