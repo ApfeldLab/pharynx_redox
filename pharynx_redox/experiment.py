@@ -11,7 +11,7 @@ import xarray as xr
 from scipy.interpolate import UnivariateSpline
 import logging
 
-from pharynx_analysis import (
+from pharynx_redox import (
     image_processing as ip,
     profile_processing,
     pharynx_io as pio,
@@ -479,7 +479,7 @@ if __name__ == "__main__":
         datefmt="%I:%M:%S",
     )
     experiment_path = Path(
-        "/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/"
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/"
     )
     ex = PairExperiment(experiment_path, "TL/470/410/470/410")
     ex.full_pipeline()

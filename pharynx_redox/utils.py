@@ -2,7 +2,6 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-import typing
 from skimage.measure import regionprops, label
 
 

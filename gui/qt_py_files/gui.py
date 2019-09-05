@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/sean/code/wormAnalysis/python/gui/qt_ui_files/gui.ui'
+# Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/python/gui/qt_ui_files/gui.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.1
 #
