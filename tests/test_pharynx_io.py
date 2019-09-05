@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from pharynx_analysis import pharynx_io as pio
+from pharynx_redox import pharynx_io as pio
 
 test_data_path = os.path.join(os.path.dirname(__file__), "test_data")
 print(test_data_path)
