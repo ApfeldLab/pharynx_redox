@@ -1,8 +1,8 @@
 import collections
+from typing import Union
 
 import numpy as np
 import xarray as xr
-from scipy.interpolate import UnivariateSpline
 import skfda
 from skfda.representation.basis import BSpline
 from skfda.preprocessing.smoothing import BasisSmoother
@@ -10,9 +10,39 @@ from skfda.preprocessing.smoothing import BasisSmoother
 from sklearn.preprocessing import scale
 
 RegData = collections.namedtuple("RegData", "r410 r470 warp reg_data")
+RegData.__doc__ = """
+    A collection class for storing the results of data registration
+"""
 
 
-def smooth_profile_data(profile_data, order=5, nbasis=200, smoothing_parameter=1e-8):
+def smooth_profile_data(
+    profile_data: Union[np.ndarray, xr.DataArray],
+    order=5,
+    nbasis=200,
+    smoothing_parameter=1e-8,
+):
+    """Smooth profile data by fitting smoothing B-splines
+
+    Parameters
+    ----------
+    profile_data
+        the data to smooth, maximally 2-dimensional of shape (animals, position)
+    order
+        the order of the basis polynomials
+    nbasis
+        the number of basis polynomials
+    smoothing_parameter
+        the smoothing parameter. Larger values increase smoothness. If 0, no smoothing
+        is performed. Try values logarithmically.
+
+    Returns
+    -------
+    skfda.representation.grid.FDataGrid
+        the smoothed data
+    skfda.representation.basis.FDataBasis
+        the basis representation of the smoothed data
+
+    """
     fd = skfda.FDataGrid(profile_data)
     basis = BSpline(order=order, nbasis=nbasis)
     smoother = BasisSmoother(
@@ -191,39 +221,6 @@ def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
             unscaled = scaled.sel(wavelength=wvl, pair=pair).values
             scaled.loc[dict(wavelength=wvl, pair=pair)] = scale(unscaled, axis=1)
     return scaled
-
-
-def smooth_profile(profile_data: xr.DataArray, s: int = 1e6):
-    """
-    Smooth the given profile data using B-splines constrained by the given smoothing factor
-
-    Parameters
-    ----------
-    profile_data
-        the data to smooth
-    s
-        the smoothing factor (see scipy.UnivariateSpline for more details). Default chosen by eye.
-
-    Returns
-    -------
-    sm
-        The smoothed data
-
-    """
-    sm = profile_data.copy()
-    xs = np.arange(profile_data.position.size)
-
-    for strain in range(profile_data.strain.size):
-        for wvl in profile_data.wavelength:
-            for pair in profile_data.pair:
-                rough_data = profile_data.sel(wavelength=wvl, pair=pair).isel(
-                    strain=strain
-                )
-                sm.loc[dict(wavelength=wvl, pair=pair)][strain] = UnivariateSpline(
-                    xs, rough_data, s=s
-                )(xs)
-
-    return sm
 
 
 def trim_profile(profile, threshold, new_length):

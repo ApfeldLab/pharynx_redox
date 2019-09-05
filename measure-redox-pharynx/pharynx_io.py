@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-from skimage import io as sk_io
 from skimage.external import tifffile
 
 from pharynx_analysis import utils
@@ -106,7 +105,7 @@ def load_images(
     intercalated_image_stack_path
         the path to the raw image stack
     imaging_scheme
-        a string denoting the order of the wavelengths used during imaging
+        a string denoting the order of the wavelengths used during imaging.
 
         Transmitted light should be represented as ``TL``. The wavelengths should be
         separated by ``/``.

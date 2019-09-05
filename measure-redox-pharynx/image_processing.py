@@ -387,27 +387,30 @@ def measure_under_midlines(
     frame_specific: bool = False,
 ) -> xr.DataArray:
     """
+    Measure under all midlines in stack
+
     Parameters
     ----------
     fl_stack
         The fluorescence stack under which to measure
     midlines: dict
-        A list of dictionaries of midlines with the following structure:
-        ```
+        A list of dictionaries of midlines with the following structure::
+
             [
                 {'410': [UnivariateSpline, UnivariateSpline, ...]},
                 {'470': [UnivariateSpline, UnivariateSpline, ...]},
                 ...
             ]
-        ```
     n_points: int
         the number of points to sample under the midline
-    frame_specific
-        whether to use a different midline for each frame. if False, a single midline will be used within all
-        wavelengths in a pair
+    frame_specific: bool
+        whether to use a different midline for each frame. if False, a single midline
+        will be used within all wavelengths in a pair
 
     Returns
     -------
+    profile_data: xr.DataArray
+        the intensity profiles for each image in the stack
     """
     non_tl_wvls = list(filter(lambda x: x != "TL", fl_stack.wavelength.data))
     raw_intensity_data = xr.DataArray(
