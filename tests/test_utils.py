@@ -2,7 +2,7 @@ import os
 import pickle
 import numpy as np
 
-from pharynx_analysis import profile_processing as pp, utils
+from pharynx_redox import profile_processing as pp, utils
 
 
 class TestUtils:
