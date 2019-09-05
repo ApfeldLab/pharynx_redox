@@ -2,7 +2,7 @@ from typing import Dict, Tuple, Union
 
 from tqdm import tqdm
 
-from pharynx_analysis.profile_processing import scale_by_wvl
+from pharynx_redox.profile_processing import scale_by_wvl
 
 import matplotlib.colors
 import matplotlib.pyplot as plt

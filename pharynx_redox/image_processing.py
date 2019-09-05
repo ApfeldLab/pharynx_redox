@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 from skimage import measure, transform
 from skimage.transform import warp, AffineTransform
 
-from pharynx_analysis import profile_processing
+from pharynx_redox import profile_processing
 
 
 def get_lr_bounds(

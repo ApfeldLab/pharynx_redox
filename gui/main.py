@@ -25,7 +25,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Load Experiment
         exp_dir = Path(
-            "/Users/sean/code/wormAnalysis/data/paired_ratio/2017_02_22-HD233_SAY47/"
+            "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/"
         )
         self.experiment = experiment.PairExperiment(exp_dir, "TL/470/410/470/410")
 
