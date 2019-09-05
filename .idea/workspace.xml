@@ -2,83 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/wormAnalysis.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/.dockerignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/Dockerfile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/Makefile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/Makefile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/make.bat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/source/api_reference.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/source/conf.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/source/index.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/docs/source/installation.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/assets/1x/icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/assets/2x/icon@2x.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/assets/3x/icon@3x.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/assets/4x/icon@4x.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/icon.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/gui.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/gui_pyqtgraph.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/load_experiment.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/load_raw_image.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_py_files/meta_loader.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/gui.ui" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/gui_pyqtgraph.ui" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/load_experiment.ui" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/load_raw_image.ui" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/qt_ui_files/meta_loader.ui" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/remake_qt_ui.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/gui/widgets.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/CNN Movement Detection.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Figures for Paper.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Full-Pipeline Number Crunchin'.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/MATLAB FDA.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Midline Thickness.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Nithin.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Plotting Fun.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Segmentation Classical.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Movement Analysis.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Movement.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/Synthetic Shift Stability Analysis.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/U-Net Segmentation.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/all_exp_regions.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/big_regions.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/skFDA.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/notebooks/untitled.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/data_analysis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/experiment.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/image_processing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/pharynx_io.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/plots.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/profile_processing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/pharynx_analysis/utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/ex0.pickle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/fl_0.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/fl_0_rot.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_0/2017_02_22-HD233_SAY47-indexer.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_0/2017_02_22-HD233_SAY47.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0-bad.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_data/seg_0_rot.tif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_image_processing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_pharynx_io.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_profile_processing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/python/tests/test_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.travis.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/data_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/data_analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/experiment.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/experiment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/image_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/image_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/pharynx_io.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/pharynx_io.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/plots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/profile_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/profile_processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/measure-redox-pharynx/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/measure-pharynx-redox/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -132,7 +64,7 @@
       <split-second>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
           <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/pharynx_analysis/image_processing.py">
+            <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/image_processing.py">
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="2535">
                   <caret line="404" column="8" selection-start-line="404" selection-start-column="8" selection-end-line="404" selection-end-column="8" />
@@ -169,7 +101,7 @@
             </entry>
           </file>
           <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/pharynx_analysis/profile_processing.py">
+            <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/profile_processing.py">
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="90">
                   <caret line="15" selection-start-line="15" selection-end-line="15" />
@@ -178,7 +110,7 @@
             </entry>
           </file>
           <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/pharynx_analysis/pharynx_io.py">
+            <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/pharynx_io.py">
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="3570">
                   <caret line="245" selection-start-line="245" selection-end-line="245" />
@@ -301,18 +233,7 @@
           <expand>
             <path>
               <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
-              <item name="code" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
-              <item name="code" type="462c0819:PsiDirectoryNode" />
               <item name="wormAnalysis" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="wormAnalysis" type="b2602c69:ProjectViewProjectNode" />
-              <item name="code" type="462c0819:PsiDirectoryNode" />
-              <item name="wormAnalysis" type="462c0819:PsiDirectoryNode" />
-              <item name=".idea" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -548,7 +469,7 @@
       <workItem from="1567691600751" duration="3892000" />
       <workItem from="1567700951582" duration="15000" />
       <workItem from="1567700998406" duration="11000" />
-      <workItem from="1567701022368" duration="70000" />
+      <workItem from="1567701022368" duration="294000" />
     </task>
     <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
       <created>1561988522548</created>
@@ -656,7 +577,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="329321000" />
+    <option name="totallyTimeSpent" value="329545000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -669,8 +590,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1920" height="1057" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.73678756" visible="true" weight="0.17784877" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.73678756" visible="true" weight="0.17784877" />
       <window_info id="Structure" order="1" sideWeight="0.26321244" side_tool="true" visible="true" weight="0.17784877" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -1136,7 +1058,7 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/plots.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/plots.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3012">
           <caret line="615" selection-start-line="615" selection-end-line="615" />
@@ -1213,7 +1135,7 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/experiment.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/experiment.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="585">
           <caret line="57" column="16" selection-start-line="57" selection-start-column="16" selection-end-line="57" selection-end-column="16" />
@@ -1233,7 +1155,7 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/data_analysis.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/data_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="630">
           <caret line="46" column="25" selection-start-line="46" selection-start-column="25" selection-end-line="46" selection-end-column="25" />
@@ -1243,7 +1165,7 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/utils.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="10" column="22" selection-start-line="10" selection-start-column="22" selection-end-line="10" selection-end-column="22" />
@@ -1260,9 +1182,6 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
-      <provider selected="true" editor-type-id="restructured-text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="510">
@@ -1270,7 +1189,7 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/image_processing.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/image_processing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2535">
           <caret line="404" column="8" selection-start-line="404" selection-start-column="8" selection-end-line="404" selection-end-column="8" />
@@ -1305,14 +1224,14 @@ plt.show()</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/profile_processing.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/profile_processing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="15" selection-start-line="15" selection-end-line="15" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_analysis/pharynx_io.py">
+    <entry file="file://$PROJECT_DIR$/measure-pharynx-redox/pharynx_io.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3570">
           <caret line="245" selection-start-line="245" selection-end-line="245" />
@@ -1323,6 +1242,9 @@ plt.show()</expression-string>
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/docs/source/installation.rst">
+      <provider selected="true" editor-type-id="restructured-text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
       <provider selected="true" editor-type-id="restructured-text-editor" />
     </entry>
     <entry file="file://$PROJECT_DIR$/docs/source/index.rst">
