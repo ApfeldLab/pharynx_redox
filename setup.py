@@ -45,7 +45,7 @@ setup(
         "scikit-image",
         "scikit-learn",
         "seaborn",
-        "scikit-fda @ git+ssh://git@github.com/half-adder/scikit-fda@develop#egg=scikit-fda",
+        "scikit-fda @ git+https://github.com/half-adder/scikit-fda.git@develop#egg=scikit-fda",
     ],
     test_suite="tests",
     extras_require={"test": ["pytest", "pytest-cov"]},
