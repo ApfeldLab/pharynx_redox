@@ -45,6 +45,7 @@ setup(
         "seaborn",
         "scikit-fda @ git+https://github.com/half-adder/scikit-fda.git@develop#egg=scikit-fda",
         "tabulate",
+        "cached-property",
     ],
     test_suite="tests",
     extras_require={"test": ["pytest", "pytest-cov"]},
