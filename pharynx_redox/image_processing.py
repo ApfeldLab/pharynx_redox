@@ -1,7 +1,7 @@
 from typing import List, Dict, Union
 
 import numpy as np
-import tqdm
+from tqdm.auto import tqdm
 import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
@@ -86,7 +86,9 @@ def center_and_rotate_pharynxes(
     blurred_seg_data = blurred_seg_data > 1000
     blurred_seg.data = blurred_seg_data
 
-    for img_idx in tqdm.trange(fl_images.strain.size):
+    for img_idx in tqdm(
+        range(fl_images.strain.size), leave=False, desc="aliging pharynxes"
+    ):
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
                 # Optimization potential here...
@@ -285,7 +287,9 @@ def calculate_midlines(
             for wvl in rot_seg_stack.wavelength.data
             if "tl" not in wvl.lower()
         }
-        for img_idx in tqdm.trange(rot_seg_stack.strain.size)
+        for img_idx in tqdm(
+            range(rot_seg_stack.strain.size), leave=False, desc="calculating midlines"
+        )
     ]
 
 
@@ -427,7 +431,9 @@ def measure_under_midlines(
 
     ref_wvl = "410"
 
-    for img_idx in tqdm.trange(fl_stack.strain.size):
+    for img_idx in tqdm(
+        range(fl_stack.strain.size), leave=False, desc="measuring under midlines"
+    ):
         for pair in range(fl_stack.pair.size):
             for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
                 img = fl_stack.sel(wavelength=wvl, pair=pair).isel(strain=img_idx)

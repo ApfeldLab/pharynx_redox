@@ -7,8 +7,6 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
-system("pip install git+git+ssh://git@github.com/half-adder/scikit-fda@develop")
-
 setup(
     name="pharynx-redox",
     version="0.1.0",
@@ -46,6 +44,7 @@ setup(
         "scikit-learn",
         "seaborn",
         "scikit-fda @ git+https://github.com/half-adder/scikit-fda.git@develop#egg=scikit-fda",
+        "tabulate",
     ],
     test_suite="tests",
     extras_require={"test": ["pytest", "pytest-cov"]},

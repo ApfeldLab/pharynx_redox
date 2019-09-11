@@ -237,9 +237,23 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
     ).flatten()
 
 
-def load_all_rot_fl():
+def load_all_rot_fl() -> xr.DataArray:
+    """
+    TODO: Documentation
+
+    Returns
+    -------
+
+    """
     return xr.load_dataarray("../data/paired_ratio/all_rot_fl.nc")
 
 
-def load_all_rot_seg():
+def load_all_rot_seg() -> xr.DataArray:
+    """
+    TODO: Documentation
+
+    Returns
+    -------
+
+    """
     return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")

@@ -16,6 +16,8 @@ data.
    :caption: Contents:
 
    installation
+   usage
+   developer_documentation
    api_reference
 
 
