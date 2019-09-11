@@ -6,12 +6,16 @@ This page provides an auto-generated summary of the APIs used for pharynx analys
 
 Experiment
 ==========
-This module contains the experiment data structures and classes - the central objects
-that manage data and perform the measurement extraction, quantification, and analysis.
 
 .. py:currentmodule:: pharynx_redox.experiment
 
 .. automodule:: pharynx_redox.experiment
+
+.. autoclass:: Experiment
+
+.. autoclass:: PairExperiment
+
+.. autoclass:: CataExperiment
 
 
 Pharynx IO
@@ -21,6 +25,7 @@ This module coordinates loading data from and saving data to disk.
 .. py:currentmodule:: pharynx_redox.pharynx_io
 
 .. autosummary::
+    :toctree: autosummary
 
     load_tiff_from_disk
     save_images_xarray_to_disk
@@ -48,4 +53,17 @@ This module contains the code for processing the measured profiles, including fu
 for transforming ratios to OxD and E, trimming profiles, and registering profiles.
 
 .. automodule:: pharynx_redox.profile_processing
+    :members:
+
+Plotting
+========
+This module contains plotting code
+
+.. automodule:: pharynx_redox.plots
+    :members:
+
+Utils
+=====
+
+.. automodule:: pharynx_redox.utils
     :members:

@@ -1,3 +1,13 @@
+"""
+This module contains the experiment data structures and classes - the central objects
+that manage data and perform the measurement extraction, quantification, and analysis.
+
+``Experiment`` is the base class, on which different types of experiments may be built.
+For example, the ``PairExperiment`` class encompasses the acquisition strategy wherein
+multiple pairs of images are taken sequentially for each animal.
+
+"""
+
 import datetime
 from pathlib import Path
 from typing import List, Dict, Union
@@ -8,7 +18,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
-from scipy.interpolate import UnivariateSpline
+from numpy.polynomial import Polynomial
 import logging
 
 from pharynx_redox import (
@@ -21,6 +31,10 @@ from pharynx_redox import (
 
 @attr.s(auto_attribs=True)
 class Experiment:
+    """
+    TODO: Documentation
+    """
+
     experiment_dir: Path
     imaging_scheme: str
 
@@ -63,14 +77,17 @@ class Experiment:
     frame_specific_midlines: bool = False
     should_register: bool = False
 
-    sm_lam: int = 1e-5
-    rough_lam: float = 1e-7
-    warp_lam: int = 1e-1
+    smooth_lambda: int = 1e-5
+    rough_lambda: float = 1e-7
+    warp_lambda: int = 1e-1
+    smooth_nbasis: int = 50
+    rough_nbasis: int = 200
+    warp_to_mean: bool = False
 
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
 
-    midlines: List[Dict[str, List[UnivariateSpline]]] = None
+    midlines: List[Dict[str, List[Polynomial]]] = None
 
     untrimmed_profiles: xr.DataArray = None
     trimmed_profiles: xr.DataArray = None
@@ -130,9 +147,12 @@ class Experiment:
         logging.info("Registering profiles")
         reg_data = profile_processing.register_profiles(
             self.untrimmed_profiles,
-            smooth_lambda=self.sm_lam,
-            rough_lambda=self.rough_lam,
-            warp_lam=self.warp_lam,
+            smooth_lambda=self.smooth_lambda,
+            rough_lambda=self.rough_lambda,
+            warp_lam=self.warp_lambda,
+            smooth_nbasis=self.smooth_nbasis,
+            rough_nbasis=self.rough_nbasis,
+            warp_to_mean=self.warp_to_mean,
         )
         self.untrimmed_profiles = reg_data.reg_data
 
@@ -378,7 +398,7 @@ class Experiment:
 @attr.s(auto_attribs=True)
 class PairExperiment(Experiment):
     """
-    This is the paired ratio experiment
+    TODO: Documentation
     """
 
     strategy: str = "frame specific midlines with registration"
@@ -415,6 +435,10 @@ class MovingMidlinesExperiment(PairExperiment):
 
 @attr.s(auto_attribs=True)
 class CataExperiment(Experiment):
+    """
+    TODO: Documentation
+    """
+
     strategy: str = "cata"
     frame_specific_midlines: bool = False
 

@@ -1,8 +1,10 @@
+from pprint import pformat
 from typing import Dict, Tuple, Union
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from pharynx_redox.profile_processing import scale_by_wvl
+from pharynx_redox import data_analysis as da
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -17,6 +19,17 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 
 def plot_paired_experiment_summary(experiment):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    experiment
+
+    Returns
+    -------
+
+    """
     fig, axes = plt.subplots(5, 2, figsize=(20, 20))
     plot_average_by_strain_and_pair(
         experiment.trimmed_intensity_data.sel(wavelength="410"),
@@ -66,6 +79,7 @@ def plot_individual_profile_data_by_strain_and_pair(
 ):
     """
     TODO: Documentation
+
     Parameters
     ----------
     profile_data
@@ -155,6 +169,22 @@ def plot_individual_profile_data_by_strain_and_pair(
 def plot_average_by_strain_and_pair(
     profile_data, ylim=None, regions=None, axes=None, title=None, legend=False
 ):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    profile_data
+    ylim
+    regions
+    axes
+    title
+    legend
+
+    Returns
+    -------
+
+    """
     strains = np.unique(profile_data.strain.data)
 
     if "pair" in profile_data.dims:
@@ -217,6 +247,22 @@ def add_regions_to_axis(
     alpha=0.1,
     **kwargs,
 ):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    ax
+    regions
+    label_dist_bottom_percent
+    label_x_offset_percent
+    alpha
+    kwargs
+
+    Returns
+    -------
+
+    """
     min_y, max_y = ax.get_ylim()
     min_x, max_x = ax.get_xlim()
     text_y = ((max_y - min_y) * label_dist_bottom_percent) + min_y
@@ -229,6 +275,19 @@ def add_regions_to_axis(
 
 
 def plot_multi_profile_by_wvl_and_pair(data, color="royalblue", alpha=0.3):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    data
+    color
+    alpha
+
+    Returns
+    -------
+
+    """
     fl_wvls = list(filter(lambda x: x != "TL", data.wavelength))
 
     fig, axes = plt.subplots(
@@ -248,6 +307,7 @@ def plot_multi_profile_by_wvl_and_pair(data, color="royalblue", alpha=0.3):
 
 def plot_profile_avg_by_strain(profile_data, ax_title=None, alpha=0.05, ax=None):
     """
+    TODO: Documentation
 
     Parameters
     ----------
@@ -277,6 +337,18 @@ def plot_profile_avg_by_strain(profile_data, ax_title=None, alpha=0.05, ax=None)
 
 
 def boxplot_by_strain(y, summary_table):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    y
+    summary_table
+
+    Returns
+    -------
+
+    """
     return sns.catplot(y=y, x="strain", data=summary_table, kind="box")
 
 
@@ -287,6 +359,21 @@ def single_animal_diagnostic_plot(
     profile_data: Union[Tuple[xr.DataArray, xr.DataArray], xr.DataArray],
     wvl_limits: Dict[str, Tuple[float, float]] = None,
 ):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    animal_idx
+    rot_fl
+    midlines
+    profile_data
+    wvl_limits
+
+    Returns
+    -------
+
+    """
     fig = plt.figure(constrained_layout=True, figsize=(15, 15))
     grid_spec = GridSpec(5, 4, figure=fig)
     midline_xs = np.arange(40, 120)
@@ -400,6 +487,22 @@ def single_animal_diagnostic_plot(
 
 
 def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3, **params):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    ex_raw
+    ex_reg
+    i
+    col_w
+    row_h
+    params
+
+    Returns
+    -------
+
+    """
     n_cols = 3
     n_rows = 4
     f = plt.figure(figsize=(col_w * n_cols, row_h * n_rows))
@@ -567,11 +670,14 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3, **params):
     clip_im(ax)
     ax.set_title("|1 - R0/R1|")
 
-    m0 = ex_raw.movement.loc[pd.IndexSlice[i, 0], :]
-    m1 = ex_raw.movement.loc[pd.IndexSlice[i, 1], :]
-    plt.suptitle(
-        f"{ex_raw.experiment_id} --(Animal {i})-- mvmt(T:{m0['tip']}/{m1['tip']} | SoT:{m0['sides_of_tip']}/{m1['sides_of_tip']} | A:{m0['anterior']}/{m1['anterior']} | P:{m0['posterior']}/{m1['posterior']})"
-    )
+    try:
+        m0 = ex_raw.movement.loc[pd.IndexSlice[i, 0], :]
+        m1 = ex_raw.movement.loc[pd.IndexSlice[i, 1], :]
+        plt.suptitle(
+            f"{ex_raw.experiment_id} --(Animal {i})-- mvmt(T:{m0['tip']}/{m1['tip']} | SoT:{m0['sides_of_tip']}/{m1['sides_of_tip']} | A:{m0['anterior']}/{m1['anterior']} | P:{m0['posterior']}/{m1['posterior']})"
+        )
+    except:
+        pass
 
     # Parameter box
     textstr = "\n".join([f"{k}={v}" for k, v in params.items()])
@@ -594,6 +700,20 @@ def plot_reg_diagnostic(ex_raw, ex_reg, i, col_w=6, row_h=3, **params):
 
 
 def save_reg_diagnostics(ex_raw, ex_reg, output_filepath, **params):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    ex_raw
+    ex_reg
+    output_filepath
+    params
+
+    Returns
+    -------
+
+    """
     with PdfPages(output_filepath) as pdf:
         for i in tqdm(range(ex_raw.strains.size)):
             f = plot_reg_diagnostic(ex_raw, ex_reg, i, **params)
@@ -604,6 +724,21 @@ def save_reg_diagnostics(ex_raw, ex_reg, output_filepath, **params):
 def plot_profile_avg_with_bounds(
     data, ax=None, confint_alpha=0.05, label=None, **kwargs
 ):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    data
+    ax
+    confint_alpha
+    label
+    kwargs
+
+    Returns
+    -------
+
+    """
     if ax is None:
         fig, ax = plt.subplots()
 
@@ -613,3 +748,93 @@ def plot_profile_avg_with_bounds(
     ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
 
     return ax
+
+
+def loose_movement_stratified_plots(
+    mvmt: pd.DataFrame,
+    raw_prof: xr.DataArray,
+    reg_prof: xr.DataArray,
+    fname: str = None,
+    param_dict: dict = None,
+) -> None:
+    """
+    Plot Movement error according to "loose" movement stratifications
+
+    Parameters
+    ----------
+    mvmt
+        a DataFrame containing the movement calls, expected in the following format:
+
+        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
+          ..  ('experiment', '', '')      ('animal', '', '')    ('movement', 0, 'anterior')    ('movement', 0, 'posterior')    ('movement', 0, 'sides_of_tip')    ('movement', 0, 'tip')    ('movement', 1, 'anterior')    ('movement', 1, 'posterior')    ('movement', 1, 'sides_of_tip')    ('movement', 1, 'tip')
+        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
+           0  2017_02_22-HD233_SAY47                       0                              0                               0                                  0                         1                              0                               0                                  0                         0
+           1  2017_02_22-HD233_SAY47                       1                              0                               0                                  1                         0                              1                               1                                  1                         1
+           2  2017_02_22-HD233_SAY47                       2                              0                               0                                  0                         0                              0                               0                                  0                         0
+        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
+
+        The tuples in the headers indicate the use of a pandas Multi-Index.
+        TODO: write function that will munge the original movement file into this format
+
+    raw_prof
+        The raw measurement profiles
+    reg_prof
+        the registered measurement profiles
+    fname (optional)
+        the file name to save the resultant plot. If none, does not save plot
+    param_dict
+        the relevant parameters used in the analysis
+
+    Returns
+    -------
+
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(18, 5), sharey="all")
+
+    ylims = (0.007, 0.05)
+
+    # Posterior
+    roi = "posterior"
+
+    for ax, roi in zip(axes, ["anterior", "posterior"]):
+        ax.set_title(f"{roi} (+ maybe others)")
+        ax.set_ylim(*ylims)
+
+        m_0_0, m_0_1, m_1_0, m_1_1 = da.split_by_movement_types(mvmt, roi)
+        moving = pd.concat([m_0_1, m_1_0]).drop_duplicates().reset_index(drop=True)
+
+        # stationary
+        plot_profile_avg_with_bounds(
+            da.get_resid_rr(raw_prof)[m_0_0.index.values],
+            ax=ax,
+            label=f"Raw, Stationary (n={len(m_0_0.index.values)})",
+        )
+        plot_profile_avg_with_bounds(
+            da.get_resid_rr(reg_prof)[m_0_0.index.values],
+            ax=ax,
+            label=f"Reg., Stationary (n={len(m_0_0.index.values)})",
+        )
+        # moving
+        plot_profile_avg_with_bounds(
+            da.get_resid_rr(raw_prof)[moving.index.values],
+            ax=ax,
+            label=f"Raw, Moving (n={len(moving.index.values)})",
+        )
+        plot_profile_avg_with_bounds(
+            da.get_resid_rr(reg_prof)[moving.index.values],
+            ax=ax,
+            label=f"Reg., Moving (n={len(moving.index.values)})",
+        )
+
+        ax.legend(loc="upper left")
+        ax.set_xlabel("A-P Axis")
+
+    axes[0].set_ylabel("error")
+    plt.tight_layout()
+
+    if fname:
+        plt.savefig(fname)
+
+    if param_dict:
+        param_str = pformat(param_dict)
+        plt.suptitle(param_str)
