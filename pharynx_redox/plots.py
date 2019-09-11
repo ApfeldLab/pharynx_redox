@@ -722,7 +722,7 @@ def save_reg_diagnostics(ex_raw, ex_reg, output_filepath, **params):
 
 
 def plot_profile_avg_with_bounds(
-    data, ax=None, confint_alpha=0.05, label=None, **kwargs
+    data, ax=None, confint_alpha=0.05, label=None, xs=None, **kwargs
 ):
     """
     TODO: Documentation
@@ -742,10 +742,13 @@ def plot_profile_avg_with_bounds(
     if ax is None:
         fig, ax = plt.subplots()
 
-    ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+    if xs is not None:
+        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+    else:
+        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     xs = np.arange(len(lower))
-    ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
+    # ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
 
     return ax
 

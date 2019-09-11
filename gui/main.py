@@ -69,9 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.set_frame(self.frame - 1)
 
     def set_frame(self, new_frame):
-        self.frame = max(
-            0, min(self.experiment.raw_image_data.strain.size - 1, new_frame)
-        )
+        self.frame = max(0, min(self.experiment.images.strain.size - 1, new_frame))
         self.ui.horizontalSlider.setValue(self.frame)
         self.ui.label.setText(str(self.frame))
         self.rot_image_grid.set_frame(self.frame)
@@ -84,7 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initialize_slider(self):
         self.ui.horizontalSlider.setMinimum(0)
-        self.ui.horizontalSlider.setMaximum(self.experiment.raw_image_data.shape[0] - 1)
+        self.ui.horizontalSlider.setMaximum(self.experiment.images.shape[0] - 1)
 
         self.ui.horizontalSlider.valueChanged.connect(self.handle_slider_changed)
 
