@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/readthedocs.yml" beforeDir="false" afterPath="$PROJECT_DIR$/readthedocs.yml" afterDir="false" />
-    </list>
+    <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -553,7 +551,7 @@
       <workItem from="1567701022368" duration="7331000" />
       <workItem from="1567716110035" duration="7794000" />
       <workItem from="1568038321018" duration="8817000" />
-      <workItem from="1568125864071" duration="22581000" />
+      <workItem from="1568125864071" duration="22688000" />
     </task>
     <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
       <created>1561988522548</created>
@@ -661,7 +659,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="375774000" />
+    <option name="totallyTimeSpent" value="375881000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
