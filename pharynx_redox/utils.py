@@ -183,3 +183,24 @@ def get_valid_filename(s):
     """
     s = str(s).strip().replace(" ", "_")
     return re.sub(r"(?u)[^-\w.]", "", s)
+
+
+def z_transform(fd):
+    """
+    Z-standardize a functional data grid object
+
+    computed by taking (x-mean(x))/std(x)
+
+    Parameters
+    ----------
+    fd
+
+    Returns
+    -------
+
+    """
+    data = np.squeeze(fd.data_matrix)
+    means = np.mean(data, axis=1)
+    stds = np.std(data, axis=1)
+    fd.data_matrix = ((data.T - means) / stds).T
+    return fd

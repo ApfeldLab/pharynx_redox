@@ -748,7 +748,7 @@ def plot_profile_avg_with_bounds(
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     xs = np.arange(len(lower))
-    # ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
+    ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
 
     return ax
 
@@ -783,7 +783,7 @@ def loose_movement_stratified_plots(
         The raw measurement profiles
     reg_prof
         the registered measurement profiles
-    fname (optional)
+    fname
         the file name to save the resultant plot. If none, does not save plot
     param_dict
         the relevant parameters used in the analysis

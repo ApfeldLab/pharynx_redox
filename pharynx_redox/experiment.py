@@ -483,7 +483,7 @@ if __name__ == "__main__":
         datefmt="%I:%M:%S",
     )
     experiment_path = Path(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/"
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_08_23-HD233_4mm_lev"
     )
     ex = PairExperiment(experiment_path, "TL/470/410/470/410")
     ex.full_pipeline()

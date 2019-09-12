@@ -129,7 +129,7 @@ def smooth_profile_data(
     fd = skfda.FDataGrid(profile_data)
     basis = BSpline(order=order, nbasis=nbasis)
     smoother = BasisSmoother(
-        basis, smoothing_parameter=smoothing_parameter, method="qr"
+        basis, smoothing_parameter=smoothing_parameter, method="qr", return_basis=True
     )
     fd_smooth = smoother.fit_transform(fd)
 
@@ -275,20 +275,26 @@ def register_profiles(
         )
 
         # Resample
-        f410_sm = f410_sm.to_grid(np.linspace(*f410_sm.domain_range[0], pos_size))
-        f470_sm = f470_sm.to_grid(np.linspace(*f470_sm.domain_range[0], pos_size))
+        # f410_sm = f410_sm.to_grid(np.linspace(*f410_sm.domain_range[0], pos_size))
+        # f470_sm = f470_sm.to_grid(np.linspace(*f470_sm.domain_range[0], pos_size))
 
-        # We want to register with the derivatives
+        # # Rescale with Z-transform
+        # z410_sm = utils.z_transform(f410_sm)
+        # z470_sm = utils.z_transform(f470_sm)
+
+        # We will register with the derivatives of the z-transformed data
         d410_sm = f410_sm.derivative()
         d470_sm = f470_sm.derivative()
 
         # First, register all to mean if specified
         if warp_to_mean:
+            template = f410_rough.mean().to_grid()
+
             warp_d410_sm = skfda.preprocessing.registration.elastic_registration_warping(
-                d410_sm, lam=warp_lam
+                d410_sm.to_grid(), template, lam=warp_lam
             )
             warp_d470_sm = skfda.preprocessing.registration.elastic_registration_warping(
-                d470_sm, lam=warp_lam
+                d470_sm.to_grid(), template, lam=warp_lam
             )
 
             warp_d410_sm_inv = skfda.preprocessing.registration.invert_warping(
@@ -302,12 +308,12 @@ def register_profiles(
             f470_rough = f470_rough.compose(warp_d470_sm_inv)
 
             f410_sm, _ = smooth_profile_data(
-                np.squeeze(f410_rough.data_matrix),
+                np.squeeze(f410_rough.to_grid().data_matrix),
                 smoothing_parameter=smooth_lambda,
                 nbasis=smooth_nbasis,
             )
             f470_sm, _ = smooth_profile_data(
-                np.squeeze(f470_rough.data_matrix),
+                np.squeeze(f470_rough.to_grid().data_matrix),
                 smoothing_parameter=smooth_lambda,
                 nbasis=smooth_nbasis,
             )
@@ -317,7 +323,7 @@ def register_profiles(
 
         # Calculate the pair-wise warp
         warp = skfda.preprocessing.registration.elastic_registration_warping(
-            d410_sm, d470_sm, lam=warp_lam
+            d410_sm.to_grid(), d470_sm.to_grid(), lam=warp_lam
         )
 
         # Apply inverse warp to 470
@@ -330,10 +336,14 @@ def register_profiles(
 
         # Save the quantized data
         reg_profile_data.loc[dict(pair=pair, wavelength="410")] = np.squeeze(
-            f410_rough.data_matrix
+            f410_rough.to_grid(
+                np.linspace(*f470_sm.domain_range[0], pos_size)
+            ).data_matrix
         )
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = np.squeeze(
-            f470_rough.data_matrix
+            f470_rough.to_grid(
+                np.linspace(*f470_sm.domain_range[0], pos_size)
+            ).data_matrix
         )
 
     return RegData(f410, f470, warps, reg_profile_data)
