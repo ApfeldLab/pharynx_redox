@@ -1,16 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/docs/source/api_reference.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/api_reference.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/Full-Pipeline Number Crunchin'.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Full-Pipeline Number Crunchin'.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/Movement Error Analysis.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Movement Error Analysis.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/notebooks/Reg. Experimentation.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Reg. Experimentation.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pharynx_redox/experiment.py" beforeDir="false" afterPath="$PROJECT_DIR$/pharynx_redox/experiment.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pharynx_redox/plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/pharynx_redox/plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pharynx_redox/profile_processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/pharynx_redox/profile_processing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pharynx_redox/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/pharynx_redox/utils.py" afterDir="false" />
-    </list>
+    <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,9 +66,18 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
           <provider selected="true" editor-type-id="restructured-text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/readthedocs.yml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="75">
+              <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+            </state>
+          </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
@@ -92,11 +92,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="467">
-              <caret line="315" column="45" selection-start-line="315" selection-start-column="45" selection-end-line="315" selection-end-column="45" />
+            <state relative-caret-position="70">
+              <caret line="258" selection-start-line="258" selection-end-line="258" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
                 <element signature="e#384#459#0" />
@@ -169,8 +169,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/gui/widgets.py" />
-        <option value="$USER_HOME$/Desktop/experiment.json" />
         <option value="$PROJECT_DIR$/gui/plots.py" />
         <option value="$PROJECT_DIR$/docs/source/introduction.rst" />
         <option value="$PROJECT_DIR$/gui/main.py" />
@@ -220,6 +218,8 @@
         <option value="$PROJECT_DIR$/pharynx_redox/profile_processing.py" />
         <option value="$PROJECT_DIR$/docs/source/api_reference.rst" />
         <option value="$PROJECT_DIR$/docs/source/api_reference.rst" />
+        <option value="$PROJECT_DIR$/readthedocs.yml" />
+        <option value="$PROJECT_DIR$/readthedocs-requirements.txt" />
       </list>
     </option>
   </component>
@@ -470,10 +470,10 @@
     <list>
       <item itemvalue="Python.cli_interface" />
       <item itemvalue="Python.scratch" />
+      <item itemvalue="Python.experiment" />
       <item itemvalue="Python tests.All Tests" />
       <item itemvalue="Python tests.pytest for tests.test_utils" />
       <item itemvalue="Python tests.pytest for tests.test_utils.TestUtils" />
-      <item itemvalue="Python.experiment" />
     </list>
     <recent_temporary>
       <list>
@@ -538,7 +538,7 @@
       <workItem from="1567701022368" duration="7331000" />
       <workItem from="1567716110035" duration="7794000" />
       <workItem from="1568038321018" duration="8817000" />
-      <workItem from="1568125864071" duration="21894000" />
+      <workItem from="1568125864071" duration="22148000" />
     </task>
     <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
       <created>1561988522548</created>
@@ -646,7 +646,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="375087000" />
+    <option name="totallyTimeSpent" value="375341000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -659,7 +659,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1920" height="1057" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.73048127" visible="true" weight="0.22151224" />
       <window_info id="Structure" order="1" sideWeight="0.2695187" side_tool="true" weight="0.17826618" />
@@ -962,23 +961,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/typing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="195">
-          <caret line="806" selection-start-line="806" selection-end-line="806" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv">
-      <provider editor-type-id="csv-table-editor">
-        <state showInfoPanel="true" fixedHeaders="false" rowLines="3" />
-      </provider>
-      <provider selected="true" editor-type-id="csv-text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" selection-start-line="1" selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/skimage/transform/_warps.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="9990">
@@ -1228,10 +1210,44 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_redox/data_analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="409">
+          <caret line="63" column="2" selection-start-line="63" selection-start-column="2" selection-end-line="63" selection-end-column="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_redox/pharynx_io.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="696">
+          <caret line="239" column="4" selection-start-line="239" selection-start-column="4" selection-end-line="239" selection-end-column="4" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/readthedocs.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/readthedocs-requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" selection-start-line="2" selection-end-line="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
+      <provider selected="true" editor-type-id="restructured-text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="467">
-          <caret line="315" column="45" selection-start-line="315" selection-start-column="45" selection-end-line="315" selection-end-column="45" />
+        <state relative-caret-position="70">
+          <caret line="258" selection-start-line="258" selection-end-line="258" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
             <element signature="e#384#459#0" />
@@ -1263,26 +1279,6 @@
           </folding>
         </state>
       </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_redox/data_analysis.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="409">
-          <caret line="63" column="2" selection-start-line="63" selection-start-column="2" selection-end-line="63" selection-end-column="2" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_redox/pharynx_io.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="696">
-          <caret line="239" column="4" selection-start-line="239" selection-start-column="4" selection-end-line="239" selection-end-column="4" />
-          <folding>
-            <element signature="e#0#24#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/docs/source/api_reference.rst">
-      <provider selected="true" editor-type-id="restructured-text-editor" />
     </entry>
   </component>
   <component name="masterDetails">
