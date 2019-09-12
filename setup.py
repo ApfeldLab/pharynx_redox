@@ -48,6 +48,9 @@ setup(
         "cached-property",
     ],
     test_suite="tests",
-    extras_require={"test": ["pytest", "pytest-cov"]},
+    extras_require={
+        "test": ["pytest", "pytest-cov"],
+        "docs": ["sphinx", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],
+    },
     project_urls={"Bug Reports": "https://github.com/half-adder/pharynx_redox/issues"},
 )
