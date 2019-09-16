@@ -28,7 +28,6 @@ This module coordinates loading data from and saving data to disk.
 .. py:currentmodule:: pharynx_redox.pharynx_io
 
 .. autosummary::
-    :toctree: pharynx_io
 
     load_tiff_from_disk
     save_images_xarray_to_disk

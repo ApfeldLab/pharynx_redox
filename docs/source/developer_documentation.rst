@@ -52,3 +52,28 @@ indicating the rows and columns as before.
 
 For an even deeper dive on indexing, see the `numpy indexing documentation
 <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
+
+Writing New Code
+================
+
+Formatting
+----------
+The python in this code-base is formatted via the `Black <https://black.readthedocs
+.io/en/stable/>`_ package. From their docs::
+
+    By using Black, you agree to cede control over minutiae of hand-formatting. In
+    return, Black gives you speed, determinism, and freedom from pycodestyle nagging
+    about formatting. You will save time and mental energy for more important matters.
+
+    Black makes code review faster by producing the smallest diffs possible. Blackened
+    code looks the same regardless of the project you’re reading. Formatting becomes
+    transparent after a while and you can focus on the content instead.
+
+Please review their `documentation <https://black.readthedocs
+.io/en/stable/editor_integration.html>`_ to set up your IDE to auto-format your code
+with Black.
+
+Documentation
+-------------
+All docstrings should be formatted in the `Numpy docstrings format <https://numpydoc
+.readthedocs.io/en/latest/format.html>`_.
