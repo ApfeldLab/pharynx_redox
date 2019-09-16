@@ -4,6 +4,7 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import xarray as xr
+from scipy import ndimage as ndi
 import typing
 from skimage.measure import regionprops, label
 
@@ -94,10 +95,11 @@ def jaccard(im1, im2):
 
 
 def create_occurrence_count_tuples(l: typing.Iterable) -> [(typing.Any, int)]:
-    # TODO: test
     """
     Given a list of things, return a list of tuples ``(item, nth_occurrence)``
 
+    .. todo::
+        test
 
     Parameters
     ----------
@@ -176,10 +178,25 @@ def get_valid_filename(s):
     filename. Remove leading and trailing spaces; convert other spaces to
     underscores; and remove anything that is not an alphanumeric, dash,
     underscore, or dot.
-    >>> get_valid_filename("john's portrait in 2004.jpg")
-    'johns_portrait_in_2004.jpg'
 
-    From https://github.com/django/django/blob/master/django/utils/text.py
+    From: https://github.com/django/django/blob/master/django/utils/text.py
+
+    Examples
+    --------
+
+        >>> get_valid_filename("john's portrait in 2004.jpg")
+        'johns_portrait_in_2004.jpg'
+
+    Parameters
+    ----------
+    s
+        a string to convert to valid filename
+
+    Returns
+    -------
+    str
+        a valid filename
+
     """
     s = str(s).strip().replace(" ", "_")
     return re.sub(r"(?u)[^-\w.]", "", s)
@@ -204,3 +221,132 @@ def z_transform(fd):
     stds = np.std(data, axis=1)
     fd.data_matrix = ((data.T - means) / stds).T
     return fd
+
+
+def measure_shifted_midlines(
+    experiment,
+    shift_range: typing.Iterable[float],
+    shift_steps: int,
+    n_points: int = 200,
+) -> (xr.DataArray, typing.List[float]):
+    """
+    Measure under shifted midlines for use in synthetic movement analysis
+
+    First, **only non-moving animals** are selected for analysis (this guarantees that
+    for 0-shifts, there will be no errors).
+
+    shifted midlines are then generated according to the following pseudocode::
+
+        for each pair:
+            for each animal:
+                for each shift (dx):
+                    measure under 410 and 470 using the 410 midline, storing the resultant
+                    measurements as pair 0
+
+                    shift the 470 midline by dx
+
+                    measure under 410 and 470 using 410-dx midline, storing the resultant
+                    measurements as pair 1
+
+    Parameters
+    ----------
+    experiment
+        The experiment to analyze
+    shift_range
+        a tuple of ``(min, max)`` indicating the bounds of the shifts
+    shift_steps
+        the number of shifts to use within the bounds of ``shift_range``
+    n_points
+        the number of points to measure under each midline
+
+    Returns
+    -------
+    (xr.DataArray, typing.List[float])
+        a tuple containing the measurements and a list of shifts where the index
+        corresponds to the first dimension of the measurements (the animal)
+    """
+    # make a new DataArray with
+    #   (# animals) = ((# non-moving 0) + (# non-moving 1)) * len(shifts)
+
+    # for each animal
+    #   for each pair
+    #       if not moving according to hand-annotation:
+    #           measure under 410 and 470 like normal, set that as pair 0
+    #
+    #           shift 470 midline
+    #           measure under 410 and 470-shift, set that as pair 1
+
+    shifts = np.linspace(*shift_range, shift_steps)
+
+    ex_meas = experiment.trimmed_profiles
+
+    df = experiment.movement
+    df = pd.DataFrame(df.to_records())
+
+    # indexed by pair
+    stationary_animals = np.array(
+        [
+            df[
+                (df.pair == pair) & (df.anterior == 0) & (df.posterior == 0)
+            ].animal.values
+            for pair in df.pair.unique()
+        ]
+    )
+
+    measurements = xr.DataArray(
+        np.zeros(
+            (
+                len(np.concatenate(stationary_animals)) * len(shifts),
+                ex_meas.wavelength.size,
+                ex_meas.pair.size,
+                n_points,
+            )
+        ),
+        dims=["strain", "wavelength", "pair", "position"],
+        coords={"wavelength": ex_meas.wavelength, "pair": ex_meas.pair},
+    )
+
+    all_shifts = []
+    new_animal_idx = 0
+    for pair in range(stationary_animals.shape[0]):
+        for orig_animal_idx in stationary_animals[pair]:
+            midline = experiment.midlines[orig_animal_idx]["410"][pair]
+
+            # TODO: generalize over wavelengths
+            i410 = experiment.rot_fl.sel(wavelength="410", pair=pair)[
+                orig_animal_idx
+            ].values
+            i470 = experiment.rot_fl.sel(wavelength="470", pair=pair)[
+                orig_animal_idx
+            ].values
+
+            for shift in shifts:
+                all_shifts.append(shift)
+
+                xs, ys = midline.linspace(n=n_points)
+
+                # First, measure under 410 and 470 like normal, (will be pair 0)
+                unshifted_410 = ndi.map_coordinates(i410, np.stack([ys, xs]), order=1)
+                unshifted_470 = ndi.map_coordinates(i470, np.stack([ys, xs]), order=1)
+
+                # now, shift the coordinates of the midline and measure under 470
+                # (will be pair 1)
+                shifted_470 = ndi.map_coordinates(i470, np.stack([ys, xs + shift]))
+
+                measurements[new_animal_idx].loc[
+                    {"pair": 0, "wavelength": "410"}
+                ] = unshifted_410
+                measurements[new_animal_idx].loc[
+                    {"pair": 0, "wavelength": "470"}
+                ] = unshifted_470
+
+                measurements[new_animal_idx].loc[
+                    {"pair": 1, "wavelength": "410"}
+                ] = unshifted_410
+                measurements[new_animal_idx].loc[
+                    {"pair": 1, "wavelength": "470"}
+                ] = shifted_470
+
+                new_animal_idx += 1
+
+    return measurements, all_shifts

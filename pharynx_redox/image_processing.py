@@ -577,3 +577,88 @@ def shift(image: np.ndarray, vector: np.ndarray) -> np.ndarray:
     shifted = warp(image, tform, mode="wrap", preserve_range=True)
     shifted = shifted.astype(image.dtype)
     return shifted
+
+
+def normalize_images_by_wvl_pair(fl_imgs: xr.DataArray, profiles: xr.DataArray):
+    """
+    Normalize images by subtracting mean profile then min-max rescaling to [0, 1]
+    Parameters
+    ----------
+    fl_imgs
+        the images to normalize
+    profiles
+        the intensity profiles corresponding to the images
+
+    Returns
+    -------
+    xr.DataArray
+        the normalized images
+    """
+    norm_fl = fl_imgs.copy().astype(np.float)
+    for pair in fl_imgs.pair:
+        for wvl in fl_imgs.wavelength.values:
+            if wvl not in profiles.wavelength.values:
+                continue
+            for animal in range(fl_imgs.strain.size):
+                prof = profiles.sel(wavelength=wvl, pair=pair).isel(strain=animal)
+                img = fl_imgs.sel(wavelength=wvl, pair=pair)[animal].astype(np.float)
+
+                # First, center according to mean
+                img = img - prof.mean()
+
+                # Then rescale to [0, 1]
+                img = (img - prof.min()) / (prof.max() - prof.min())
+
+                norm_fl.loc[dict(wavelength=wvl, pair=pair)][animal] = img
+
+    return norm_fl
+
+
+def normalize_images_single_wvl(
+    fl_imgs: Union[np.ndarray, xr.DataArray],
+    profiles: Union[np.ndarray, xr.DataArray],
+    percent_to_clip: float = 2.0,
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Normalize single wavelength image stack by subtracting the mean of the corresponding
+    intensity profile, then min-max rescaling to [0, 1]
+
+    Parameters
+    ----------
+    fl_imgs
+        an array-like structure of shape (frame, row, col)
+    profiles
+        an array-like structure of shape (frame, position_along_midline)
+    percent_to_clip
+        how much to clip the profile when calculating mean/min/max
+
+    Returns
+    -------
+    Union[np.ndarray, xr.DataArray]
+        normalized images
+    """
+
+    if fl_imgs.ndim != 3:
+        raise ValueError("images must have shape (frame, row, col)")
+    if profiles.ndim != 2:
+        raise ValueError("profiles must have shape (frame, position_along_midline)")
+
+    normed = fl_imgs.copy().astype(np.float32)
+
+    idx_to_clip = int(profiles.shape[-1] * percent_to_clip / 100)
+    profiles = profiles[:, idx_to_clip:-idx_to_clip]
+
+    prof_means = np.mean(profiles, axis=1)
+
+    profiles = profiles - prof_means
+    normed = normed - prof_means
+
+    prof_mins = np.min(profiles, axis=1)
+    prof_maxs = np.max(profiles, axis=1)
+
+    normed_prof = (profiles - prof_mins) / (prof_maxs - prof_mins)
+    print(np.min(normed_prof))
+    print(np.max(normed_prof))
+    normed = (normed - prof_mins) / (prof_maxs - prof_mins)
+
+    return normed
