@@ -611,12 +611,6 @@
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="All_Tests - 2019.08.21 at 14h 17m 35s.xml">
-      <configuration name="All Tests" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate - 2019.08.21 at 14h 18m 06s.xml">
-      <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" configurationId="tests" />
-    </history-entry>
     <history-entry file="pytest_for_test_image_processing_TestImageProcessing_test_center_and_rotate - 2019.08.21 at 14h 18m 39s.xml">
       <configuration name="pytest for test_image_processing.TestImageProcessing.test_center_and_rotate" configurationId="tests" />
     </history-entry>
@@ -640,6 +634,12 @@
     </history-entry>
     <history-entry file="pytest_for_test_utils_TestUtils - 2019.09.03 at 14h 31m 28s.xml">
       <configuration name="pytest for test_utils.TestUtils" configurationId="tests" />
+    </history-entry>
+    <history-entry file="All_Tests - 2019.09.16 at 13h 41m 25s.xml">
+      <configuration name="All Tests" configurationId="tests" />
+    </history-entry>
+    <history-entry file="All_Tests - 2019.09.16 at 13h 43m 21s.xml">
+      <configuration name="All Tests" configurationId="tests" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
