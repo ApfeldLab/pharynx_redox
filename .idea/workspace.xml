@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7dbb55e0-1345-4c3f-ad2a-f0e90a8acfce" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/notebooks/Synthetic Analysis/Cum. Prob. Error for Synthetic Shift.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/Synthetic Analysis/Cum. Prob. Error for Synthetic Shift.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -95,6 +95,18 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/setup.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="216">
+              <caret line="30" selection-start-line="30" selection-end-line="30" />
+              <folding>
+                <element signature="e#0#28#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/plots.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -125,14 +137,23 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tests/test_image_processing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="356">
-              <caret line="53" column="36" selection-start-line="53" selection-start-column="36" selection-end-line="53" selection-end-column="36" />
+            <state relative-caret-position="348">
+              <caret line="55" column="34" selection-start-line="55" selection-start-column="34" selection-end-line="55" selection-end-column="34" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/.travis.yml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="60">
+              <caret line="4" column="19" selection-start-line="4" selection-start-column="19" selection-end-line="4" selection-end-column="19" />
             </state>
           </provider>
         </entry>
@@ -207,7 +228,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/docs/source/introduction.rst" />
         <option value="$PROJECT_DIR$/gui/main.py" />
         <option value="$PROJECT_DIR$/tests/test_data/paired_ratio_images_0/2017_02_22-HD233_SAY47_strain_map.csv" />
         <option value="$PROJECT_DIR$/tests/test_pharynx_analysis.py" />
@@ -242,7 +262,6 @@
         <option value="$PROJECT_DIR$/docs/source/index.rst" />
         <option value="$PROJECT_DIR$/docs/source/index.rst" />
         <option value="$PROJECT_DIR$/readthedocs-requirements.txt" />
-        <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/readthedocs.yml" />
         <option value="$PROJECT_DIR$/docs/requirements.txt" />
         <option value="$PROJECT_DIR$/docs/source/developer_documentation.rst" />
@@ -258,6 +277,8 @@
         <option value="$PROJECT_DIR$/pharynx_redox/utils.py" />
         <option value="$PROJECT_DIR$/tests/test_image_processing.py" />
         <option value="$PROJECT_DIR$/tests/test_image_processing.py" />
+        <option value="$PROJECT_DIR$/.travis.yml" />
+        <option value="$PROJECT_DIR$/setup.py" />
       </list>
     </option>
   </component>
@@ -535,7 +556,7 @@
       <workItem from="1567716110035" duration="7794000" />
       <workItem from="1568038321018" duration="8817000" />
       <workItem from="1568125864071" duration="33875000" />
-      <workItem from="1568390438947" duration="16851000" />
+      <workItem from="1568390438947" duration="17182000" />
     </task>
     <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
       <created>1561988522548</created>
@@ -643,7 +664,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="403919000" />
+    <option name="totallyTimeSpent" value="404250000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -658,12 +679,12 @@
     <frame x="0" y="23" width="1920" height="1057" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.73048127" visible="true" weight="0.14909478" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.73048127" visible="true" weight="0.14909478" />
       <window_info id="Structure" order="1" sideWeight="0.2695187" side_tool="true" weight="0.17826618" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3284974" />
-      <window_info active="true" anchor="bottom" x="123" y="112" width="1440" height="861" id="Run" order="2" sideWeight="0.4978678" visible="true" weight="0.37720206" />
+      <window_info anchor="bottom" x="123" y="112" width="1440" height="861" id="Run" order="2" sideWeight="0.4978678" visible="true" weight="0.37759337" />
       <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.4968051" weight="0.280829" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -947,7 +968,6 @@ plt.plot(unshifted_410)</expression-string>
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/tests/test_pharynx_analysis.py" />
     <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/skimage/measure/_label.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="45">
@@ -1142,16 +1162,6 @@ plt.plot(unshifted_410)</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="41" column="15" selection-start-line="41" selection-start-column="15" selection-end-line="41" selection-end-column="15" />
-          <folding>
-            <element signature="e#0#28#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-4556">
@@ -1275,10 +1285,27 @@ plt.plot(unshifted_410)</expression-string>
     </entry>
     <entry file="file://$PROJECT_DIR$/tests/test_image_processing.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="356">
-          <caret line="53" column="36" selection-start-line="53" selection-start-column="36" selection-end-line="53" selection-end-column="36" />
+        <state relative-caret-position="348">
+          <caret line="55" column="34" selection-start-line="55" selection-start-column="34" selection-end-line="55" selection-end-column="34" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.travis.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="4" column="19" selection-start-line="4" selection-start-column="19" selection-end-line="4" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/setup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="216">
+          <caret line="30" selection-start-line="30" selection-end-line="30" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
           </folding>
         </state>
       </provider>
