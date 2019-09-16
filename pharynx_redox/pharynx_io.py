@@ -68,7 +68,7 @@ def save_images_xarray_to_disk(
             tifffile.imsave(str(final_path), data)
 
 
-def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str, int)]:
+def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int)]:
     """
     Split the imaging scheme string by the given delimiter, and return
     [(wavelength, nth_occurrence), ...]
@@ -80,7 +80,7 @@ def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str,
 
     Parameters
     ----------
-    imaging_scheme_str
+    imaging_scheme
         A string of wavelengths which indicate the order in which images were taken, separated by the delimiter
     delimiter
         a string which separates the wavelengths in the imaging scheme string
@@ -90,7 +90,7 @@ def process_imaging_scheme_str(imaging_scheme_str: str, delimiter="/") -> [(str,
     list
         [(wavelength, nth_occurrence), ...]
     """
-    return utils.create_occurrence_count_tuples(imaging_scheme_str.split(delimiter))
+    return utils.create_occurrence_count_tuples(imaging_scheme.split(delimiter))
 
 
 def load_images(
@@ -191,6 +191,7 @@ def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) 
 
     Returns
     -------
+    None
 
     """
     dir_path = Path(dir_path)

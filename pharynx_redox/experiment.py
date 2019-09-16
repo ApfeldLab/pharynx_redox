@@ -11,12 +11,13 @@ multiple pairs of images are taken sequentially for each animal.
 import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Union
+from typing import List, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import skfda
 import xarray as xr
 from cached_property import cached_property
 from numpy.polynomial import Polynomial
@@ -106,6 +107,8 @@ class Experiment:
     untrimmed_profiles: xr.DataArray = None
     trimmed_profiles: xr.DataArray = None
 
+    warps: List[skfda.FDataGrid] = field(default_factory=list)
+
     save_summary_plots: bool = False
 
     ####################################################################################
@@ -164,7 +167,7 @@ class Experiment:
         analysis_dir_.mkdir(parents=True, exist_ok=True)
         return analysis_dir_
 
-    @cached_property
+    @property
     def summary_table(self):
         dfs = []
         for region, bounds in self.scaled_regions.items():
@@ -197,7 +200,7 @@ class Experiment:
         self._summary_table = pd.concat(dfs)
 
         if self.movement is not None:
-            self._summary_table = self.summary_table.join(
+            self._summary_table = self._summary_table.join(
                 self.movement, on=["animal", "pair"]
             )
 
@@ -247,6 +250,7 @@ class Experiment:
             warp_to_mean=self.warp_to_mean,
         )
         self.untrimmed_profiles = reg_data.reg_data
+        self.warps = reg_data.warps
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -357,7 +361,7 @@ class Experiment:
             self.experiment_id + "-summary_table.csv"
         )
         logging.info(f"Saving region means to {summary_table_filename}")
-        # self.summary_table.to_csv(summary_table_filename, index=False)
+        self.summary_table.to_csv(summary_table_filename, index=False)
 
         # Persist the profile data
         self.persist_profile_data()
@@ -379,6 +383,7 @@ class Experiment:
             z=self.z,
             temperature=self.temperature,
             strategy=self.strategy,
+            experiment_id=self.experiment_id,
         )
 
 
@@ -485,5 +490,7 @@ if __name__ == "__main__":
     experiment_path = Path(
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_08_23-HD233_4mm_lev"
     )
-    ex = PairExperiment(experiment_path, "TL/470/410/470/410")
+    ex = PairExperiment(experiment_path, "TL/470/410/470/410", register=False)
     ex.full_pipeline()
+
+    utils.measure_shifted_midlines(ex, (-2, 2), 5)
