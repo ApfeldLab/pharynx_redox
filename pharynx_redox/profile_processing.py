@@ -1,4 +1,5 @@
 import collections
+from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
@@ -12,10 +13,30 @@ from sklearn.preprocessing import scale
 
 from pharynx_redox import utils
 
-RegData = collections.namedtuple("RegData", "r410 r470 warp reg_data")
-RegData.__doc__ = """
-    A collection class for storing the results of data registration
-"""
+
+@dataclass
+class RegData:
+    """
+    A `dataclass <https://docs.python.org/3/library/dataclasses.html>`_ which acts as a
+    container for registered data.
+
+    Attributes
+    ----------
+    r410: skfda.representation.FDataBasis
+        A functional object containing the registered 410nm profile data
+    r470: skfda.representation.FDataBasis
+        A functional object containing the registered 470nm profile data
+    warp: skfda.representation.FDataGrid
+        A functional object containing the warp function that were used to warp the 470nm profile data into the 410nm profile data
+    reg_data: xr.DataArray
+        The quantized registered profile data
+
+    """
+
+    r410: [skfda.representation.FDataBasis]
+    r470: [skfda.representation.FDataBasis]
+    warps: [skfda.representation.FDataGrid]
+    reg_data: xr.DataArray
 
 
 def summarize_over_regions(
@@ -99,9 +120,9 @@ def summarize_over_regions(
 
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
-    order=5,
-    nbasis=200,
-    smoothing_parameter=1e-8,
+    order: int = 5,
+    nbasis: int = 200,
+    smoothing_parameter: float = 1e-8,
 ):
     """
     Smooth profile data by fitting smoothing B-splines
@@ -120,10 +141,10 @@ def smooth_profile_data(
 
     Returns
     -------
-    skfda.representation.grid.FDataGrid
-        the smoothed data
+    skfda.representation.grid.FDataBasis
+        the smoothed data represented in Basis form
     skfda.representation.basis.FDataBasis
-        the basis representation of the smoothed data
+        the basis used for smoothed data
 
     """
     fd = skfda.FDataGrid(profile_data)
@@ -139,12 +160,12 @@ def smooth_profile_data(
 def register_pair(
     data1,
     data2,
-    smooth_lambda=1e-5,
-    rough_lambda=1e-7,
-    warp_lam=1e-1,
-    smooth_nbasis=64,
-    rough_nbasis=200,
-    grid_dim=7,
+    smooth_lambda: float = 1e-5,
+    rough_lambda: float = 1e-7,
+    warp_lam: float = 1e-1,
+    smooth_nbasis: int = 64,
+    rough_nbasis: int = 200,
+    grid_dim: int = 7,
 ):
     """
     TODO: documentation
@@ -158,6 +179,7 @@ def register_pair(
     warp_lam
     smooth_nbasis
     rough_nbasis
+    grid_dim
 
     Returns
     -------
@@ -210,7 +232,20 @@ def register_profiles(
     warp_to_mean: bool = False,
 ) -> RegData:
     """
-    Register 470 channels into 410 using elastic registration
+    Register 470 channels into 410 using elastic registration.
+
+    First, the data is smoothed using a B-spline basis with the specified number of
+    basis functions. The *derivatives* of these functions are then computed for use in
+    registration.
+
+    The 470nm profile data is registered into the 410nm data by calculating warping
+    functions (which map old x-coordinates to new ones) using these smooth derivatives.
+
+    Finally, the warping functions are applied to a "rougher" fit of the data (again,
+    this rough fit is a B-spline fit using the specified number of basis functions and
+    smoothing parameter).
+
+    TODO: generalize over wavelengths
 
     Parameters
     ----------
@@ -231,7 +266,7 @@ def register_profiles(
         the number of basis function for the "rough" data, which is what will be
         returned after warping as the measurement data
     warp_to_mean
-        if True, warps all profiles to the mean
+        if True, warps all profiles to the mean of the 410nm (pair 0) profile data
 
 
     Returns
@@ -250,7 +285,8 @@ def register_profiles(
 
     pos_size = raw_profile_data.position.size
 
-    # lists indexed by pair
+    # For a two-pair image set, these lists will be two items long. The 0th item will
+    # contain a functional data object containing ALL observations for pair 0, etc.
     f410 = []
     f470 = []
     warps = []
@@ -274,15 +310,7 @@ def register_profiles(
             i470, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
         )
 
-        # Resample
-        # f410_sm = f410_sm.to_grid(np.linspace(*f410_sm.domain_range[0], pos_size))
-        # f470_sm = f470_sm.to_grid(np.linspace(*f470_sm.domain_range[0], pos_size))
-
-        # # Rescale with Z-transform
-        # z410_sm = utils.z_transform(f410_sm)
-        # z470_sm = utils.z_transform(f470_sm)
-
-        # We will register with the derivatives of the z-transformed data
+        # We will register with the derivatives
         d410_sm = f410_sm.derivative()
         d470_sm = f470_sm.derivative()
 
@@ -290,6 +318,7 @@ def register_profiles(
         if warp_to_mean:
             template = f410_rough.mean().to_grid()
 
+            # Calculate the warp using the derivatives of the smooth data
             warp_d410_sm = skfda.preprocessing.registration.elastic_registration_warping(
                 d410_sm.to_grid(), template, lam=warp_lam
             )
@@ -297,6 +326,7 @@ def register_profiles(
                 d470_sm.to_grid(), template, lam=warp_lam
             )
 
+            # Apply the calculated warps to the rough fits
             warp_d410_sm_inv = skfda.preprocessing.registration.invert_warping(
                 warp_d410_sm
             )
@@ -307,6 +337,7 @@ def register_profiles(
             f410_rough = f410_rough.compose(warp_d410_sm_inv)
             f470_rough = f470_rough.compose(warp_d470_sm_inv)
 
+            # Re-smooth so we can do pair-wise registration later
             f410_sm, _ = smooth_profile_data(
                 np.squeeze(f410_rough.to_grid().data_matrix),
                 smoothing_parameter=smooth_lambda,
@@ -330,6 +361,7 @@ def register_profiles(
         warp_inv = skfda.preprocessing.registration.invert_warping(warp)
         f470_rough = f470_rough.compose(warp_inv)
 
+        # Keep track of the functional objects to return
         f410.append(f410_rough)
         f470.append(f470_rough)
         warps.append(warp)
@@ -350,6 +382,20 @@ def register_profiles(
 
 
 def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
+    """
+    Apply Z-transform scaling on a per-wavelength basis
+
+    Parameters
+    ----------
+    data
+        the data to scale
+
+    Returns
+    -------
+    xr.DataArray
+        the z-scaled data
+
+    """
     scaled = data.copy()
     for wvl in scaled.wavelength:
         for pair in scaled.pair:
@@ -358,13 +404,24 @@ def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
     return scaled
 
 
-def trim_profile(profile, threshold, new_length):
+def trim_profile(
+    profile: Union[np.ndarray, xr.DataArray], threshold: float, new_length: int
+):
     """
+    Trim the given profile data by finding the first/last values where the profile
+    crosses the specified threshold, then interpolating to fit the given new length.
+
+    .. note::
+        Uses linear interpolation
+
     Parameters
     ----------
     profile
+        the data to trim
     threshold
+        the threshold
     new_length
+        the length of the resultant interpolated profiles
 
     Returns
     -------
@@ -380,7 +437,34 @@ def trim_profile(profile, threshold, new_length):
     return np.interp(new_xs, old_xs, trimmed)
 
 
-def get_trim_boundaries(data, ref_wvl="410", thresh=2000):
+def get_trim_boundaries(
+    data: xr.DataArray, ref_wvl: str = "410", thresh: float = 2000.0
+) -> (np.ndarray, np.ndarray):
+    """
+    Find the "left" and "right" indices to use to trim intensity profiles given a
+    threshold.
+
+    Essentially, we find the first index where the intensity profile crosses the given
+    threshold and call that the "left", then do the same on the reversed profile and
+    call that the "right".
+
+
+    Parameters
+    ----------
+    data
+        the intensity profile data (potentially containing multiple wavelengths)
+    ref_wvl
+        the wavelength to use to calculate boundaries
+    thresh
+        the threshold
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        the (left, right) bounds for each profile, where the index in the array
+        corresponds to the index of the animal in ``data``.
+
+    """
     prof_len = data.position.size
     l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=2).data - 1
     r_bound = (
@@ -392,7 +476,12 @@ def get_trim_boundaries(data, ref_wvl="410", thresh=2000):
     return l_bound, r_bound
 
 
-def trim_profiles(intensity_data, threshold, new_length, ref_wvl="410"):
+def trim_profiles(
+    intensity_data: xr.DataArray,
+    threshold: float,
+    new_length: int,
+    ref_wvl: str = "410",
+):
     """
     Parameters
     ----------
@@ -445,7 +534,12 @@ def trim_profiles(intensity_data, threshold, new_length, ref_wvl="410"):
     return trimmed_intensity_data
 
 
-def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
+def r_to_oxd(
+    r: Union[np.ndarray, xr.DataArray],
+    r_min: float = 0.852,
+    r_max: float = 6.65,
+    instrument_factor: float = 0.171,
+):
     """
     Convert ratios to OxD
 
@@ -463,11 +557,17 @@ def r_to_oxd(r, r_min=0.852, r_max=6.65, instrument_factor=0.171):
     return (r - r_min) / ((r - r_min) + instrument_factor * (r_max - r))
 
 
-def oxd_to_redox_potential(oxd, midpoint_potential=-265, z=2, temperature=22):
+def oxd_to_redox_potential(
+    oxd: Union[np.ndarray, xr.DataArray],
+    midpoint_potential: float = -265.0,
+    z: float = 2.0,
+    temperature: float = 22.0,
+):
     """
     Convert OxD to redox potential
 
-    NOTE: may return NaN
+    .. warning::
+        May contain ``NaN`` values
 
     Parameters
     ----------

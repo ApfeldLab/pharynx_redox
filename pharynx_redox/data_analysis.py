@@ -17,7 +17,9 @@ def load_all_summaries(meta_dir: Union[Path, str]) -> pd.DataFrame:
     if isinstance(meta_dir, str):
         meta_dir = Path(meta_dir)
 
-    return pd.concat(pd.read_csv(x) for x in sorted(meta_dir.glob("**/*summary*csv")))
+    return pd.concat(
+        (pd.read_csv(x) for x in sorted(meta_dir.glob("**/*summary*csv"))), sort=False
+    )
 
 
 def load_all_movement(meta_dir: Union[Path, str]) -> pd.DataFrame:
@@ -28,7 +30,6 @@ def load_all_movement(meta_dir: Union[Path, str]) -> pd.DataFrame:
 
 
 def get_resid_rr_pairs(pair0, pair1) -> xr.DataArray:
-    # return np.abs(1 - (pair0 / pair1))
     return np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
 
 
@@ -36,13 +37,6 @@ def get_resid_rr(data: xr.DataArray) -> xr.DataArray:
     pair0 = data.sel(wavelength="r", pair=0)
     pair1 = data.sel(wavelength="r", pair=1)
     return get_resid_rr_pairs(pair0, pair1)
-
-
-def pandas_df_to_markdown_table(df):
-    fmt = ["---" for _ in range(len(df.columns))]
-    df_fmt = pd.DataFrame([fmt], columns=df.columns)
-    df_formatted = pd.concat([df_fmt, df])
-    return df_formatted.to_csv(sep="|", index=False)
 
 
 def filter_only_moving_roi(df, pair, roi):
@@ -55,6 +49,7 @@ def filter_only_moving_roi(df, pair, roi):
 
 
 def split_by_movement_types(df, roi, t=0):
+    # TODO: write function that generates the required format for this function
     """ Return a set of filtered DataFrames, according to the following scheme:
 
     m_0_0:

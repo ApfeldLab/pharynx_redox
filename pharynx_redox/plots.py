@@ -6,6 +6,7 @@ from tqdm.auto import tqdm
 from pharynx_redox.profile_processing import scale_by_wvl
 from pharynx_redox import data_analysis as da
 
+import matplotlib as mpl
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
@@ -241,10 +242,10 @@ def plot_average_by_strain_and_pair(
 
 def add_regions_to_axis(
     ax,
-    regions,
-    label_dist_bottom_percent=0.03,
-    label_x_offset_percent=0.005,
-    alpha=0.1,
+    regions: dict,
+    label_dist_bottom_percent: float = 0.03,
+    label_x_offset_percent: float = 0.005,
+    alpha: float = 0.1,
     **kwargs,
 ):
     """
@@ -253,14 +254,24 @@ def add_regions_to_axis(
     Parameters
     ----------
     ax
+        the axis to add the regions to
     regions
-    label_dist_bottom_percent
-    label_x_offset_percent
-    alpha
-    kwargs
+        the region dictionary, formatted as such::
 
-    Returns
-    -------
+                {
+                    'pm3': [1, 10],
+                    'pm4': [12, 30],
+                    ...
+                }
+
+    label_dist_bottom_percent
+        the distance from the bottom of the axis that the region labels should be placed, expressed as a percentage of the axis height
+    label_x_offset_percent
+        the distance from the left of the region annotation, expressed as a percentage of the axis length
+    alpha
+        the opacity of the region annotations (0 = transparent, 1=opaque)
+    kwargs
+        these will be passed onto ``ax.axvspan``
 
     """
     min_y, max_y = ax.get_ylim()
