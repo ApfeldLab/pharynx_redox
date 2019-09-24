@@ -6,9 +6,9 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import skfda
+import matlab.engine
 from skfda.representation.basis import BSpline
 from skfda.preprocessing.smoothing import BasisSmoother
-
 from sklearn.preprocessing import scale
 
 from pharynx_redox import utils
@@ -106,7 +106,7 @@ def summarize_over_regions(
     for region, bounds in regions.items():
         reg_df = (
             data[dict(position=range(bounds[0], bounds[1]))]
-            .mean(dim="position")
+            .mean(dim="position", skipna=True)
             .to_pandas()
         )
         reg_df = reg_df.reset_index()
@@ -381,6 +381,66 @@ def register_profiles(
     return RegData(f410, f470, warps, reg_profile_data)
 
 
+def register_profiles_matlab(raw_profile_data) -> (xr.DataArray, np.ndarray):
+    eng = matlab.engine.start_matlab()
+    reg_profile_data = raw_profile_data.copy()
+
+    # Warps indexed by pair
+    all_warps = []
+
+    # Registration Parameters
+    resample_resolution = reg_profile_data.shape[-1]
+
+    warp_n_basis = 300.0
+    warp_order = 4.0
+    warp_lambda = 10 ** 5
+
+    smooth_lambda = 10 ** 2
+    smooth_n_breaks = 100.0
+    smooth_order = 4.0
+
+    rough_lambda = 10 ** 0.05
+    rough_n_breaks = 300.0
+    rough_order = 4.0
+
+    n_deriv = 2.0
+
+    for pair in raw_profile_data.pair.values:
+        print(f"Registering Pair {pair}")
+        i410 = matlab.double(
+            raw_profile_data.sel(wavelength="410", pair=pair).values.T.tolist()
+        )
+        i470 = matlab.double(
+            raw_profile_data.sel(wavelength="470", pair=pair).values.T.tolist()
+        )
+
+        # _, _, r410, r470, warps = eng.ChannelRegister(i410, i470, nargout=5)
+        r410, r470, warps = eng.channel_register(
+            i410,
+            i470,
+            resample_resolution,
+            warp_n_basis,
+            warp_order,
+            warp_lambda,
+            smooth_lambda,
+            smooth_n_breaks,
+            smooth_order,
+            rough_lambda,
+            rough_n_breaks,
+            rough_order,
+            n_deriv,
+            nargout=3
+        )
+        r410, r470 = np.array(r410).T, np.array(r470).T
+
+        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
+        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
+
+        all_warps.append(np.array(warps))
+
+    return reg_profile_data, np.array(all_warps)
+
+
 def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
     """
     Apply Z-transform scaling on a per-wavelength basis
@@ -583,3 +643,11 @@ def oxd_to_redox_potential(
     return midpoint_potential - (
         8314.462 * (273.15 + temperature) / (z * 96485.3415)
     ) * np.log((1 - oxd) / oxd)
+
+
+if __name__ == "__main__":
+    profile_data = xr.load_dataarray(
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/analyses/2019-08-26_single_unreg/2017_02_22-HD233_SAY47-profile_data.nc"
+    )
+    register_profiles_matlab(profile_data)
+

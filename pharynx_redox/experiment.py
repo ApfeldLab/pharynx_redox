@@ -76,13 +76,23 @@ class Experiment:
     rough_nbasis: int = 200
     warp_to_mean: bool = False
 
-    regions: dict = field(
+    trimmed_regions: dict = field(
         default_factory=lambda: {
             "pm3": [0.07, 0.28],
             "pm4": [0.33, 0.45],
             "pm5": [0.53, 0.70],
             "pm6": [0.80, 0.86],
             "pm7": [0.88, 0.96],
+        }
+    )
+
+    untrimmed_regions: dict = field(
+        default_factory=lambda: {
+            "pm3": [0.12, 0.30],
+            "pm4": [0.35, 0.44],
+            "pm5": [0.52, 0.65],
+            "pm6": [0.73, 0.78],
+            "pm7": [0.79, 0.85],
         }
     )
     strategy: str = None
@@ -119,7 +129,7 @@ class Experiment:
     def scaled_regions(self):
         self._scaled_regions = {
             region: [int(self.trimmed_profile_length * x) for x in bounds]
-            for region, bounds in self.regions.items()
+            for region, bounds in self.trimmed_regions.items()
         }
         return self._scaled_regions
 
@@ -206,6 +216,22 @@ class Experiment:
 
         return self._summary_table
 
+    @property
+    def untrimmed_profile_data_filepath(self):
+        return self.analysis_dir.joinpath(
+            self.experiment_id + "-untrimmed_profile_data.nc"
+        )
+
+    @property
+    def trimmed_profile_data_filepath(self):
+        return self.analysis_dir.joinpath(
+            self.experiment_id + "-trimmed_profile_data.nc"
+        )
+
+    @property
+    def warp_data_filepath(self):
+        return self.analysis_dir.joinpath(self.experiment_id + "-warp_data.npy")
+
     ####################################################################################
     # PIPELINE
     ####################################################################################
@@ -240,17 +266,10 @@ class Experiment:
 
     def register_profiles(self):
         logging.info("Registering profiles")
-        reg_data = profile_processing.register_profiles(
-            self.untrimmed_profiles,
-            smooth_lambda=self.smooth_lambda,
-            rough_lambda=self.rough_lambda,
-            warp_lam=self.warp_lambda,
-            smooth_nbasis=self.smooth_nbasis,
-            rough_nbasis=self.rough_nbasis,
-            warp_to_mean=self.warp_to_mean,
+
+        self.untrimmed_profiles, self.warps = profile_processing.register_profiles_matlab(
+            self.untrimmed_profiles
         )
-        self.untrimmed_profiles = reg_data.reg_data
-        self.warps = reg_data.warps
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -268,7 +287,6 @@ class Experiment:
 
         # Expand the trimmed_intensity_data to include new wavelengths
         new_wvls = np.append(self.trimmed_profiles.wavelength.data, ["r", "oxd", "e"])
-
         self.trimmed_profiles = self.trimmed_profiles.reindex(wavelength=new_wvls)
 
         self.trimmed_profiles.loc[dict(wavelength="r")] = self.trimmed_profiles.sel(
@@ -298,21 +316,41 @@ class Experiment:
         return fig_dir
 
     def persist_profile_data(self):
-        analysis_dir = self.analysis_dir
-
-        profile_data_filename = analysis_dir.joinpath(
-            self.experiment_id + "-profile_data.nc"
+        logging.info(
+            f"Saving untrimmed profile data to {self.untrimmed_profile_data_filepath}"
         )
-        logging.info(f"Saving profile data to {profile_data_filename}")
-        self.trimmed_profiles.to_netcdf(profile_data_filename)
+
+        self.untrimmed_profiles.to_netcdf(self.untrimmed_profile_data_filepath)
+
+        logging.info(
+            f"Saving trimmed profile data to {self.trimmed_profile_data_filepath}"
+        )
+        self.trimmed_profiles.to_netcdf(self.trimmed_profile_data_filepath)
+
+        logging.info(f"Saving warp data to {self.warp_data_filepath}")
+        with open(self.warp_data_filepath, "wb") as f:
+            np.save(f, self.warps)
 
     def load_profile_data(self):
-        analysis_dir = self.analysis_dir
-        profile_data_raw_filename = analysis_dir.joinpath(
-            self.experiment_id + "-profile_data.nc"
+        logging.info(
+            f"Loading trimmed profile data from {self.trimmed_profile_data_filepath}"
         )
-        logging.info(f"Loading profile data from {profile_data_raw_filename}")
-        self.trimmed_profiles = xr.open_dataarray(profile_data_raw_filename)
+        self.trimmed_profiles = xr.open_dataarray(self.trimmed_profile_data_filepath)
+
+        logging.info(
+            f"Loading untrimmed profile data from {self.untrimmed_profile_data_filepath}"
+        )
+        self.untrimmed_profiles = xr.open_dataarray(
+            self.untrimmed_profile_data_filepath
+        )
+
+    def save_summary_data(self):
+        # Persist the region means
+        summary_table_filename = self.analysis_dir.joinpath(
+            self.experiment_id + "-summary_table.csv"
+        )
+        logging.info(f"Saving region means to {summary_table_filename}")
+        self.summary_table.to_csv(summary_table_filename, index=False)
 
     def save_profile_summary_plots(self, prof_data: xr.DataArray):
         fig_dir = self.make_fig_dir()
@@ -356,12 +394,7 @@ class Experiment:
     def persist_to_disk(self, summary_plots=False):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
 
-        # Persist the region means
-        summary_table_filename = self.analysis_dir.joinpath(
-            self.experiment_id + "-summary_table.csv"
-        )
-        logging.info(f"Saving region means to {summary_table_filename}")
-        self.summary_table.to_csv(summary_table_filename, index=False)
+        self.save_summary_data()
 
         # Persist the profile data
         self.persist_profile_data()

@@ -5,8 +5,8 @@ from tqdm.auto import tqdm
 
 from pharynx_redox.profile_processing import scale_by_wvl
 from pharynx_redox import data_analysis as da
+from pharynx_redox import utils
 
-import matplotlib as mpl
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
@@ -107,7 +107,7 @@ def plot_individual_profile_data_by_strain_and_pair(
 
     n_strains = len(strains)
     if "pair" in profile_data.dims:
-        fig, axes = plt.subplots(n_strains, 2, figsize=figsize)
+        _, axes = plt.subplots(n_strains, 2, figsize=figsize)
 
         for strain, ax in zip(strains, axes):
             for i in range(2):
@@ -192,7 +192,7 @@ def plot_average_by_strain_and_pair(
         n_pairs = profile_data.pair.size
 
         if axes is None:
-            fig, axes = plt.subplots(n_pairs, 1, figsize=(10, 10))
+            _, axes = plt.subplots(n_pairs, 1, figsize=(10, 10))
 
         for i, ax in zip(range(n_pairs), axes):
 
@@ -270,12 +270,14 @@ def add_regions_to_axis(
         the distance from the left of the region annotation, expressed as a percentage of the axis length
     alpha
         the opacity of the region annotations (0 = transparent, 1=opaque)
+
     kwargs
         these will be passed onto ``ax.axvspan``
 
     """
     min_y, max_y = ax.get_ylim()
     min_x, max_x = ax.get_xlim()
+
     text_y = ((max_y - min_y) * label_dist_bottom_percent) + min_y
 
     text_x_offset = (max_x - min_x) * label_x_offset_percent

@@ -69,3 +69,9 @@ Utils
 
 .. automodule:: pharynx_redox.utils
     :members:
+
+Data Analysis
+=============
+
+.. automodule:: pharynx_redox.data_analysis
+    :members:
