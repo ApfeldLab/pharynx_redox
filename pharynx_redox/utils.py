@@ -228,7 +228,7 @@ def measure_shifted_midlines(
     shift_range: typing.Iterable[float],
     shift_steps: int,
     n_points: int = 200,
-) -> (xr.DataArray, typing.List[float]):
+) -> (xr.DataArray, typing.List[float], typing.List[int]):
     """
     Measure under shifted midlines for use in synthetic movement analysis
 
@@ -261,21 +261,16 @@ def measure_shifted_midlines(
 
     Returns
     -------
-    (xr.DataArray, typing.List[float])
-        a tuple containing the measurements and a list of shifts where the index
-        corresponds to the first dimension of the measurements (the animal)
+    (xr.DataArray, typing.List[float], typing.List[int])
+        a tuple containing:
+
+            - the measurements
+            - a list of shifts (where the index corresponds to the first dimension of
+              the measurements (the animal))
+            - a list of original indices (i.e. the experimental indices) for each
+              synthetic index
+
     """
-    # make a new DataArray with
-    #   (# animals) = ((# non-moving 0) + (# non-moving 1)) * len(shifts)
-
-    # for each animal
-    #   for each pair
-    #       if not moving according to hand-annotation:
-    #           measure under 410 and 470 like normal, set that as pair 0
-    #
-    #           shift 470 midline
-    #           measure under 410 and 470-shift, set that as pair 1
-
     shifts = np.linspace(*shift_range, shift_steps)
 
     ex_meas = experiment.trimmed_profiles
@@ -307,6 +302,7 @@ def measure_shifted_midlines(
     )
 
     all_shifts = []
+    orig_idx = []
     new_animal_idx = 0
     for pair in range(stationary_animals.shape[0]):
         for orig_animal_idx in stationary_animals[pair]:
@@ -322,6 +318,7 @@ def measure_shifted_midlines(
 
             for shift in shifts:
                 all_shifts.append(shift)
+                orig_idx.append(orig_animal_idx)
 
                 xs, ys = midline.linspace(n=n_points)
 
@@ -331,7 +328,9 @@ def measure_shifted_midlines(
 
                 # now, shift the coordinates of the midline and measure under 470
                 # (will be pair 1)
-                shifted_470 = ndi.map_coordinates(i470, np.stack([ys, xs + shift]))
+                shifted_470 = ndi.map_coordinates(
+                    i470, np.stack([ys, xs + shift]), order=1
+                )
 
                 measurements[new_animal_idx].loc[
                     {"pair": 0, "wavelength": "410"}
@@ -349,4 +348,4 @@ def measure_shifted_midlines(
 
                 new_animal_idx += 1
 
-    return measurements, all_shifts
+    return measurements, all_shifts, orig_idx

@@ -1,5 +1,5 @@
 from setuptools import setup
-from os import path, system
+from os import path
 
 here = path.abspath(path.dirname(__file__))
 
