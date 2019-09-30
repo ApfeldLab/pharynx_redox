@@ -67,3 +67,4 @@ class TestImageProcessing:
 
         np.testing.assert_array_equal(fl_test_rot.values, fl_expected_rot.values)
         np.testing.assert_array_equal(seg_test_rot.values, seg_expected_rot.values)
+

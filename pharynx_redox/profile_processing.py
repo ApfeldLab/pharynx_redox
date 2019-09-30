@@ -2,6 +2,7 @@ import collections
 from dataclasses import dataclass
 from typing import Union
 
+import scipy
 import numpy as np
 import xarray as xr
 import pandas as pd
@@ -429,7 +430,7 @@ def register_profiles_matlab(raw_profile_data) -> (xr.DataArray, np.ndarray):
             rough_n_breaks,
             rough_order,
             n_deriv,
-            nargout=3
+            nargout=3,
         )
         r410, r470 = np.array(r410).T, np.array(r470).T
 
@@ -643,6 +644,36 @@ def oxd_to_redox_potential(
     return midpoint_potential - (
         8314.462 * (273.15 + temperature) / (z * 96485.3415)
     ) * np.log((1 - oxd) / oxd)
+
+
+def find_optimal_regions(initial_regions, err_data, min_width=10, rescale_regions=True):
+    try:
+        err_data = err_data.values
+    except AttributeError:
+        pass
+
+    def avg_err_for_bounds(region_bounds):
+        l, r = int(region_bounds[0]), int(region_bounds[1])
+        if np.abs(r - l) < min_width:
+            return np.inf
+        if r < l:
+            l, r = r, l
+        return np.nanmean(err_data[:, int(l) : int(r)])
+
+    if rescale_regions:
+        initial_regions = utils.scale_region_boundaries(
+            initial_regions, err_data.shape[-1]
+        )
+
+    opt_regions = {}
+    for region, bounds in initial_regions.items():
+        opt_bounds = scipy.optimize.brute(
+            avg_err_for_bounds,
+            ranges=(slice(bounds[0], bounds[1], 1), slice(bounds[0], bounds[1], 1)),
+            finish=None,
+        )
+        opt_regions[region] = opt_bounds.astype(np.int)
+    return opt_regions
 
 
 if __name__ == "__main__":

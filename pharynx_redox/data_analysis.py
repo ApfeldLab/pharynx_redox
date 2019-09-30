@@ -124,6 +124,11 @@ def split_by_movement_types(df, roi, t=0):
                                3             0  0         0  0            0  0   0  0
                                4             0  0         0  0            0  0   0  0
 
+    See Also
+    --------
+    mvmt_long_to_wide
+        for generating the DataFrame with the required format
+
     returned in the following order::
 
         (m_0_0, m_0_1, m_1_0, m_1_1)
