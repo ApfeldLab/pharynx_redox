@@ -15,9 +15,25 @@ import seaborn as sns
 import xarray as xr
 from matplotlib import cm, gridspec
 from matplotlib.gridspec import GridSpec
+import statsmodels.api as sm
 from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
 
+def cdf_plot(data, *args, **kwargs):
+    """
+    Plot a CDF, compatible with Seaborn's FacetGrid
+
+    data
+        1-D vector of numbers to plot the CDF of
+    *args
+        ignored
+    **kwargs
+        keyword arguments passed onto ``plt.step``
+    """
+    ecdf = sm.distributions.ECDF(data)
+    x = np.linspace(min(data), max(data))
+    y = ecdf(x)
+    plt.step(x, y, **kwargs)
 
 def plot_paired_experiment_summary(experiment):
     """
@@ -246,6 +262,7 @@ def add_regions_to_axis(
     label_dist_bottom_percent: float = 0.03,
     label_x_offset_percent: float = 0.005,
     alpha: float = 0.1,
+    hide_labels: bool = False,
     **kwargs,
 ):
     """
@@ -270,7 +287,8 @@ def add_regions_to_axis(
         the distance from the left of the region annotation, expressed as a percentage of the axis length
     alpha
         the opacity of the region annotations (0 = transparent, 1=opaque)
-
+    hide_labels
+        if True, does not add labels to regions
     kwargs
         these will be passed onto ``ax.axvspan``
 
@@ -284,7 +302,8 @@ def add_regions_to_axis(
 
     for region, bounds in regions.items():
         ax.axvspan(bounds[0], bounds[1], alpha=alpha, **kwargs)
-        ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
+        if not hide_labels:
+            ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
 
 def plot_multi_profile_by_wvl_and_pair(data, color="royalblue", alpha=0.3):

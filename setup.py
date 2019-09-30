@@ -45,6 +45,7 @@ setup(
         "tqdm",
         "xarray",
         "xlrd",
+        "netcdf4",
     ],
     test_suite="tests",
     extras_require={
