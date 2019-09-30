@@ -270,6 +270,10 @@ def calculate_midlines(
                 },
                 ...
             ]
+        
+        accessed like so::
+
+            midlines[img_idx][wvl][pair]
 
     See Also
     --------

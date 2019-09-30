@@ -29,6 +29,7 @@ from pharynx_redox import (
     pharynx_io as pio,
     plots,
     utils,
+    constants,
 )
 
 
@@ -76,25 +77,9 @@ class Experiment:
     rough_nbasis: int = 200
     warp_to_mean: bool = False
 
-    trimmed_regions: dict = field(
-        default_factory=lambda: {
-            "pm3": [0.07, 0.28],
-            "pm4": [0.33, 0.45],
-            "pm5": [0.53, 0.70],
-            "pm6": [0.80, 0.86],
-            "pm7": [0.88, 0.96],
-        }
-    )
+    trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
 
-    untrimmed_regions: dict = field(
-        default_factory=lambda: {
-            "pm3": [0.12, 0.30],
-            "pm4": [0.35, 0.44],
-            "pm5": [0.52, 0.65],
-            "pm6": [0.73, 0.78],
-            "pm7": [0.79, 0.85],
-        }
-    )
+    untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
     strategy: str = None
 
     ###################################################################################
@@ -155,10 +140,11 @@ class Experiment:
 
     @cached_property
     def movement(self):
+        movement_filepath = self.experiment_dir.joinpath(
+            self.experiment_id + "-mvmt.csv"
+        )
         try:
-            df = pd.read_csv(
-                self.experiment_dir.joinpath(self.experiment_id + "-mvmt.csv")
-            )
+            df = pd.read_csv(movement_filepath)
             df = df.pivot_table(
                 index="animal", columns=["region", "pair"], values="movement"
             )
@@ -166,6 +152,7 @@ class Experiment:
             self._movement = df
             return self._movement
         except FileNotFoundError:
+            logging.warning(f"Tried to access {movement_filepath}; file was not found")
             return None
 
     @cached_property
@@ -288,17 +275,31 @@ class Experiment:
         # Expand the trimmed_intensity_data to include new wavelengths
         new_wvls = np.append(self.trimmed_profiles.wavelength.data, ["r", "oxd", "e"])
         self.trimmed_profiles = self.trimmed_profiles.reindex(wavelength=new_wvls)
+        self.untrimmed_profiles = self.untrimmed_profiles.reindex(wavelength=new_wvls)
 
         self.trimmed_profiles.loc[dict(wavelength="r")] = self.trimmed_profiles.sel(
             wavelength="410"
         ) / self.trimmed_profiles.sel(wavelength="470")
+        self.untrimmed_profiles.loc[dict(wavelength="r")] = self.untrimmed_profiles.sel(
+            wavelength="410"
+        ) / self.untrimmed_profiles.sel(wavelength="470")
         self.trimmed_profiles.loc[dict(wavelength="oxd")] = profile_processing.r_to_oxd(
             self.trimmed_profiles.loc[dict(wavelength="r")]
+        )
+        self.untrimmed_profiles.loc[
+            dict(wavelength="oxd")
+        ] = profile_processing.r_to_oxd(
+            self.untrimmed_profiles.loc[dict(wavelength="r")]
         )
         self.trimmed_profiles.loc[
             dict(wavelength="e")
         ] = profile_processing.oxd_to_redox_potential(
             self.trimmed_profiles.loc[dict(wavelength="oxd")]
+        )
+        self.untrimmed_profiles.loc[
+            dict(wavelength="e")
+        ] = profile_processing.oxd_to_redox_potential(
+            self.untrimmed_profiles.loc[dict(wavelength="oxd")]
         )
 
     def flip_at(self, idx):
