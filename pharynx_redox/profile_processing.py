@@ -124,6 +124,7 @@ def smooth_profile_data(
     order: int = 5,
     nbasis: int = 200,
     smoothing_parameter: float = 1e-8,
+    ret_basis: bool = True,
 ):
     """
     Smooth profile data by fitting smoothing B-splines

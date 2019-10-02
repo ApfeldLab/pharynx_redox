@@ -263,6 +263,7 @@ def add_regions_to_axis(
     label_x_offset_percent: float = 0.005,
     alpha: float = 0.1,
     hide_labels: bool = False,
+    xs = None,
     **kwargs,
 ):
     """
@@ -779,7 +780,8 @@ def plot_profile_avg_with_bounds(
     else:
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
-    xs = np.arange(len(lower))
+    if xs is None:
+        xs = np.arange(len(lower))
     ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
 
     return ax
