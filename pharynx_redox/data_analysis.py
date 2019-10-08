@@ -6,14 +6,22 @@ import pandas as pd
 import typing
 import xarray as xr
 
-from pharynx_redox import profile_processing
+from pandas.core.indexes.base import InvalidIndexError
+
+from pharynx_redox import profile_processing, pharynx_io as pio
 
 
 def load_all_cached_profile_data(meta_dir, glob_pattern):
-    return xr.concat(
-        (xr.load_dataarray(p) for p in sorted(meta_dir.glob(glob_pattern))),
-        dim="strain",
-    )
+    try:
+        return xr.concat(
+            (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
+            dim="spec",
+        )
+    except InvalidIndexError:
+        return xr.concat(
+            (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
+            dim="strain",
+        )
 
 
 def load_all_summaries(meta_dir: Union[Path, str]) -> pd.DataFrame:
@@ -29,14 +37,15 @@ def load_all_movement(meta_dir: Union[Path, str]) -> pd.DataFrame:
     if isinstance(meta_dir, str):
         meta_dir = Path(meta_dir)
 
-    return pd.concat(pd.read_csv(x) for x in sorted(meta_dir.glob("**/*mvmt.csv")))
+    return pd.concat(pd.read_csv(x) for x in sorted(meta_dir.glob("**/*-mvmt.csv")))
 
 
 def get_resid_rr_pairs(
     pair0, pair1, summarize=False, **summarize_kwargs
 ) -> Union[xr.DataArray, typing.Tuple[xr.DataArray, pd.DataFrame]]:
     with np.errstate(divide="ignore"):
-        prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
+        # prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
+        prof_data = 1 - (pair0 / pair1)
     if summarize:
         summary_table = profile_processing.summarize_over_regions(
             prof_data, **summarize_kwargs
@@ -72,8 +81,8 @@ def fold_error(data, summarize=False, **summarize_kwargs):
 
 def fold_error_pairs(pair0, pair1, summarize=False, **summarize_kwargs):
     with np.errstate(divide="ignore"):
-        # prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
-        prof_data = np.abs(1 - (pair0 / pair1))
+        prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
+        # prof_data = np.abs(1 - (pair0 / pair1))
     if summarize:
         summary_table = profile_processing.summarize_over_regions(
             prof_data, **summarize_kwargs

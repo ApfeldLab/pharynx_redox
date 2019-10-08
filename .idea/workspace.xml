@@ -45,7 +45,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/setup.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="269">
+            <state relative-caret-position="615">
               <caret line="42" column="21" selection-start-line="42" selection-start-column="21" selection-end-line="42" selection-end-column="21" />
               <folding>
                 <element signature="e#0#28#0" expanded="true" />
@@ -57,71 +57,10 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/plots.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="625">
+            <state relative-caret-position="3930">
               <caret line="280" selection-start-line="280" selection-end-line="280" />
               <folding>
                 <element signature="e#0#26#0" expanded="true" />
-                <element signature="e#600#1878#0" />
-                <element signature="e#600#707#1" />
-                <element signature="e#2083#5033#0" />
-                <element signature="e#2083#2301#1" />
-                <element signature="e#2605#3957#0" />
-                <element signature="e#2720#3957#0" />
-                <element signature="e#2755#3957#0" />
-                <element signature="e#3224#3382#0" />
-                <element signature="e#3502#3957#0" />
-                <element signature="e#3523#3705#0" />
-                <element signature="e#3976#5009#0" />
-                <element signature="e#4059#5009#0" />
-                <element signature="e#4442#4544#0" />
-                <element signature="e#4600#5009#0" />
-                <element signature="e#4621#4783#0" />
-                <element signature="e#5159#7053#0" />
-                <element signature="e#5159#5319#1" />
-                <element signature="e#5415#6396#0" />
-                <element signature="e#5603#6375#0" />
-                <element signature="e#5642#6302#0" />
-                <element signature="e#6416#7053#0" />
-                <element signature="e#6571#7034#0" />
-                <element signature="e#8448#9144#0" />
-                <element signature="e#8448#8569#1" />
-                <element signature="e#8849#9122#0" />
-                <element signature="e#8877#9122#0" />
-                <element signature="e#8937#9122#0" />
-                <element signature="e#9233#9887#0" />
-                <element signature="e#9233#9372#1" />
-                <element signature="e#9531#9769#0" />
-                <element signature="e#9935#10123#0" />
-                <element signature="e#9935#10051#1" />
-                <element signature="e#10339#14062#0" />
-                <element signature="e#10339#10502#1" />
-                <element signature="e#10706#10785#0" />
-                <element signature="e#10804#10877#0" />
-                <element signature="e#10968#12143#0" />
-                <element signature="e#12189#12249#0" />
-                <element signature="e#12269#12320#0" />
-                <element signature="e#12450#13980#0" />
-                <element signature="e#12650#13045#0" />
-                <element signature="e#13200#13950#0" />
-                <element signature="e#13338#13872#0" />
-                <element signature="e#13614#13872#0" />
-                <element signature="e#13651#13850#0" />
-                <element signature="e#14141#20532#0" />
-                <element signature="e#14141#14292#1" />
-                <element signature="e#14472#14512#0" />
-                <element signature="e#14697#16387#0" />
-                <element signature="e#18826#18874#0" />
-                <element signature="e#19736#20086#0" />
-                <element signature="e#20608#20963#0" />
-                <element signature="e#20608#20753#1" />
-                <element signature="e#20805#20963#0" />
-                <element signature="e#20860#20963#0" />
-                <element signature="e#21076#21620#0" />
-                <element signature="e#21076#21223#1" />
-                <element signature="e#21807#26133#0" />
-                <element signature="e#21807#24633#1" />
-                <element signature="e#24832#25943#0" />
-                <element signature="e#26070#26133#0" />
               </folding>
             </state>
           </provider>
@@ -130,7 +69,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="312">
+            <state relative-caret-position="975">
               <caret line="99" column="27" selection-start-line="99" selection-start-column="27" selection-end-line="99" selection-end-column="27" />
               <folding>
                 <element signature="e#360#1161#0" />
@@ -173,7 +112,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="536">
+            <state relative-caret-position="855">
               <caret line="58" column="24" selection-start-line="58" selection-start-column="24" selection-end-line="58" selection-end-column="24" />
             </state>
           </provider>
@@ -182,7 +121,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/image_processing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="432">
+            <state relative-caret-position="1845">
               <caret line="313" column="10" selection-start-line="313" selection-start-column="10" selection-end-line="313" selection-end-column="10" />
               <folding>
                 <element signature="e#578#1416#0" />
@@ -246,14 +185,6 @@
                 <element signature="e#4331#4937#1" />
                 <element signature="e#5047#5380#0" />
                 <element signature="e#5047#5213#1" />
-                <element signature="e#5564#9439#0" />
-                <element signature="e#5562#6815#1" />
-                <element signature="e#7238#7411#0" />
-                <element signature="e#7698#7854#0" />
-                <element signature="e#7933#9572#0" />
-                <element signature="e#7994#9572#0" />
-                <element signature="e#8401#9572#0" />
-                <element signature="e#8943#9008#0" />
               </folding>
             </state>
           </provider>
@@ -262,19 +193,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/data_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="435">
-              <caret line="79" column="7" selection-start-line="79" selection-start-column="7" selection-end-line="79" selection-end-column="7" />
-              <folding>
-                <element signature="e#174#296#0" />
-                <element signature="e#371#550#0" />
-                <element signature="e#624#772#0" />
-                <element signature="e#985#1260#0" />
-                <element signature="e#1142#1292#0" />
-                <element signature="e#1413#1810#0" />
-                <element signature="e#1035#1124#0" />
-                <element signature="e#1154#1321#0" />
-                <element signature="e#1131#1364#0" />
-              </folding>
+            <state relative-caret-position="1500">
+              <caret line="142" column="7" selection-start-line="142" selection-start-column="7" selection-end-line="142" selection-end-column="7" />
             </state>
           </provider>
         </entry>
@@ -282,7 +202,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pharynx_redox/pharynx_io.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="322">
+            <state relative-caret-position="555">
               <caret line="196" column="19" selection-start-line="196" selection-start-column="19" selection-end-line="196" selection-end-column="19" />
               <folding>
                 <element signature="e#219#559#0" />
@@ -680,6 +600,7 @@
       <workItem from="1568038321018" duration="8817000" />
       <workItem from="1568125864071" duration="33875000" />
       <workItem from="1568390438947" duration="27265000" />
+      <workItem from="1570480600225" duration="9000" />
     </task>
     <task id="LOCAL-00001" summary="rudimentary GUI with python backend for analysis">
       <created>1561988522548</created>
@@ -787,7 +708,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="414333000" />
+    <option name="totallyTimeSpent" value="414342000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -1241,13 +1162,6 @@ plt.plot(unshifted_410)</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="536">
-          <caret line="58" column="24" selection-start-line="58" selection-start-column="24" selection-end-line="58" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tests/test_image_processing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="348">
@@ -1265,16 +1179,6 @@ plt.plot(unshifted_410)</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="269">
-          <caret line="42" column="21" selection-start-line="42" selection-start-column="21" selection-end-line="42" selection-end-column="21" />
-          <folding>
-            <element signature="e#0#28#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/.virtualenvs/worm/lib/python3.7/site-packages/scipy/ndimage/interpolation.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="191">
@@ -1282,31 +1186,77 @@ plt.plot(unshifted_410)</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_redox/pharynx_io.py">
+    <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="322">
-          <caret line="196" column="19" selection-start-line="196" selection-start-column="19" selection-end-line="196" selection-end-column="19" />
+        <state relative-caret-position="615">
+          <caret line="42" column="21" selection-start-line="42" selection-start-column="21" selection-end-line="42" selection-end-column="21" />
           <folding>
-            <element signature="e#219#559#0" />
-            <element signature="e#219#515#1" />
-            <element signature="e#687#1711#0" />
-            <element signature="e#687#1107#1" />
-            <element signature="e#1342#1711#0" />
-            <element signature="e#1387#1711#0" />
-            <element signature="e#1802#2500#0" />
-            <element signature="e#1802#2419#1" />
-            <element signature="e#2623#5590#0" />
-            <element signature="e#2623#4272#1" />
-            <element signature="e#4558#4646#0" />
-            <element signature="e#4994#5166#0" />
-            <element signature="e#5297#5404#0" />
+            <element signature="e#0#28#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_redox/plots.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3930">
+          <caret line="280" selection-start-line="280" selection-end-line="280" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="975">
+          <caret line="99" column="27" selection-start-line="99" selection-start-column="27" selection-end-line="99" selection-end-column="27" />
+          <folding>
+            <element signature="e#360#1161#0" />
+            <element signature="e#360#1001#1" />
+            <element signature="e#3545#3960#0" />
+            <element signature="e#4154#5098#0" />
+            <element signature="e#4154#4816#1" />
+            <element signature="e#5323#6630#0" />
+            <element signature="e#5323#5531#1" />
+            <element signature="e#6931#12377#0" />
+            <element signature="e#6931#8663#1" />
+            <element signature="e#8763#8844#0" />
+            <element signature="e#9061#12320#0" />
+            <element signature="e#9921#11365#0" />
+            <element signature="e#12438#12900#0" />
+            <element signature="e#12438#12640#1" />
+            <element signature="e#12708#12882#0" />
+            <element signature="e#12745#12882#0" />
+            <element signature="e#13008#13730#0" />
+            <element signature="e#13008#13439#1" />
+            <element signature="e#13862#14880#0" />
+            <element signature="e#13862#14586#1" />
+            <element signature="e#15012#16569#0" />
+            <element signature="e#15012#15139#1" />
+            <element signature="e#15231#15376#0" />
+            <element signature="e#15476#15626#0" />
+            <element signature="e#15780#16534#0" />
+            <element signature="e#15846#16534#0" />
+            <element signature="e#15948#16534#0" />
+            <element signature="e#16013#16534#0" />
+            <element signature="e#16722#16937#0" />
+            <element signature="e#16722#16864#1" />
+            <element signature="e#17108#17444#0" />
+            <element signature="e#17108#17317#1" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/source/conf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="855">
+          <caret line="58" column="24" selection-start-line="58" selection-start-column="24" selection-end-line="58" selection-end-column="24" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pharynx_redox/image_processing.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
+        <state relative-caret-position="1845">
           <caret line="313" column="10" selection-start-line="313" selection-start-column="10" selection-end-line="313" selection-end-column="10" />
           <folding>
             <element signature="e#578#1416#0" />
@@ -1380,114 +1330,24 @@ plt.plot(unshifted_410)</expression-string>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_redox/plots.py">
+    <entry file="file://$PROJECT_DIR$/pharynx_redox/pharynx_io.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="625">
-          <caret line="280" selection-start-line="280" selection-end-line="280" />
+        <state relative-caret-position="555">
+          <caret line="196" column="19" selection-start-line="196" selection-start-column="19" selection-end-line="196" selection-end-column="19" />
           <folding>
-            <element signature="e#0#26#0" expanded="true" />
-            <element signature="e#600#1878#0" />
-            <element signature="e#600#707#1" />
-            <element signature="e#2083#5033#0" />
-            <element signature="e#2083#2301#1" />
-            <element signature="e#2605#3957#0" />
-            <element signature="e#2720#3957#0" />
-            <element signature="e#2755#3957#0" />
-            <element signature="e#3224#3382#0" />
-            <element signature="e#3502#3957#0" />
-            <element signature="e#3523#3705#0" />
-            <element signature="e#3976#5009#0" />
-            <element signature="e#4059#5009#0" />
-            <element signature="e#4442#4544#0" />
-            <element signature="e#4600#5009#0" />
-            <element signature="e#4621#4783#0" />
-            <element signature="e#5159#7053#0" />
-            <element signature="e#5159#5319#1" />
-            <element signature="e#5415#6396#0" />
-            <element signature="e#5603#6375#0" />
-            <element signature="e#5642#6302#0" />
-            <element signature="e#6416#7053#0" />
-            <element signature="e#6571#7034#0" />
-            <element signature="e#8448#9144#0" />
-            <element signature="e#8448#8569#1" />
-            <element signature="e#8849#9122#0" />
-            <element signature="e#8877#9122#0" />
-            <element signature="e#8937#9122#0" />
-            <element signature="e#9233#9887#0" />
-            <element signature="e#9233#9372#1" />
-            <element signature="e#9531#9769#0" />
-            <element signature="e#9935#10123#0" />
-            <element signature="e#9935#10051#1" />
-            <element signature="e#10339#14062#0" />
-            <element signature="e#10339#10502#1" />
-            <element signature="e#10706#10785#0" />
-            <element signature="e#10804#10877#0" />
-            <element signature="e#10968#12143#0" />
-            <element signature="e#12189#12249#0" />
-            <element signature="e#12269#12320#0" />
-            <element signature="e#12450#13980#0" />
-            <element signature="e#12650#13045#0" />
-            <element signature="e#13200#13950#0" />
-            <element signature="e#13338#13872#0" />
-            <element signature="e#13614#13872#0" />
-            <element signature="e#13651#13850#0" />
-            <element signature="e#14141#20532#0" />
-            <element signature="e#14141#14292#1" />
-            <element signature="e#14472#14512#0" />
-            <element signature="e#14697#16387#0" />
-            <element signature="e#18826#18874#0" />
-            <element signature="e#19736#20086#0" />
-            <element signature="e#20608#20963#0" />
-            <element signature="e#20608#20753#1" />
-            <element signature="e#20805#20963#0" />
-            <element signature="e#20860#20963#0" />
-            <element signature="e#21076#21620#0" />
-            <element signature="e#21076#21223#1" />
-            <element signature="e#21807#26133#0" />
-            <element signature="e#21807#24633#1" />
-            <element signature="e#24832#25943#0" />
-            <element signature="e#26070#26133#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pharynx_redox/profile_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="312">
-          <caret line="99" column="27" selection-start-line="99" selection-start-column="27" selection-end-line="99" selection-end-column="27" />
-          <folding>
-            <element signature="e#360#1161#0" />
-            <element signature="e#360#1001#1" />
-            <element signature="e#3545#3960#0" />
-            <element signature="e#4154#5098#0" />
-            <element signature="e#4154#4816#1" />
-            <element signature="e#5323#6630#0" />
-            <element signature="e#5323#5531#1" />
-            <element signature="e#6931#12377#0" />
-            <element signature="e#6931#8663#1" />
-            <element signature="e#8763#8844#0" />
-            <element signature="e#9061#12320#0" />
-            <element signature="e#9921#11365#0" />
-            <element signature="e#12438#12900#0" />
-            <element signature="e#12438#12640#1" />
-            <element signature="e#12708#12882#0" />
-            <element signature="e#12745#12882#0" />
-            <element signature="e#13008#13730#0" />
-            <element signature="e#13008#13439#1" />
-            <element signature="e#13862#14880#0" />
-            <element signature="e#13862#14586#1" />
-            <element signature="e#15012#16569#0" />
-            <element signature="e#15012#15139#1" />
-            <element signature="e#15231#15376#0" />
-            <element signature="e#15476#15626#0" />
-            <element signature="e#15780#16534#0" />
-            <element signature="e#15846#16534#0" />
-            <element signature="e#15948#16534#0" />
-            <element signature="e#16013#16534#0" />
-            <element signature="e#16722#16937#0" />
-            <element signature="e#16722#16864#1" />
-            <element signature="e#17108#17444#0" />
-            <element signature="e#17108#17317#1" />
+            <element signature="e#219#559#0" />
+            <element signature="e#219#515#1" />
+            <element signature="e#687#1711#0" />
+            <element signature="e#687#1107#1" />
+            <element signature="e#1342#1711#0" />
+            <element signature="e#1387#1711#0" />
+            <element signature="e#1802#2500#0" />
+            <element signature="e#1802#2419#1" />
+            <element signature="e#2623#5590#0" />
+            <element signature="e#2623#4272#1" />
+            <element signature="e#4558#4646#0" />
+            <element signature="e#4994#5166#0" />
+            <element signature="e#5297#5404#0" />
           </folding>
         </state>
       </provider>
@@ -1501,19 +1361,8 @@ plt.plot(unshifted_410)</expression-string>
     </entry>
     <entry file="file://$PROJECT_DIR$/pharynx_redox/data_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="435">
-          <caret line="79" column="7" selection-start-line="79" selection-start-column="7" selection-end-line="79" selection-end-column="7" />
-          <folding>
-            <element signature="e#174#296#0" />
-            <element signature="e#371#550#0" />
-            <element signature="e#624#772#0" />
-            <element signature="e#985#1260#0" />
-            <element signature="e#1142#1292#0" />
-            <element signature="e#1413#1810#0" />
-            <element signature="e#1035#1124#0" />
-            <element signature="e#1154#1321#0" />
-            <element signature="e#1131#1364#0" />
-          </folding>
+        <state relative-caret-position="1500">
+          <caret line="142" column="7" selection-start-line="142" selection-start-column="7" selection-end-line="142" selection-end-column="7" />
         </state>
       </provider>
     </entry>

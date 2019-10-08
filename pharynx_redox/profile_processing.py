@@ -538,6 +538,20 @@ def get_trim_boundaries(
     return l_bound, r_bound
 
 
+# def create_empty_profile_xarray(template=None, position_size=None):
+#     return xr.DataArray(
+#         0,
+#         dims=["spec", "wavelength", "pair", "position"],
+#         coords={
+#             "spec": intensity_data.spec,
+#             "wavelength": intensity_data.wavelength,
+#             "pair": intensity_data.pair,
+#             "position": np.arange(new_length),
+#             "strain": ("spec", intensity_data.strain),
+#         },
+#     )
+
+
 def trim_profiles(
     intensity_data: xr.DataArray,
     threshold: float,
@@ -557,32 +571,27 @@ def trim_profiles(
 
     """
     trimmed_intensity_data = xr.DataArray(
-        np.zeros(
-            (
-                intensity_data.strain.size,
-                intensity_data.wavelength.size,
-                intensity_data.pair.size,
-                new_length,
-            )
-        ),
-        dims=["strain", "wavelength", "pair", "position"],
+        0,
+        dims=["spec", "wavelength", "pair", "position"],
         coords={
-            "strain": intensity_data.strain,
+            "spec": intensity_data.spec,
             "wavelength": intensity_data.wavelength,
             "pair": intensity_data.pair,
+            "position": np.arange(new_length),
+            "strain": ("spec", intensity_data.strain),
         },
     )
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
-    for img_idx in range(intensity_data.strain.size):
+    for img_idx in range(intensity_data.spec.size):
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
             if "tl" not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
                     data = (
                         intensity_data.sel(wavelength=wvl, pair=pair)
-                        .isel(strain=img_idx)
+                        .isel(spec=img_idx)
                         .data
                     )
 
