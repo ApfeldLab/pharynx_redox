@@ -1,11 +1,26 @@
 from pathlib import Path
-
+from typing import Union
 import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
 
 from pharynx_redox import utils
+
+
+def load_profile_data(profile_data_path: Union[Path, str]) -> xr.DataArray:
+    try:
+        return xr.load_dataarray(profile_data_path).set_index(
+            spec=["experiment", "animal"]
+        )
+    except ValueError:
+        return xr.load_dataarray(profile_data_path)
+
+
+def save_profile_data(
+    profile_data: xr.DataArray, profile_data_path: Union[Path, str]
+) -> xr.DataArray:
+    profile_data.reset_index("spec").to_netcdf(profile_data_path)
 
 
 def load_tiff_from_disk(image_path: Path) -> np.ndarray:
@@ -169,10 +184,20 @@ def load_images(
         j = np.where(lambdas == wvl)[0][0]
         reshaped_img_stack[:, j, pair, :, :] = tmp_img_stack[:, i, :, :]
 
+    exp_id = intercalated_image_stack_path.stem
+
+    spec = pd.MultiIndex.from_arrays(
+        [np.repeat(exp_id, n_animals), np.arange(n_animals)],
+        names=("experiment", "animal"),
+    )
     return xr.DataArray(
         reshaped_img_stack,
-        dims=["strain", "wavelength", "pair", "y", "x"],
-        coords={"wavelength": unique_lambdas, "strain": strain_map},
+        dims=["spec", "wavelength", "pair", "y", "x"],
+        coords={
+            "wavelength": unique_lambdas,
+            "spec": spec,
+            "strain": ("spec", strain_map),
+        },
     )
 
 

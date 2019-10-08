@@ -50,6 +50,8 @@ class Experiment:
     # PIPELINE PARAMETERS
     ###################################################################################
 
+    strategy: str = None
+
     # R -> OxD parameters
     r_min: float = 0.852
     r_max: float = 6.65
@@ -77,13 +79,14 @@ class Experiment:
     rough_nbasis: int = 200
     warp_to_mean: bool = False
 
+    # Summarization parameters
     trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
-
     untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
-    strategy: str = None
+    pointwise_summaries: bool = False
+    save_summary_plots: bool = False
 
     ###################################################################################
-    # COMPUTED PROPERTIES
+    # COMPUTED PROPERTY PLACEHOLDERS
     ###################################################################################
 
     _scaled_regions: dict = None
@@ -104,10 +107,8 @@ class Experiment:
 
     warps: List[skfda.FDataGrid] = field(default_factory=list)
 
-    save_summary_plots: bool = False
-
     ####################################################################################
-    # PROPERTIES
+    # COMPUTED PROPERTIES
     ####################################################################################
 
     @property
@@ -137,7 +138,7 @@ class Experiment:
             raw_image_path, self.imaging_scheme, self.strains
         )
         return self._raw_image_data
-
+    
     @cached_property
     def movement(self):
         movement_filepath = self.experiment_dir.joinpath(
@@ -175,12 +176,14 @@ class Experiment:
                     .mean(dim="position")
                     .sel(wavelength=wvl)
                     .to_pandas()
-                )
-                sub_df = sub_df.reset_index()
+                ).reset_index()
                 sub_df["animal"] = range(len(sub_df))
                 sub_df["region"] = region
                 sub_df["experiment"] = self.experiment_id
                 sub_df["strategy"] = self.strategy
+                sub_df["strain"] = self.strains
+
+
                 sub_df = sub_df.melt(
                     value_vars=self.trimmed_profiles.pair.data,
                     var_name="pair",
@@ -199,6 +202,25 @@ class Experiment:
         if self.movement is not None:
             self._summary_table = self._summary_table.join(
                 self.movement, on=["animal", "pair"]
+            )
+
+        if self.pointwise_summaries:
+            self._summary_table["pointwise"] = True
+        else:
+            self._summary_table["pointwise"] = False
+            # Calculate R, OxD, and E using region summaries
+            self._summary_table["r"] = self._summary_table["410"] / self._summary_table["470"]
+            self._summary_table["oxd"] = profile_processing.r_to_oxd(
+                self._summary_table["r"],
+                r_min=self.r_min,
+                r_max=self.r_max,
+                instrument_factor=self.instrument_factor,
+            )
+            self._summary_table["e"] = profile_processing.oxd_to_redox_potential(
+                self._summary_table["oxd"],
+                midpoint_potential=self.midpoint_potential,
+                z=self.z,
+                temperature=self.temperature,
             )
 
         return self._summary_table
@@ -238,7 +260,7 @@ class Experiment:
         # noinspection PyTypeChecker
         self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
 
-    def measure_under_midlines(self):
+def measure_under_midlines(self):
         logging.info("Measuring under midlines")
         self.untrimmed_profiles = ip.measure_under_midlines(
             self.rot_fl,
@@ -320,13 +342,14 @@ class Experiment:
         logging.info(
             f"Saving untrimmed profile data to {self.untrimmed_profile_data_filepath}"
         )
-
-        self.untrimmed_profiles.to_netcdf(self.untrimmed_profile_data_filepath)
+        pio.save_profile_data(
+            self.untrimmed_profiles, self.untrimmed_profile_data_filepath
+        )
 
         logging.info(
             f"Saving trimmed profile data to {self.trimmed_profile_data_filepath}"
         )
-        self.trimmed_profiles.to_netcdf(self.trimmed_profile_data_filepath)
+        pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_filepath)
 
         logging.info(f"Saving warp data to {self.warp_data_filepath}")
         with open(self.warp_data_filepath, "wb") as f:
@@ -336,12 +359,14 @@ class Experiment:
         logging.info(
             f"Loading trimmed profile data from {self.trimmed_profile_data_filepath}"
         )
-        self.trimmed_profiles = xr.open_dataarray(self.trimmed_profile_data_filepath)
+        self.trimmed_profiles = pio.load_profile_data(
+            self.trimmed_profile_data_filepath
+        )
 
         logging.info(
             f"Loading untrimmed profile data from {self.untrimmed_profile_data_filepath}"
         )
-        self.untrimmed_profiles = xr.open_dataarray(
+        self.untrimmed_profiles = pio.load_profile_data(
             self.untrimmed_profile_data_filepath
         )
 

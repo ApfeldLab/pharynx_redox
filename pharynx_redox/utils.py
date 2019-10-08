@@ -153,9 +153,9 @@ def calc_max_bbox(
     """
     b_boxes = []
 
-    for i in range(rot_seg_stack.strain.size):
+    for i in range(rot_seg_stack.spec.size):
         props = regionprops(
-            label(rot_seg_stack.sel(pair=ref_pair, wavelength=ref_wvl).isel(strain=i))
+            label(rot_seg_stack.sel(pair=ref_pair, wavelength=ref_wvl).isel(spec=i))
         )[0]
         b_boxes.append(props.bbox)
 
@@ -297,7 +297,7 @@ def measure_shifted_midlines(
                 n_points,
             )
         ),
-        dims=["strain", "wavelength", "pair", "position"],
+        dims=["spec", "wavelength", "pair", "position"],
         coords={"wavelength": ex_meas.wavelength, "pair": ex_meas.pair},
     )
 
