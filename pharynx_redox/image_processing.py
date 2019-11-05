@@ -1,6 +1,7 @@
 from typing import List, Dict, Union
 
 import numpy as np
+import numpy.ma as ma
 from tqdm.auto import tqdm
 import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
@@ -10,8 +11,28 @@ from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
 from skimage import measure, transform
 from skimage.transform import warp, AffineTransform
+from skimage.external import tifffile
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from pharynx_redox import profile_processing
+
+
+def subtract_medians(
+    imgs: Union[np.ndarray, xr.DataArray], img_dims=(-2, -1)
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Subtract the median from each image.
+
+    Parameters
+    ----------
+    imgs
+        the images to subtract the median from. May be a high-dimensional array.
+    img_dims
+        the dimensions that the images are stored in the `imgs` array. 
+    """
+
+    return imgs - np.median(imgs, axis=(-2, -1), keepdims=True).astype(imgs.dtype)
 
 
 def get_lr_bounds(
@@ -19,6 +40,7 @@ def get_lr_bounds(
 ) -> np.ndarray:
     """
     Get the left and right boundaries of the rotated pharynxes
+
     Parameters
     ----------
     rot_seg_stack
@@ -129,7 +151,7 @@ def center_and_rotate_pharynxes(
                     img_idx
                 ] = rotated_seg
 
-    return fl_rotated_stack, seg_rotated_stack
+    return fl_rotated_stack.astype(fl_images.dtype), seg_rotated_stack
 
 
 def extract_largest_binary_object(
@@ -333,7 +355,7 @@ def calculate_midline(
 
 
 def measure_under_midline(
-    fl: xr.DataArray, mid: Polynomial, n_points: int = 100, thickness: float = 0.0
+    fl: xr.DataArray, mid: Polynomial, n_points: int = 100, thickness: float = 0.0, order=1
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -358,7 +380,7 @@ def measure_under_midline(
     if thickness == 0:
         xs, ys = mid.linspace(n=n_points)
         fl = np.asarray(fl)
-        return ndi.map_coordinates(fl, np.stack([ys, xs]), order=1)
+        return ndi.map_coordinates(fl, np.stack([ys, xs]), order=order)
     else:
         xs, ys = mid.linspace()
         der = mid.deriv()
@@ -394,6 +416,7 @@ def measure_under_midlines(
     midlines: List[Dict[str, List[Polynomial]]],
     n_points: int = 300,
     frame_specific: bool = False,
+    order=1,
 ) -> xr.DataArray:
     """
     Measure under all midlines in stack
@@ -449,7 +472,7 @@ def measure_under_midlines(
                     mid = midlines[img_idx][ref_wvl][pair]
 
                 raw_intensity_data[img_idx, wvl_idx, pair, :] = measure_under_midline(
-                    img, mid, n_points
+                    img, mid, n_points, order=order
                 )
 
     raw_intensity_data.values = np.nan_to_num(raw_intensity_data.values)
@@ -510,6 +533,7 @@ def align_pa(
     unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
     flipped = np.fliplr(unflipped)
 
+    # do the actual cosine-similarity measurements
     should_flip = (
         cdist(ref_vecs, unflipped, "cosine")[0, :]
         > cdist(ref_vecs, flipped, "cosine")[0, :]
@@ -588,7 +612,9 @@ def shift(image: np.ndarray, vector: np.ndarray) -> np.ndarray:
     return shifted
 
 
-def normalize_images_by_wvl_pair(fl_imgs: xr.DataArray, profiles: xr.DataArray):
+def normalize_images_by_wvl_pair(
+    fl_imgs: xr.DataArray, profiles: xr.DataArray, percent_to_clip: float = 2.0
+):
     """
     Normalize images by subtracting mean profile then min-max rescaling to [0, 1]
     Parameters
@@ -597,12 +623,17 @@ def normalize_images_by_wvl_pair(fl_imgs: xr.DataArray, profiles: xr.DataArray):
         the images to normalize
     profiles
         the intensity profiles corresponding to the images
+    percent_to_clip
+        how much to clip the profile when calculating mean/min/max, expressed as a percentage of the length of the profile
 
     Returns
     -------
     xr.DataArray
         the normalized images
     """
+    idx_to_clip = int(profiles.shape[-1] * percent_to_clip / 100)
+    profiles = profiles[:, idx_to_clip:-idx_to_clip]
+
     norm_fl = fl_imgs.copy().astype(np.float)
     for pair in fl_imgs.pair:
         for wvl in fl_imgs.wavelength.values:
@@ -639,7 +670,7 @@ def normalize_images_single_wvl(
     profiles
         an array-like structure of shape (frame, position_along_midline)
     percent_to_clip
-        how much to clip the profile when calculating mean/min/max
+        how much to clip the profile when calculating mean/min/max, expressed as a percentage of the length of the profile
 
     Returns
     -------
@@ -652,7 +683,7 @@ def normalize_images_single_wvl(
     if profiles.ndim != 2:
         raise ValueError("profiles must have shape (frame, position_along_midline)")
 
-    normed = fl_imgs.copy().astype(np.float32)
+    normed_imgs = fl_imgs.copy().astype(np.float32)
 
     idx_to_clip = int(profiles.shape[-1] * percent_to_clip / 100)
     profiles = profiles[:, idx_to_clip:-idx_to_clip]
@@ -660,14 +691,46 @@ def normalize_images_single_wvl(
     prof_means = np.mean(profiles, axis=1)
 
     profiles = profiles - prof_means
-    normed = normed - prof_means
+    normed_imgs = normed_imgs - prof_means
 
     prof_mins = np.min(profiles, axis=1)
     prof_maxs = np.max(profiles, axis=1)
 
-    normed_prof = (profiles - prof_mins) / (prof_maxs - prof_mins)
-    print(np.min(normed_prof))
-    print(np.max(normed_prof))
-    normed = (normed - prof_mins) / (prof_maxs - prof_mins)
+    normed_imgs = (normed_imgs - prof_mins) / (prof_maxs - prof_mins)
 
-    return normed
+    return normed_imgs
+
+def z_normalize_with_masks(imgs, masks):
+    """
+    Perform z-normalization [0] on the entire image (relative to the content within the masks).
+
+    That is to say, we center the pixels within the mask such that their mean is 0, and ensure their standard deviation is ~1.
+
+    This allows us to see spatial patterns within the masked region (even if pixels outside of the masked region
+    fall very far above or below those inside) by setting the colormap center around 0.
+
+    [0] - https://jmotif.github.io/sax-vsm_site/morea/algorithm/znorm.html
+    """
+    masked = ma.masked_array(imgs, np.logical_not(masks))
+    mu = np.mean(masked, axis=(-2, -1), keepdims=True)
+    sigma = np.std(masked, axis=(-2, -1), keepdims=True)
+    
+    return (imgs - mu) / sigma 
+
+def create_normed_rgb_ratio_stack(r_imgs, seg_imgs, vmin=-7, vmax=7, cmap='coolwarm', output_filename=None):
+    """
+    Z-normalize the images (relative to the masks), then transform them into RGB with the given colormap
+    """
+    r_znormed = z_normalize_with_masks(r_imgs, seg_imgs)
+    
+    normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
+    # TODO generalize dtype? for now, 32-bit only
+    rgb_img = cmap(normalizer(r_znormed))[:,:,:,:3].astype(np.float16)
+    
+    if output_filename is not None:
+        with open(output_filename, 'wb') as f:
+            tifffile.imsave(f, rgb_img)
+    
+    return rgb_img

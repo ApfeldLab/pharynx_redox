@@ -69,6 +69,8 @@ class Experiment:
     trim_threshold: int = 3000
     reg_lambda: float = 0.01
     frame_specific_midlines: bool = False
+    smooth_unregistered_data = False
+    measurement_order: int = 1
 
     # Registration Parameters
     register: bool = False
@@ -93,6 +95,7 @@ class Experiment:
     _movement: pd.DataFrame = None
     _strains: np.ndarray = None
     _raw_image_data: xr.DataArray = None
+    _image_data: xr.DataArray = None
     _summary_table: pd.DataFrame = None
 
     seg_images: xr.DataArray = None
@@ -132,13 +135,25 @@ class Experiment:
 
     @cached_property
     def images(self):
+        """
+        This returns the median-subtracted images
+        """
         # TODO: allow '.tiff' as well
+        # self._image_data = ip.subtract_medians(self.raw_images).astype(np.uint16)
+        self._image_data = self.raw_images
+        return self._image_data
+
+    @cached_property
+    def raw_images(self):
+        """
+        This returns the raw (non-median-subtracted) images
+        """
         raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + ".tif")
         self._raw_image_data = pio.load_images(
             raw_image_path, self.imaging_scheme, self.strains
         )
         return self._raw_image_data
-    
+
     @cached_property
     def movement(self):
         movement_filepath = self.experiment_dir.joinpath(
@@ -183,7 +198,6 @@ class Experiment:
                 sub_df["strategy"] = self.strategy
                 sub_df["strain"] = self.strains
 
-
                 sub_df = sub_df.melt(
                     value_vars=self.trimmed_profiles.pair.data,
                     var_name="pair",
@@ -209,7 +223,9 @@ class Experiment:
         else:
             self._summary_table["pointwise"] = False
             # Calculate R, OxD, and E using region summaries
-            self._summary_table["r"] = self._summary_table["410"] / self._summary_table["470"]
+            self._summary_table["r"] = (
+                self._summary_table["410"] / self._summary_table["470"]
+            )
             self._summary_table["oxd"] = profile_processing.r_to_oxd(
                 self._summary_table["r"],
                 r_min=self.r_min,
@@ -244,6 +260,7 @@ class Experiment:
     ####################################################################################
     # PIPELINE
     ####################################################################################
+
     def segment_pharynxes(self):
         logging.info("Segmenting pharynxes")
 
@@ -260,18 +277,23 @@ class Experiment:
         # noinspection PyTypeChecker
         self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
 
-def measure_under_midlines(self):
+    def measure_under_midlines(self):
         logging.info("Measuring under midlines")
         self.untrimmed_profiles = ip.measure_under_midlines(
             self.rot_fl,
             self.midlines,
             n_points=self.n_midline_pts,
             frame_specific=self.frame_specific_midlines,
+            order=self.measurement_order,
         )
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
             self.untrimmed_profiles
         )
+        if (self.register == False) and (self.smooth_unregistered_data):
+            self.untrimmed_profiles = profile_processing.smooth_profile_data(
+                self.untrimmed_profiles
+            )
 
     def register_profiles(self):
         logging.info("Registering profiles")
@@ -430,6 +452,20 @@ def measure_under_midlines(self):
             self.save_profile_summary_plots(self.trimmed_profiles)
             self.save_cat_plots()
 
+    def save_normed_ratio_images(self, vmin=-5, vmax=5):
+        for pair in self.images.pair.values:
+            r = self.images.sel(wavelength="410", pair=pair) / self.images.sel(
+                wavelength="470", pair=pair
+            )
+            seg = self.seg_images.sel(wavelength="410", pair=pair)
+
+            processed_img_dir = self.experiment_dir.joinpath("processed_images")
+            processed_img_dir.mkdir(parents=True, exist_ok=True)
+            output_fname = processed_img_dir.joinpath(
+                f"{self.experiment_id}_normed-ratio_pair={pair}.tif"
+            )
+            ip.create_normed_rgb_ratio_stack(r, seg, output_filename=output_fname)
+
     ####################################################################################################################
     # MISC / HELPER
     ####################################################################################################################
@@ -531,6 +567,7 @@ class CataExperiment(Experiment):
             self.midlines,
             n_points=self.n_midline_pts,
             frame_specific=self.frame_specific_midlines,
+            order=self.measurement_order,
         )
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(

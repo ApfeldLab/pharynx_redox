@@ -74,7 +74,9 @@ def save_images_xarray_to_disk(
 
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
-            final_path = dir_path.joinpath(f"{prefix}{wvl}-{pair}{suffix}.tif")
+            final_path = dir_path.joinpath(
+                f"{prefix}_wvl={wvl}_pair={pair}_{suffix}.tif"
+            )
             if imgs.data.dtype == np.bool:
                 data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
             else:
@@ -109,7 +111,10 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
-    intercalated_image_stack_path: Path, imaging_scheme: str, strain_map: [str]
+    intercalated_image_stack_path: Path,
+    imaging_scheme: str,
+    strain_map: [str] = None,
+    indexer_path=None,
 ) -> xr.DataArray:
     """
     Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,
@@ -130,7 +135,9 @@ def load_images(
             TL/470/410/470/410
     strain_map
         a list of strain names, corresponding to the strain of each animal. The length
-        must therefore be the same as the number of animals imaged.
+        must therefore be the same as the number of animals imaged. Overridden by indexer_path. If None, indexer_path must be given.
+    indexer_path
+        if given, use the indexer to load the strain map instead of passing it explicity. Overrides the strain_map parameter. If None, strain_map must be given.
 
     Returns
     -------
@@ -154,6 +161,9 @@ def load_images(
             >> only_tl.data.shape
             (60, 130, 174)
     """
+    if indexer_path is not None:
+        strain_map = load_strain_map_from_disk(indexer_path)
+
     intercalated_image_stack = load_tiff_from_disk(intercalated_image_stack_path)
     lambdas_with_counts = process_imaging_scheme_str(imaging_scheme, "/")
     lambdas = np.array([l[0] for l in lambdas_with_counts])
@@ -283,3 +293,4 @@ def load_all_rot_seg() -> xr.DataArray:
 
     """
     return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")
+
