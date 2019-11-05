@@ -788,6 +788,7 @@ def plot_profile_avg_with_bounds(
         xs = np.arange(len(lower))
 
     kwargs.pop("linestyle", None)
+    kwargs.pop("linewidth", None)
     ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
 
     return ax

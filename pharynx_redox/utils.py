@@ -216,10 +216,16 @@ def z_transform(fd):
     -------
 
     """
-    data = np.squeeze(fd.data_matrix)
+    try:
+        data = np.squeeze(fd.data_matrix)
+    except AttributeError:
+        data = fd
     means = np.mean(data, axis=1)
     stds = np.std(data, axis=1)
-    fd.data_matrix = ((data.T - means) / stds).T
+    try:
+        fd.data_matrix = ((data.T - means) / stds).T
+    except AttributeError:
+        return ((data.T - means) / stds).T
     return fd
 
 

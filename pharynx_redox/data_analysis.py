@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import pandas as pd
 import typing
 import xarray as xr
+from scipy import ndimage as ndi
 
 from pandas.core.indexes.base import InvalidIndexError
 
@@ -177,3 +178,66 @@ def split_by_movement_types(df, roi, t=0):
 
 def label_by_movement_types(df, t=0):
     pass
+
+
+def synthetic_shift(
+    rot_fl: xr.DataArray, shifts: List[float], n_points=300
+) -> xr.DataArray:
+    shift_data = xr.DataArray(
+        0.0,
+        coords={
+            "spec": rot_fl.spec.values,
+            "pair": rot_fl.pair.values,
+            "wavelengths": ["410", "470", "r"],
+            "shifts": shifts,
+            "direction": ["x", "y"],
+            "position": np.arange(n_points),
+        },
+        dims=["strain", "pair", "wavelength", "shift", "direction", "position"],
+    )
+
+    for pair in range(rot_fl.pair.size):
+        for shift in shifts:
+            for direction in ["x", "y"]:
+                i410_ = np.zeros((rot_fl.strain.size, n_points), dtype=rot_fl.dtype)
+                i470_ = i410_.copy()
+
+                for img_idx in range(rot_fl.strain.size):
+                    if direction == "x":
+                        dx, dy = shift, 0
+                    if direction == "y":
+                        dx, dy = 0, shift
+
+                    # select image
+                    mid_xs, mid_ys = midlines[img_idx]["410"][pair].linspace(n=200)
+                    im410 = rot_fl.sel(wavelength="410", pair=pair)[img_idx]
+                    im470 = rot_fl.sel(wavelength="470", pair=pair)[img_idx]
+
+                    # measure under midline
+                    i410_[img_idx, :] = ndi.map_coordinates(
+                        im410, np.stack([m_ys, m_xs]), order=1
+                    )
+                    i470_[img_idx, :] = ndi.map_coordinates(
+                        im470, np.stack([m_ys + dy, m_xs + dx]), order=1
+                    )
+
+                # smooth / resample
+                new_xs = np.linspace(0, 1, n_points)
+                i410_sm = np.squeeze(
+                    profile_processing.smooth_profile_data(i410_)[0](new_xs)
+                )
+                i470_sm = np.squeeze(
+                    profile_processing.smooth_profile_data(i470_)[0](new_xs)
+                )
+
+                # save
+                shift_data.loc[
+                    dict(pair=pair, wavelength="410", shift=shift, direction=direction)
+                ] = i410_sm
+                shift_data.loc[
+                    dict(pair=pair, wavelength="470", shift=shift, direction=direction)
+                ] = i470_sm
+                shift_data.loc[
+                    dict(pair=pair, wavelength="r", shift=shift, direction=direction)
+                ] = (i410_sm / i470_sm)
+

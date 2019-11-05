@@ -416,7 +416,7 @@ def register_profiles_matlab(raw_profile_data) -> (xr.DataArray, np.ndarray):
             raw_profile_data.sel(wavelength="470", pair=pair).values.T.tolist()
         )
 
-        # _, _, r410, r470, warps = eng.ChannelRegister(i410, i470, nargout=5)
+        # Call the MATLAB subroutine
         r410, r470, warps = eng.channel_register(
             i410,
             i470,
