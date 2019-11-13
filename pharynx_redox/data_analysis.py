@@ -68,6 +68,15 @@ def get_resid_rr(
 
     return get_resid_rr_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
+def relative_error          (data, summarize=False, **summarize_kwargs):
+    try:
+        pair0 = data.sel(wavelength="r", pair=0)
+        pair1 = data.sel(wavelength="r", pair=1)
+    except KeyError:
+        pair0 = data.sel(wavelength="410", pair=0) / data.sel(wavelength="470", pair=0)
+        pair1 = data.sel(wavelength="410", pair=1) / data.sel(wavelength="470", pair=1)
+
+    return fold_error_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 def fold_error(data, summarize=False, **summarize_kwargs):
     try:

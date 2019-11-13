@@ -789,99 +789,10 @@ def plot_profile_avg_with_bounds(
 
     kwargs.pop("linestyle", None)
     kwargs.pop("linewidth", None)
-    ax.fill_between(xs, lower, upper, alpha=0.3, **kwargs)
+    kwargs.pop("lw", None)
+    ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
 
     return ax
-
-
-def loose_movement_stratified_plots(
-    mvmt: pd.DataFrame,
-    raw_prof: xr.DataArray,
-    reg_prof: xr.DataArray,
-    fname: str = None,
-    param_dict: dict = None,
-) -> None:
-    """
-    Plot Movement error according to "loose" movement stratifications
-
-    Parameters
-    ----------
-    mvmt
-        a DataFrame containing the movement calls, expected in the following format:
-
-        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
-          ..  ('experiment', '', '')      ('animal', '', '')    ('movement', 0, 'anterior')    ('movement', 0, 'posterior')    ('movement', 0, 'sides_of_tip')    ('movement', 0, 'tip')    ('movement', 1, 'anterior')    ('movement', 1, 'posterior')    ('movement', 1, 'sides_of_tip')    ('movement', 1, 'tip')
-        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
-           0  2017_02_22-HD233_SAY47                       0                              0                               0                                  0                         1                              0                               0                                  0                         0
-           1  2017_02_22-HD233_SAY47                       1                              0                               0                                  1                         0                              1                               1                                  1                         1
-           2  2017_02_22-HD233_SAY47                       2                              0                               0                                  0                         0                              0                               0                                  0                         0
-        ====  ========================  ====================  =============================  ==============================  =================================  ========================  =============================  ==============================  =================================  ========================
-
-        The tuples in the headers indicate the use of a pandas Multi-Index.
-        TODO: write function that will munge the original movement file into this format
-
-    raw_prof
-        The raw measurement profiles
-    reg_prof
-        the registered measurement profiles
-    fname
-        the file name to save the resultant plot. If none, does not save plot
-    param_dict
-        the relevant parameters used in the analysis
-
-    Returns
-    -------
-
-    """
-    fig, axes = plt.subplots(1, 2, figsize=(18, 5), sharey="all")
-
-    ylims = (0.007, 0.05)
-
-    # Posterior
-    roi = "posterior"
-
-    for ax, roi in zip(axes, ["anterior", "posterior"]):
-        ax.set_title(f"{roi} (+ maybe others)")
-        ax.set_ylim(*ylims)
-
-        m_0_0, m_0_1, m_1_0, m_1_1 = da.split_by_movement_types(mvmt, roi)
-        moving = pd.concat([m_0_1, m_1_0]).drop_duplicates().reset_index(drop=True)
-
-        # stationary
-        plot_profile_avg_with_bounds(
-            da.get_resid_rr(raw_prof)[m_0_0.index.values],
-            ax=ax,
-            label=f"Raw, Stationary (n={len(m_0_0.index.values)})",
-        )
-        plot_profile_avg_with_bounds(
-            da.get_resid_rr(reg_prof)[m_0_0.index.values],
-            ax=ax,
-            label=f"Reg., Stationary (n={len(m_0_0.index.values)})",
-        )
-        # moving
-        plot_profile_avg_with_bounds(
-            da.get_resid_rr(raw_prof)[moving.index.values],
-            ax=ax,
-            label=f"Raw, Moving (n={len(moving.index.values)})",
-        )
-        plot_profile_avg_with_bounds(
-            da.get_resid_rr(reg_prof)[moving.index.values],
-            ax=ax,
-            label=f"Reg., Moving (n={len(moving.index.values)})",
-        )
-
-        ax.legend(loc="upper left")
-        ax.set_xlabel("A-P Axis")
-
-    axes[0].set_ylabel("error")
-    plt.tight_layout()
-
-    if fname:
-        plt.savefig(fname)
-
-    if param_dict:
-        param_str = pformat(param_dict)
-        plt.suptitle(param_str)
 
 
 def imshow_ratio_normed(
