@@ -355,7 +355,11 @@ def calculate_midline(
 
 
 def measure_under_midline(
-    fl: xr.DataArray, mid: Polynomial, n_points: int = 100, thickness: float = 0.0, order=1
+    fl: xr.DataArray,
+    mid: Polynomial,
+    n_points: int = 100,
+    thickness: float = 0.0,
+    order=1,
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -700,6 +704,7 @@ def normalize_images_single_wvl(
 
     return normed_imgs
 
+
 def z_normalize_with_masks(imgs, masks):
     """
     Perform z-normalization [0] on the entire image (relative to the content within the masks).
@@ -714,23 +719,26 @@ def z_normalize_with_masks(imgs, masks):
     masked = ma.masked_array(imgs, np.logical_not(masks))
     mu = np.mean(masked, axis=(-2, -1), keepdims=True)
     sigma = np.std(masked, axis=(-2, -1), keepdims=True)
-    
-    return (imgs - mu) / sigma 
 
-def create_normed_rgb_ratio_stack(r_imgs, seg_imgs, vmin=-7, vmax=7, cmap='coolwarm', output_filename=None):
+    return (imgs - mu) / sigma
+
+
+def create_normed_rgb_ratio_stack(
+    r_imgs, seg_imgs, vmin=-7, vmax=7, cmap="coolwarm", output_filename=None
+):
     """
     Z-normalize the images (relative to the masks), then transform them into RGB with the given colormap
     """
     r_znormed = z_normalize_with_masks(r_imgs, seg_imgs)
-    
+
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     if isinstance(cmap, str):
         cmap = plt.get_cmap(cmap)
     # TODO generalize dtype? for now, 32-bit only
-    rgb_img = cmap(normalizer(r_znormed))[:,:,:,:3].astype(np.float16)
-    
+    rgb_img = cmap(normalizer(r_znormed))[:, :, :, :3].astype(np.float16)
+
     if output_filename is not None:
-        with open(output_filename, 'wb') as f:
+        with open(output_filename, "wb") as f:
             tifffile.imsave(f, rgb_img)
-    
+
     return rgb_img

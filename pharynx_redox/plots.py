@@ -843,7 +843,7 @@ def imshow_ratio_normed(
     # Convert ratio to RGB
     if profile_data is None:
         if (r_min is None) or (r_max is None):
-            raise ValueError('r_min and r_max must be set if profile_data is not given')
+            raise ValueError("r_min and r_max must be set if profile_data is not given")
     else:
         r_mean = np.mean(profile_data)
         r_std = np.std(profile_data)
@@ -902,4 +902,3 @@ def add_img_colorbar(ax, position="right", size="5%", pad=0.05, **colorbar_kwarg
         cax=cax,
         **colorbar_kwargs,
     )
-

@@ -293,4 +293,3 @@ def load_all_rot_seg() -> xr.DataArray:
 
     """
     return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")
-

@@ -67,19 +67,19 @@ class Experiment:
     n_midline_pts: int = 200
     seg_threshold: int = 2000
     trim_threshold: int = 3000
-    reg_lambda: float = 0.01
     frame_specific_midlines: bool = False
-    smooth_unregistered_data = False
+    smooth_unregistered_data: bool = False
     measurement_order: int = 1
 
     # Registration Parameters
     register: bool = False
-    smooth_lambda: int = 1e-5
-    rough_lambda: float = 1e-7
-    warp_lambda: int = 1e-1
-    smooth_nbasis: int = 50
-    rough_nbasis: int = 200
+    smooth_lambda: float = 10e-1
+    rough_lambda: float = 1e-3
+    warp_lambda: float = 1e-1
+    smooth_n_breaks: float = 100.0
+    rough_n_breaks: float = 300.0
     warp_to_mean: bool = False
+    n_deriv: int = 2
 
     # Summarization parameters
     trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
@@ -291,6 +291,7 @@ class Experiment:
             self.untrimmed_profiles
         )
         if (self.register == False) and (self.smooth_unregistered_data):
+            # TODO: smooth with MATLAB
             self.untrimmed_profiles = profile_processing.smooth_profile_data(
                 self.untrimmed_profiles
             )
@@ -299,7 +300,10 @@ class Experiment:
         logging.info("Registering profiles")
 
         self.untrimmed_profiles, self.warps = profile_processing.register_profiles_matlab(
-            self.untrimmed_profiles
+            self.untrimmed_profiles,
+            n_deriv=self.n_deriv,
+            rough_lambda=self.rough_lambda,
+            smooth_lambda=self.smooth_lambda,
         )
 
     def trim_data(self):

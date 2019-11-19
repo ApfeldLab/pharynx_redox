@@ -121,42 +121,35 @@ def summarize_over_regions(
 
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
-    order: int = 5,
-    nbasis: int = 200,
-    smoothing_parameter: float = 1e-8,
-    ret_basis: bool = True,
+    l: float = 1e-5,
+    n_eval_pts: int = 1000,
 ):
     """
     Smooth profile data by fitting smoothing B-splines
 
-    Parameters
-    ----------
-    profile_data
-        the data to smooth, maximally 2-dimensional of shape (animals, position)
-    order
-        the order of the basis polynomials
-    nbasis
-        the number of basis polynomials
-    smoothing_parameter
-        the smoothing parameter. Larger values increase smoothness. If 0, no smoothing
-        is performed. Try values logarithmically.
-
-    Returns
-    -------
-    skfda.representation.grid.FDataBasis
-        the smoothed data represented in Basis form
-    skfda.representation.basis.FDataBasis
-        the basis used for smoothed data
-
+    Implemented in MATLAB as smooth_profiles
     """
-    fd = skfda.FDataGrid(profile_data)
-    basis = BSpline(order=order, nbasis=nbasis)
-    smoother = BasisSmoother(
-        basis, smoothing_parameter=smoothing_parameter, method="qr", return_basis=True
+    smooth_profile_data = xr.DataArray(
+        0,
+        dims=profile_data.dims,
+        coords={
+            "spec": profile_data.spec,
+            "wavelength": profile_data.wavelength,
+            "pair": profile_data.pair,
+            "position": np.arange(n_eval_pts),
+        },
     )
-    fd_smooth = smoother.fit_transform(fd)
-
-    return fd_smooth, basis
+    eng = matlab.engine.start_matlab()
+    for wvl in profile_data.wavelength.values:
+        for pair in profile_data.pair.values:
+            raw_data = matlab.double(
+                profile_data.sel(wavelength=wvl, pair=pair)
+                .values.astype(np.float)
+                .T.tolist()
+            )
+            sm_data = np.array(eng.smooth_profiles(raw_data, l, n_eval_pts)).T
+            smooth_profile_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
+    return smooth_profile_data
 
 
 def register_pair(
@@ -223,167 +216,19 @@ def register_pair(
     return f1_rough, f2_rough, warp
 
 
-# noinspection PyUnresolvedReferences
-def register_profiles(
-    raw_profile_data: xr.DataArray,
-    smooth_lambda: float = 1e-5,
-    rough_lambda: float = 1e-7,
-    warp_lam: float = 1e-1,
-    smooth_nbasis: int = 64,
-    rough_nbasis: int = 200,
-    warp_to_mean: bool = False,
-) -> RegData:
-    """
-    Register 470 channels into 410 using elastic registration.
-
-    First, the data is smoothed using a B-spline basis with the specified number of
-    basis functions. The *derivatives* of these functions are then computed for use in
-    registration.
-
-    The 470nm profile data is registered into the 410nm data by calculating warping
-    functions (which map old x-coordinates to new ones) using these smooth derivatives.
-
-    Finally, the warping functions are applied to a "rougher" fit of the data (again,
-    this rough fit is a B-spline fit using the specified number of basis functions and
-    smoothing parameter).
-
-    TODO: generalize over wavelengths
-
-    Parameters
-    ----------
-    smooth_lambda
-        The smoothing constraint for the "smooth" data, which will be used for
-        registration
-    rough_lambda
-        The smoothing constraint for the "rough" data, which is what will be returned
-        as the measurement data
-    warp_lam
-        The smoothing constraint for the warp function
-    raw_profile_data
-        The profile data to register
-    smooth_nbasis
-        the number of basis functions for the "smooth" data, which will be used for
-        registration
-    rough_nbasis
-        the number of basis function for the "rough" data, which is what will be
-        returned after warping as the measurement data
-    warp_to_mean
-        if True, warps all profiles to the mean of the 410nm (pair 0) profile data
-
-
-    Returns
-    -------
-    RegData
-        A named tuple containing::
-
-            (r410, r470, warp, reg_profile_data)
-
-        r410, r470, and warp are lists indexed by pair, reg_profile_data is an
-        xr.DataArray with the same structure as raw_profile_data
-
-
-    """
-    reg_profile_data = raw_profile_data.copy()
-
-    pos_size = raw_profile_data.position.size
-
-    # For a two-pair image set, these lists will be two items long. The 0th item will
-    # contain a functional data object containing ALL observations for pair 0, etc.
-    f410 = []
-    f470 = []
-    warps = []
-
-    # Register each pair separately
-    for pair in raw_profile_data.pair.data:
-        i410 = raw_profile_data.sel(wavelength="410", pair=pair).values
-        i470 = raw_profile_data.sel(wavelength="470", pair=pair).values
-
-        f410_sm, _ = smooth_profile_data(
-            i410, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
-        )
-        f470_sm, _ = smooth_profile_data(
-            i470, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
-        )
-
-        f410_rough, _ = smooth_profile_data(
-            i410, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
-        )
-        f470_rough, _ = smooth_profile_data(
-            i470, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
-        )
-
-        # We will register with the derivatives
-        d410_sm = f410_sm.derivative()
-        d470_sm = f470_sm.derivative()
-
-        # First, register all to mean if specified
-        if warp_to_mean:
-            template = f410_rough.mean().to_grid()
-
-            # Calculate the warp using the derivatives of the smooth data
-            warp_d410_sm = skfda.preprocessing.registration.elastic_registration_warping(
-                d410_sm.to_grid(), template, lam=warp_lam
-            )
-            warp_d470_sm = skfda.preprocessing.registration.elastic_registration_warping(
-                d470_sm.to_grid(), template, lam=warp_lam
-            )
-
-            # Apply the calculated warps to the rough fits
-            warp_d410_sm_inv = skfda.preprocessing.registration.invert_warping(
-                warp_d410_sm
-            )
-            warp_d470_sm_inv = skfda.preprocessing.registration.invert_warping(
-                warp_d470_sm
-            )
-
-            f410_rough = f410_rough.compose(warp_d410_sm_inv)
-            f470_rough = f470_rough.compose(warp_d470_sm_inv)
-
-            # Re-smooth so we can do pair-wise registration later
-            f410_sm, _ = smooth_profile_data(
-                np.squeeze(f410_rough.to_grid().data_matrix),
-                smoothing_parameter=smooth_lambda,
-                nbasis=smooth_nbasis,
-            )
-            f470_sm, _ = smooth_profile_data(
-                np.squeeze(f470_rough.to_grid().data_matrix),
-                smoothing_parameter=smooth_lambda,
-                nbasis=smooth_nbasis,
-            )
-
-            d410_sm = f410_sm.derivative()
-            d470_sm = f470_sm.derivative()
-
-        # Calculate the pair-wise warp
-        warp = skfda.preprocessing.registration.elastic_registration_warping(
-            d410_sm.to_grid(), d470_sm.to_grid(), lam=warp_lam
-        )
-
-        # Apply inverse warp to 470
-        warp_inv = skfda.preprocessing.registration.invert_warping(warp)
-        f470_rough = f470_rough.compose(warp_inv)
-
-        # Keep track of the functional objects to return
-        f410.append(f410_rough)
-        f470.append(f470_rough)
-        warps.append(warp)
-
-        # Save the quantized data
-        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = np.squeeze(
-            f410_rough.to_grid(
-                np.linspace(*f470_sm.domain_range[0], pos_size)
-            ).data_matrix
-        )
-        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = np.squeeze(
-            f470_rough.to_grid(
-                np.linspace(*f470_sm.domain_range[0], pos_size)
-            ).data_matrix
-        )
-
-    return RegData(f410, f470, warps, reg_profile_data)
-
-
-def register_profiles_matlab(raw_profile_data) -> (xr.DataArray, np.ndarray):
+def register_profiles_matlab(
+    raw_profile_data,
+    n_deriv: int = 2,
+    rough_lambda: float = 10e-3,
+    smooth_lambda: float = 10e-1,
+    warp_lambda: float = 10e-1,
+    smooth_n_breaks: float = 100.0,
+    rough_n_breaks: float = 300.0,
+    warp_n_basis: float = 300.0,
+    warp_order: float = 4.0,
+    smooth_order: float = 4.0,
+    rough_order: float = 4.0,
+) -> (xr.DataArray, np.ndarray):
     eng = matlab.engine.start_matlab()
     reg_profile_data = raw_profile_data.copy()
 
@@ -393,19 +238,8 @@ def register_profiles_matlab(raw_profile_data) -> (xr.DataArray, np.ndarray):
     # Registration Parameters
     resample_resolution = reg_profile_data.shape[-1]
 
-    warp_n_basis = 300.0
-    warp_order = 4.0
-    warp_lambda = 10 ** 5
-
-    smooth_lambda = 10 ** 2
-    smooth_n_breaks = 100.0
-    smooth_order = 4.0
-
-    rough_lambda = 10 ** 0.05
-    rough_n_breaks = 300.0
-    rough_order = 4.0
-
-    n_deriv = 2.0
+    # smooth_lambda = 10 ** 2
+    # rough_lambda = 10 ** 0.05
 
     for pair in raw_profile_data.pair.values:
         print(f"Registering Pair {pair}")
@@ -691,4 +525,3 @@ if __name__ == "__main__":
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/analyses/2019-08-26_single_unreg/2017_02_22-HD233_SAY47-profile_data.nc"
     )
     register_profiles_matlab(profile_data)
-
