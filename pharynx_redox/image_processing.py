@@ -14,6 +14,7 @@ from skimage.transform import warp, AffineTransform
 from skimage.external import tifffile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 from pharynx_redox import profile_processing
 
@@ -360,6 +361,7 @@ def measure_under_midline(
     n_points: int = 100,
     thickness: float = 0.0,
     order=1,
+    norm_scale=0.5
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -386,12 +388,13 @@ def measure_under_midline(
         fl = np.asarray(fl)
         return ndi.map_coordinates(fl, np.stack([ys, xs]), order=order)
     else:
-        xs, ys = mid.linspace()
+        # TODO this could be more efficient by doing each point in the line in parallel
+        xs, ys = mid.linspace(n=n_points)
         der = mid.deriv()
         normal_slopes = -1 / der(xs)
         normal_thetas = np.arctan(normal_slopes)
 
-        mag = 1.5
+        mag = thickness
         x0 = np.cos(normal_thetas) * mag
         y0 = np.sin(normal_thetas) * mag
 
@@ -404,13 +407,24 @@ def measure_under_midline(
         ys1 = ys + y1
 
         prof = []
+        n_line_pts = 20
         for i in range(len(xs)):
             line = measure.profile._line_profile_coordinates(
                 (xs0[i], ys0[i]), (xs1[i], ys1[i])
             )[:, :, 0]
-            line_xs = xr.DataArray(line[0], dims="z")
-            line_ys = xr.DataArray(line[1], dims="z")
-            prof.append(np.mean(fl.interp(x=line_xs, y=line_ys).data, 0))
+            line_xs, line_ys = (
+                np.linspace(xs0[i], xs1[i], n_line_pts),
+                np.linspace(ys0[i], ys1[i], n_line_pts),
+            )
+            # line_xs = xr.DataArray(line[0], dims="z")
+            # line_ys = xr.DataArray(line[1], dims="z")
+            prof.append(
+                np.average(
+                    ndi.map_coordinates(fl, np.vstack((line_ys, line_xs)), order=order),
+                    weights=norm.pdf(np.linspace(-4, 4, n_line_pts), loc=0, scale=norm_scale),
+                )
+            )
+            # prof.append(np.max(fl.interp(x=line_xs, y=line_ys).data, 0))
         # TODO: optionally use gaussian weight for the profile
         return np.array(prof)
 

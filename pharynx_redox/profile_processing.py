@@ -12,7 +12,7 @@ from skfda.representation.basis import BSpline
 from skfda.preprocessing.smoothing import BasisSmoother
 from sklearn.preprocessing import scale
 
-from pharynx_redox import utils
+from pharynx_redox import utils, constants
 
 
 @dataclass
@@ -108,20 +108,22 @@ def summarize_over_regions(
         reg_df = (
             data[dict(position=range(bounds[0], bounds[1]))]
             .mean(dim="position", skipna=True)
-            .to_pandas()
+            .to_pandas().to_frame()
         )
-        reg_df = reg_df.reset_index()
+        # reg_df = reg_df.reset_index()
         reg_df["region"] = region
-        reg_df["animal"] = range(len(reg_df))
+        # reg_df["animal"] = range(len(reg_df))
         reg_df.rename({0: value_name}, inplace=True, axis="columns")
-        reg_df.drop(reg_df.columns[0], axis=1, inplace=True)
+        # reg_df.drop(reg_df.columns[0], axis=1, inplace=True)
         dfs.append(reg_df)
     return pd.concat(dfs)
 
 
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
-    l: float = 1e-5,
+    l: float = 1.12,
+    order: float = 4.0,
+    n_basis: float = 200,
     n_eval_pts: int = 1000,
 ):
     """
@@ -139,7 +141,6 @@ def smooth_profile_data(
             "position": np.arange(n_eval_pts),
         },
     )
-    eng = matlab.engine.start_matlab()
     for wvl in profile_data.wavelength.values:
         for pair in profile_data.pair.values:
             raw_data = matlab.double(
@@ -147,73 +148,13 @@ def smooth_profile_data(
                 .values.astype(np.float)
                 .T.tolist()
             )
-            sm_data = np.array(eng.smooth_profiles(raw_data, l, n_eval_pts)).T
+            sm_data = np.array(
+                constants.matlab_engine.smooth_profiles(
+                    raw_data, l, order, n_basis, n_eval_pts
+                )
+            ).T
             smooth_profile_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
     return smooth_profile_data
-
-
-def register_pair(
-    data1,
-    data2,
-    smooth_lambda: float = 1e-5,
-    rough_lambda: float = 1e-7,
-    warp_lam: float = 1e-1,
-    smooth_nbasis: int = 64,
-    rough_nbasis: int = 200,
-    grid_dim: int = 7,
-):
-    """
-    TODO: documentation
-
-    Parameters
-    ----------
-    data1
-    data2
-    smooth_lambda
-    rough_lambda
-    warp_lam
-    smooth_nbasis
-    rough_nbasis
-    grid_dim
-
-    Returns
-    -------
-
-    """
-    pos_size = data1.shape[-1]
-
-    f1_sm, _ = smooth_profile_data(
-        data1, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
-    )
-    f2_sm, _ = smooth_profile_data(
-        data2, smoothing_parameter=smooth_lambda, nbasis=smooth_nbasis
-    )
-
-    f1_rough, _ = smooth_profile_data(
-        data1, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
-    )
-    f2_rough, _ = smooth_profile_data(
-        data2, smoothing_parameter=rough_lambda, nbasis=rough_nbasis
-    )
-
-    # Resample
-    f1_sm = f1_sm.to_grid(np.linspace(*f1_sm.domain_range[0], pos_size))
-    f2_sm = f2_sm.to_grid(np.linspace(*f2_sm.domain_range[0], pos_size))
-
-    # We want to register with the derivatives
-    d1_sm = f1_sm.derivative()
-    d2_sm = f2_sm.derivative()
-
-    # Calculate the warp
-    warp = skfda.preprocessing.registration.elastic_registration_warping(
-        d1_sm, d2_sm, lam=warp_lam, grid_dim=grid_dim
-    )
-
-    # Apply inverse warp to f2
-    warp_inv = skfda.preprocessing.registration.invert_warping(warp)
-    f2_rough = f2_rough.compose(warp_inv)
-
-    return f1_rough, f2_rough, warp
 
 
 def register_profiles_matlab(
@@ -228,18 +169,14 @@ def register_profiles_matlab(
     warp_order: float = 4.0,
     smooth_order: float = 4.0,
     rough_order: float = 4.0,
+    resample_resolution: int = None,
 ) -> (xr.DataArray, np.ndarray):
     eng = matlab.engine.start_matlab()
     reg_profile_data = raw_profile_data.copy()
 
-    # Warps indexed by pair
-    all_warps = []
-
     # Registration Parameters
-    resample_resolution = reg_profile_data.shape[-1]
-
-    # smooth_lambda = 10 ** 2
-    # rough_lambda = 10 ** 0.05
+    if resample_resolution is None:
+        resample_resolution = reg_profile_data.shape[-1]
 
     for pair in raw_profile_data.pair.values:
         print(f"Registering Pair {pair}")
@@ -251,10 +188,9 @@ def register_profiles_matlab(
         )
 
         # Call the MATLAB subroutine
-        r410, r470, warps = eng.channel_register(
+        r410, r470, warpfd, wfd, d410, reg_d470 = eng.channel_register_discrete(
             i410,
             i470,
-            resample_resolution,
             warp_n_basis,
             warp_order,
             warp_lambda,
@@ -265,16 +201,19 @@ def register_profiles_matlab(
             rough_n_breaks,
             rough_order,
             n_deriv,
-            nargout=3,
+            resample_resolution,
+            nargout=6,
         )
         r410, r470 = np.array(r410).T, np.array(r470).T
+        warpfd = np.array(warpfd)
+        wfd = np.array(wfd)
+        d410 = np.array(d410)
+        reg_d470 = np.array(reg_d470)
 
         reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
 
-        all_warps.append(np.array(warps))
-
-    return reg_profile_data, np.array(all_warps)
+    return reg_profile_data
 
 
 def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:

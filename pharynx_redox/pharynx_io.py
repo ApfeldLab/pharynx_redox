@@ -273,7 +273,7 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
     ).flatten()
 
 
-def load_all_rot_fl() -> xr.DataArray:
+def load_all_rot_fl(meta_dir: Path) -> xr.DataArray:
     """
     TODO: Documentation
 
@@ -281,7 +281,9 @@ def load_all_rot_fl() -> xr.DataArray:
     -------
 
     """
-    return xr.load_dataarray("../data/paired_ratio/all_rot_fl.nc")
+    return xr.concat(
+        [load_profile_data(p) for p in meta_dir.glob("**/*/*_rot_fl.nc")], dim="spec"
+    )
 
 
 def load_all_rot_seg() -> xr.DataArray:

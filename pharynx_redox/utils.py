@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from pharynx_redox import experiment
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,9 @@ import xarray as xr
 from scipy import ndimage as ndi
 import typing
 from skimage.measure import regionprops, label
+from pathlib import Path
+from tqdm import tqdm
+import argparse
 
 
 def scale_region_boundaries(regions: dict, profile_length: int):
@@ -355,3 +359,39 @@ def measure_shifted_midlines(
                 new_animal_idx += 1
 
     return measurements, all_shifts, orig_idx
+
+
+def run_all_analyses(meta_dir: str, imaging_scheme: str, **kwargs):
+
+    meta_dir = Path(meta_dir)
+
+    exps = list(filter(lambda x: x.is_dir(), meta_dir.iterdir()))
+    for exp_dir in tqdm(exps):
+        experiment.PairExperiment(
+            experiment_dir=exp_dir,
+            imaging_scheme=imaging_scheme,
+            strategy="_".join(f"{k}={v}" for k, v in kwargs.items()),
+        ).full_pipeline()
+
+
+def cli_run_all_analyses():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "meta_dir",
+        metavar="D",
+        type=str,
+        help="the directory containing all experiment directories",
+    )
+    parser.add_argument(
+        "imaging_scheme",
+        metavar="S",
+        type=str,
+        help="the imaging scheme (e.g. TL/470/410/470/410)",
+    )
+
+    args = parser.parse_args()
+    run_all_analyses(meta_dir=args.meta_dir, imaging_scheme=args.imaging_scheme)
+
+
+if __name__ == "__main__":
+    cli_run_all_analyses()

@@ -32,7 +32,6 @@ from pharynx_redox import (
     constants,
 )
 
-
 @dataclass
 class Experiment:
     """
@@ -73,13 +72,20 @@ class Experiment:
 
     # Registration Parameters
     register: bool = False
-    smooth_lambda: float = 10e-1
-    rough_lambda: float = 1e-3
-    warp_lambda: float = 1e-1
-    smooth_n_breaks: float = 100.0
-    rough_n_breaks: float = 300.0
-    warp_to_mean: bool = False
-    n_deriv: int = 2
+
+    warp_n_basis: float = 20.0
+    warp_order: float = 4.0
+    warp_lambda: float = 10.0
+
+    smooth_lambda: float = 0.001
+    smooth_n_breaks: float = 50.0
+    smooth_order: float = 4.0
+
+    rough_lambda: float = 0.001
+    rough_n_breaks: float = 200.0
+    rough_order = 4.0
+
+    n_deriv: float = 0.0
 
     # Summarization parameters
     trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
@@ -110,9 +116,16 @@ class Experiment:
 
     warps: List[skfda.FDataGrid] = field(default_factory=list)
 
+    _parameter_dict: dict = None
+
     ####################################################################################
     # COMPUTED PROPERTIES
     ####################################################################################
+
+    @property
+    def parameter_dict(self):
+        return {
+        }
 
     @property
     def scaled_regions(self):
@@ -291,7 +304,6 @@ class Experiment:
             self.untrimmed_profiles
         )
         if (self.register == False) and (self.smooth_unregistered_data):
-            # TODO: smooth with MATLAB
             self.untrimmed_profiles = profile_processing.smooth_profile_data(
                 self.untrimmed_profiles
             )
@@ -299,7 +311,7 @@ class Experiment:
     def register_profiles(self):
         logging.info("Registering profiles")
 
-        self.untrimmed_profiles, self.warps = profile_processing.register_profiles_matlab(
+        self.untrimmed_profiles = profile_processing.register_profiles_matlab(
             self.untrimmed_profiles,
             n_deriv=self.n_deriv,
             rough_lambda=self.rough_lambda,

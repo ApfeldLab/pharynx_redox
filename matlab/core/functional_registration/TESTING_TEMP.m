@@ -12,130 +12,243 @@ r_1 = i410_1 ./ i470_1;
 
 %% Registration testing
 
-
-% figure;
-% ax = gca;
-
-% plot(ax, ...
-%     xs, i410_0(:,1),...
-%     xs, i470_0(:,1),...
-%     xs, eval_fd(xs, rgh_410_0(1)),...
-%     xs, eval_fd(xs, sm_410_0(1))...
-% );
-
-% plot(ax, xs, eval_fd(xs, sm_410_0(1), 1)); hold on;
-% plot(ax, xs, eval_fd(xs, sm_470_0(1), 1));
-
-WARP_N_BASIS = 10;
+WARP_N_BASIS = 300;
 WARP_ORDER = 4;
-WARP_LAMBDA = 5;
+WARP_LAMBDA = 1e5;
 
-SMOOTH_LAMBDA = 2;
-SMOOTH_N_BREAKS = 50;
+SMOOTH_LAMBDA = 1e2;
+SMOOTH_N_BASIS = 100;
 SMOOTH_ORDER = 4;
 
-ROUGH_LAMBDA = .1;
-ROUGH_N_BREAKS = 200;
+ROUGH_LAMBDA = 10^0.05;
+ROUGH_N_BASIS = 300;
 ROUGH_ORDER = 4;
 
-N_DERIV = 1;
+N_DERIV = 2;
 
-rgh_410_0 = makeWormFd_SJ(i410_0, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
-rgh_470_0 = makeWormFd_SJ(i470_0, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
-sm_410_0 = makeWormFd_SJ(i410_0, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
-sm_470_0 = makeWormFd_SJ(i470_0, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
-
-rgh_410_1 = makeWormFd_SJ(i410_1, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
-rgh_470_1 = makeWormFd_SJ(i470_1, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
-sm_410_1 = makeWormFd_SJ(i410_1, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
-sm_470_1 = makeWormFd_SJ(i470_1, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
-
-i = 1;
+rgh_410_0 = makeWormFd_SJ(i410_0, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BASIS);
+% rgh_470_0 = makeWormFd_SJ(i470_0, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_basis', ROUGH_N_BASIS);
+sm_410_0 = makeWormFd_SJ(i410_0, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BASIS);
+% sm_470_0 = makeWormFd_SJ(i470_0, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_basis', SMOOTH_N_BASIS);
+% 
+% rgh_410_1 = makeWormFd_SJ(i410_1, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_basis', ROUGH_N_BASIS);
+% rgh_470_1 = makeWormFd_SJ(i470_1, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_basis', ROUGH_N_BASIS);
+% sm_410_1 = makeWormFd_SJ(i410_1, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_basis', SMOOTH_N_BASIS);
+% sm_470_1 = makeWormFd_SJ(i470_1, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_basis', SMOOTH_N_BASIS);
 
 figure;
-scatter(linspace(1, 100, 200), i410_0(:,i)); hold on;
-plot(xs, eval_fd(xs, rgh_410_0(i)));
-plot(xs, eval_fd(xs, sm_410_0(i)));
+to_register_idx = 1;
+scatter(linspace(1, 100, 200), i410_0(:,to_register_idx)); hold on;
+xs = linspace(1, 100, 1000);
+
+plot(xs, eval_fd(xs, rgh_410_0(to_register_idx)));
+plot(xs, eval_fd(xs, sm_410_0(to_register_idx)));
+
+% figure;
+% plot(xs, eval_fd(xs, deriv(rgh_410_0(to_register_idx), N_DERIV))); hold on;
+% plot(xs, eval_fd(xs, deriv(rgh_470_0(to_register_idx), N_DERIV)));
+% 
+% title('rough');
+% 
+% figure;
+% plot(xs, eval_fd(xs, deriv(sm_410_0(to_register_idx), N_DERIV)), '-r'); hold on;
+% plot(xs, eval_fd(xs, deriv(sm_470_0(to_register_idx), N_DERIV)), '-.r');
+% plot(xs, eval_fd(xs, deriv(sm_410_1(to_register_idx), N_DERIV)), '-b');
+% plot(xs, eval_fd(xs, deriv(sm_470_1(to_register_idx), N_DERIV)), '-.b');
+% title('smooth');
+% 
+% figure;
+% plot(xs, eval_fd(xs, deriv(sm_410_0(to_register_idx), 0)), '-r'); hold on;
+% plot(xs, eval_fd(xs, deriv(sm_470_0(to_register_idx), 0)), '-.r');
+% plot(xs, eval_fd(xs, deriv(sm_410_1(to_register_idx), 0)), '-b');
+% plot(xs, eval_fd(xs, deriv(sm_470_1(to_register_idx), 0)), '-.b');
+% title('smooth');
+% 
+% 
+% figure
+% title('R');
+% plot(xs, eval_fd(xs, sm_410_0(to_register_idx) ./ sm_470_0(to_register_idx)), '-r'); hold on;
+% plot(xs, eval_fd(xs, sm_410_1(to_register_idx) ./ sm_470_1(to_register_idx)), '-b'); hold off;
+
+%% REG ALL TO 410
+to_register_idx = 11;
+[preg_rgh_410_0, preg_rgh_410_1, pwarpfd_1, pwfd_1, pd410_1, pd470_1] = channel_register(...
+    i410_0(:,to_register_idx), i410_1(:,to_register_idx), ...
+    WARP_N_BASIS, WARP_ORDER, WARP_LAMBDA,...
+    SMOOTH_LAMBDA, SMOOTH_N_BASIS, SMOOTH_ORDER, ...
+    ROUGH_LAMBDA, ROUGH_N_BASIS, ROUGH_ORDER,...
+    N_DERIV);
+
+[preg_rgh_410_0, preg_rgh_410_1, pwarpfd_1, pwfd_1, pd410_1, pd470_1] = channel_register(...
+    i410_0(:,to_register_idx), i410_1(:,to_register_idx), ...
+    WARP_N_BASIS, WARP_ORDER, WARP_LAMBDA,...
+    SMOOTH_LAMBDA, SMOOTH_N_BASIS, SMOOTH_ORDER, ...
+    ROUGH_LAMBDA, ROUGH_N_BASIS, ROUGH_ORDER,...
+    N_DERIV);
+
+
+%% pair-register
+% to_register_idx = 1:5;
+to_register_idx = 11;
+[preg_rgh_410_0, preg_rgh_410_1, pwarpfd_1, pwfd_1, pd410_1, pd470_1] = channel_register(...
+    i410_0(:,to_register_idx), i410_1(:,to_register_idx), ...
+    10, 4, 1,...
+    SMOOTH_LAMBDA, SMOOTH_N_BASIS, SMOOTH_ORDER, ...
+    ROUGH_LAMBDA, ROUGH_N_BASIS, ROUGH_ORDER,...
+    0);
+%%
+preg_rgh_470_0 = rgh_470_0;
+preg_rgh_470_1 = synch(linspace(0, 1, 1000), rgh_470_1(to_register_idx), pwfd_1);
+
+% i = 5 ;
+figure;
+
+% 410
+plot(xs, eval_fd(xs, preg_rgh_410_0(1)), '-r'); hold on;
+plot(xs, eval_fd(xs, rgh_410_1(to_register_idx)), '-b');
+plot(xs, eval_fd(xs, preg_rgh_410_1(1)), '-.b');
+
+
+% 470
+figure;
+plot(xs, eval_fd(xs, preg_rgh_470_0(to_register_idx)), '-r'); hold on;
+plot(xs, eval_fd(xs, rgh_470_1(to_register_idx)), '-b');
+plot(xs, eval_fd(xs, preg_rgh_470_1(1)), '-.b');
 
 figure;
-plot(xs, eval_fd(xs, deriv(rgh_410_0(i), N_DERIV))); hold on;
-plot(xs, eval_fd(xs, deriv(rgh_470_0(i), N_DERIV)));
-title('rough');
+plot(xs, eval_fd(xs, rgh_410_0(to_register_idx) ./ rgh_470_0(to_register_idx)), '-r'); hold on;
+plot(xs, eval_fd(xs, rgh_410_1(to_register_idx) ./ rgh_470_1(to_register_idx)), '-b');
 
-figure;
-plot(xs, eval_fd(xs, deriv(sm_410_0(i), N_DERIV))); hold on;
-plot(xs, eval_fd(xs, deriv(sm_470_0(i), N_DERIV)));
-title('smooth');
+plot(xs, eval_fd(xs, preg_rgh_410_0(1) ./ preg_rgh_470_0(to_register_idx)), '-.r');
+plot(xs, eval_fd(xs, preg_rgh_410_1(1) ./ preg_rgh_470_1(1)), '-.b');
 
-%% register
-to_register_idx = 1:123;
+%% channel-register
 
-warp_to = mean(rgh_410_0);
-
-[reg_rgh_410_0, reg_rgh_470_0, warpfd_0, wfd_0, d410_0, d470_0] = channel_register_new(...
+[reg_rgh_410_0, reg_rgh_470_0, warpfd_0, wfd_0, d410_0, d470_0] = channel_register(...
     i410_0(:,to_register_idx), i470_0(:,to_register_idx), ...
-    warp_to, ...
     WARP_N_BASIS, WARP_ORDER, WARP_LAMBDA,...
-    SMOOTH_LAMBDA, SMOOTH_N_BREAKS, SMOOTH_ORDER, ...
-    ROUGH_LAMBDA, ROUGH_N_BREAKS, ROUGH_ORDER,...
+    SMOOTH_LAMBDA, SMOOTH_N_BASIS, SMOOTH_ORDER, ...
+    ROUGH_LAMBDA, ROUGH_N_BASIS, ROUGH_ORDER,...
     N_DERIV);
 
-[reg_rgh_410_1, reg_rgh_470_1, warpfd_1, wfd_1, d410_1, d470_1] = channel_register_new(...
+[reg_rgh_410_1, reg_rgh_470_1, warpfd_1, wfd_1, d410_1, d470_1] = channel_register(...
     i410_1(:,to_register_idx), i470_1(:,to_register_idx), ...
-    warp_to, ...
     WARP_N_BASIS, WARP_ORDER, WARP_LAMBDA,...
-    SMOOTH_LAMBDA, SMOOTH_N_BREAKS, SMOOTH_ORDER, ...
-    ROUGH_LAMBDA, ROUGH_N_BREAKS, ROUGH_ORDER,...
+    SMOOTH_LAMBDA, SMOOTH_N_BASIS, SMOOTH_ORDER, ...
+    ROUGH_LAMBDA, ROUGH_N_BASIS, ROUGH_ORDER,...
     N_DERIV);
 
 %%
-xs = linspace(1, 100, 1000);
-scatter(linspace(1, 100, 200), i410_0(:,i)); hold on;
-plot(xs, eval_fd(xs, rgh_410_0(i)));
-
-%%
-figure;
-plot(linspace(1,100,100),linspace(1,100,100)); hold on;
-plot(warpfd_0);
-
-%%
-xs = linspace(1, 100, 1000);
-
+% xs = linspace(0, 1, 1000);
+% scatter(linspace(0, 1, 200), i410_0(:,i)); hold on;
+% plot(xs, eval_fd(xs, rgh_410_0(i)));
+% 
+% %%
+% figure;
+% plot(linspace(0,1,100),linspace(0,1,100)); hold on;
+% plot(warpfd_0);
+% 
+% %%
+% xs = linspace(0, 1, 1000);
+% 
 % i = 18;
-i = 2;
+% i = 10;
+% figure;
+% plot(xs, eval_fd(xs, d410_0(i))); hold on;
+% plot(xs, eval_fd(xs, deriv(sm_470_0(i), N_DERIV)));
+% plot(xs, eval_fd(xs, d470_0(i)));
+% legend('d410', 'd470', 'r(470)');
+% % 
+% % %%
+% xs = linspace(0, 1, 1000);
+% figure;
+% 
+% scatter(linspace(0, 1, 200), i470_0(:, 1)); hold on;
+% plot(xs, eval_fd(xs, reg_rgh_470_0(1))); 
+% plot(xs, eval_fd(xs, rgh_470_0(1)));
+% plot(xs, (eval_fd(xs, rgh_410_0(1))/1.48));
+% legend('470', 'reg 470', 'raw 470', '410');
+% 
+% 
+% %%
+xs = linspace(0, 1, 1000);
 figure;
-plot(xs, eval_fd(xs, d410_0(i))); hold on;
-plot(xs, eval_fd(xs, deriv(sm_470_0(i), N_DERIV)));
-plot(xs, eval_fd(xs, d470_0(i)));
 
-legend('410', '470', 'r(470)');
-
-%%
-xs = linspace(1, 100, 1000);
-figure;
-
-scatter(linspace(1, 100, 200), i470_0(:, 1)); hold on;
-plot(xs, eval_fd(xs, reg_rgh_470_0(1))); 
-plot(xs, eval_fd(xs, rgh_470_0(1)));
-legend('reg 470', 'raw 470');
-
-
-%%
-xs = linspace(1, 100, 1000);
-figure;
-
-i = 1;
-plot(xs, eval_fd(xs, reg_rgh_410_0(i) ./ reg_rgh_470_0(i)), '-.b'); hold on;
-plot(xs, eval_fd(xs, reg_rgh_410_1(i) ./ reg_rgh_470_1(i)), '-.r');
-plot(xs, eval_fd(xs, rgh_410_0(i) ./ rgh_470_0(i)),'-b');
-plot(xs, eval_fd(xs, rgh_410_1(i) ./ rgh_470_1(i)),'-r');
+to_register_idx = 1;
+plot(xs, eval_fd(xs, reg_rgh_410_0(to_register_idx) ./ reg_rgh_470_0(to_register_idx)), '-.b'); hold on;
+plot(xs, eval_fd(xs, reg_rgh_410_1(to_register_idx) ./ reg_rgh_470_1(to_register_idx)), '-.r');
+plot(xs, eval_fd(xs, rgh_410_0(to_register_idx) ./ rgh_470_0(to_register_idx)),'-b');
+plot(xs, eval_fd(xs, rgh_410_1(to_register_idx) ./ rgh_470_1(to_register_idx)),'-r');
 legend('reg1', 'reg2', 'raw1', 'raw2');
 
 %%
-xs = linspace(1, 100, 1000);
+% xs = linspace(0, 1, 1000);
+% figure;
+% unreg_error = abs(eval_fd(xs, (rgh_410_0(to_register_idx) ./ rgh_470_0(to_register_idx)) - (rgh_410_1(to_register_idx) ./ rgh_470_1(to_register_idx))));
+% reg_error = abs(eval_fd(xs, (rgh_410_0(to_register_idx) ./ rgh_470_0(to_register_idx)) - (reg_rgh_410_1(to_register_idx) ./ reg_rgh_470_1(to_register_idx))));
+% plot(mean(unreg_error, 2)); hold on;
+% plot(mean(reg_error, 2));
+% legend('unreg', 'reg');
+
+%%
+% i = 11;
+% plot(xs, eval_fd(xs, deriv(sm_410_1(i), 1))); hold on;
+% plot(xs, eval_fd(xs, deriv(sm_470_1(i), 1)));
+
+
+%%
+
+xs = linspace(0, 1, 1000);
 figure;
-unreg_error = abs(eval_fd(xs, (rgh_410_0 ./ rgh_470_0) - (rgh_410_1 ./ rgh_470_1)));
-reg_error = abs(eval_fd(xs, (reg_rgh_410_0 ./ reg_rgh_470_0) - (reg_rgh_410_1 ./ reg_rgh_470_1)));
-plot(mean(unreg_error, 2));  hold on;
-plot(mean(reg_error, 2));
-legend('unreg', 'reg');
+
+to_register_idx = 1;
+% % unreg
+% plot(xs, eval_fd(xs, (rgh_410_1(i) - mean(i410_1, 'all')) ./ std(i410_1, 0, 'all')), '-r');
+% hold on;
+% plot(xs, eval_fd(xs, (rgh_470_1(i) - mean(i470_1, 'all')) ./ std(i470_1, 0, 'all')), '-b');
+% 
+% % reg
+% plot(xs, eval_fd(xs, (reg_rgh_410_1(i) - mean(i410_1, 'all')) ./ std(i410_1, 0, 'all')), '-.r');
+% plot(xs, eval_fd(xs, (reg_rgh_470_1(i) - mean(i470_1, 'all')) ./ std(i470_1, 0, 'all')), '-.b'); 
+
+% unreg
+plot(xs, eval_fd(xs, rgh_410_1(11)), '-r'); hold on;
+plot(xs, eval_fd(xs, rgh_470_1(11)), '-b');
+
+% reg
+plot(xs, eval_fd(xs, reg_rgh_410_1(to_register_idx)), '-.r');
+plot(xs, eval_fd(xs, reg_rgh_470_1(to_register_idx)), '-.b');
+
+% legend('410', '470', 'r410', 'r470');
+
+hold off;
+
+%%
+to_register_idx = 1;
+plot(rgh_410_0(to_register_idx) ./ rgh_470_0(to_register_idx)); hold on;
+plot(rgh_410_1(to_register_idx) ./ rgh_470_1(to_register_idx)); 
+legend('r0', 'r1');
+hold off;
+
+figure;
+plot(reg_rgh_410_0(to_register_idx) ./ reg_rgh_470_0(to_register_idx)); hold on;
+plot(reg_rgh_410_1(to_register_idx) ./ reg_rgh_470_1(to_register_idx)); 
+legend('reg r0', 'reg r1');
+hold off;
+
+%%
+% xs = linspace(0, 1, 1000);
+% figure;
+% unreg_r0 = rgh_410_0 ./ rgh_470_0;
+% unreg_r1 = rgh_410_1 ./ rgh_470_1;
+% 
+% reg_r0 = reg_rgh_410_0 ./ reg_rgh_470_0;
+% reg_r1 = reg_rgh_410_1 ./ reg_rgh_470_1;
+% 
+% plot(mean(unreg_r0)); hold on;
+% plot(mean(unreg_r1));
+% plot(mean(reg_r0));
+% plot(mean(reg_r1));
+% legend('ur0', 'ur1', 'r0', 'r1');
+% ylim([1.4, 1.51]);
+% xlim([10, 90]);
