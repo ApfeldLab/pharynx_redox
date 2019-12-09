@@ -1,19 +1,19 @@
 import os
 import numpy as np
+from pathlib import Path
 
 from pharynx_redox import pharynx_io as pio
 
-test_data_path = os.path.join(os.path.dirname(__file__), "test_data")
-print(test_data_path)
+test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 
 
 class TestPharynxAnalysis:
     img_stk_0 = {
-        "img_path": os.path.join(
-            test_data_path, "paired_ratio_0/2017_02_22-HD233_SAY47.tif"
+        "img_path": test_data_path.joinpath(
+            "paired_ratio_0/2017_02_22-HD233_SAY47.tif"
         ),
-        "strain_map_path": os.path.join(
-            test_data_path, "paired_ratio_0/2017_02_22-HD233_SAY47-indexer.csv"
+        "strain_map_path": test_data_path.joinpath(
+            "paired_ratio_0/2017_02_22-HD233_SAY47-indexer.csv"
         ),
         "imaging_scheme": "TL/470/410/470/410",
         "n_animals": 123,
@@ -59,7 +59,7 @@ class TestPharynxAnalysis:
             pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"]),
         )
 
-        assert img_stack.dims == ("strain", "wavelength", "pair", "y", "x")
+        assert img_stack.dims == ("spec", "wavelength", "pair", "y", "x")
 
     def test_load_strain_map_shape(self):
         strains = pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"])

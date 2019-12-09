@@ -23,6 +23,8 @@ from cached_property import cached_property
 from numpy.polynomial import Polynomial
 import logging
 
+from marshmallow import Schema, fields, INCLUDE, pprint, ValidationError
+
 from pharynx_redox import (
     image_processing as ip,
     profile_processing,
@@ -31,6 +33,21 @@ from pharynx_redox import (
     utils,
     constants,
 )
+
+
+class ExperimentSchema(Schema):
+    experiment_id = fields.Str(required=True)
+
+    strategy = fields.Str()
+
+    r_min = fields.Float(required=True)
+    r_max = fields.Float(required=True)
+    instrument_factor = fields.Float(required=True)
+
+    midpoint_potential = fields.Float(required=True)
+    z = fields.Float(required=True)
+    temperature = fields.Float(required=True)
+
 
 @dataclass
 class Experiment:
@@ -48,8 +65,9 @@ class Experiment:
     ###################################################################################
     # PIPELINE PARAMETERS
     ###################################################################################
-
     strategy: str = None
+
+    register: bool = False
 
     # R -> OxD parameters
     r_min: float = 0.852
@@ -69,6 +87,7 @@ class Experiment:
     frame_specific_midlines: bool = False
     smooth_unregistered_data: bool = False
     measurement_order: int = 1
+    measure_thickness: float = 0.0
 
     # Registration Parameters
     register: bool = False
@@ -124,8 +143,7 @@ class Experiment:
 
     @property
     def parameter_dict(self):
-        return {
-        }
+        return {}
 
     @property
     def scaled_regions(self):
@@ -274,6 +292,24 @@ class Experiment:
     # PIPELINE
     ####################################################################################
 
+    def full_pipeline(self):
+        logging.info(f"Starting full pipeline run for {self.experiment_dir}")
+
+        if self.seg_images is None:
+            self.seg_images = self.segment_pharynxes()
+        self.align_and_center()
+        self.calculate_midlines()
+        self.measure_under_midlines()
+        if self.register:
+            self.register_profiles()
+        self.trim_data()
+        self.calculate_redox()
+        self.persist_to_disk(summary_plots=self.save_summary_plots)
+
+        logging.info(f"Finished full pipeline run for {self.experiment_dir}")
+
+        return self
+
     def segment_pharynxes(self):
         logging.info("Segmenting pharynxes")
 
@@ -298,6 +334,7 @@ class Experiment:
             n_points=self.n_midline_pts,
             frame_specific=self.frame_specific_midlines,
             order=self.measurement_order,
+            thickness=self.measure_thickness
         )
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
@@ -316,7 +353,7 @@ class Experiment:
             n_deriv=self.n_deriv,
             rough_lambda=self.rough_lambda,
             smooth_lambda=self.smooth_lambda,
-        )
+        )[0]
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -333,34 +370,8 @@ class Experiment:
         logging.info("Calculating redox measurements")
 
         # Expand the trimmed_intensity_data to include new wavelengths
-        new_wvls = np.append(self.trimmed_profiles.wavelength.data, ["r", "oxd", "e"])
-        self.trimmed_profiles = self.trimmed_profiles.reindex(wavelength=new_wvls)
-        self.untrimmed_profiles = self.untrimmed_profiles.reindex(wavelength=new_wvls)
-
-        self.trimmed_profiles.loc[dict(wavelength="r")] = self.trimmed_profiles.sel(
-            wavelength="410"
-        ) / self.trimmed_profiles.sel(wavelength="470")
-        self.untrimmed_profiles.loc[dict(wavelength="r")] = self.untrimmed_profiles.sel(
-            wavelength="410"
-        ) / self.untrimmed_profiles.sel(wavelength="470")
-        self.trimmed_profiles.loc[dict(wavelength="oxd")] = profile_processing.r_to_oxd(
-            self.trimmed_profiles.loc[dict(wavelength="r")]
-        )
-        self.untrimmed_profiles.loc[
-            dict(wavelength="oxd")
-        ] = profile_processing.r_to_oxd(
-            self.untrimmed_profiles.loc[dict(wavelength="r")]
-        )
-        self.trimmed_profiles.loc[
-            dict(wavelength="e")
-        ] = profile_processing.oxd_to_redox_potential(
-            self.trimmed_profiles.loc[dict(wavelength="oxd")]
-        )
-        self.untrimmed_profiles.loc[
-            dict(wavelength="e")
-        ] = profile_processing.oxd_to_redox_potential(
-            self.untrimmed_profiles.loc[dict(wavelength="oxd")]
-        )
+        self.trimmed_profiles = utils.add_derived_wavelengths(self.trimmed_profiles)
+        self.untrimmed_profiles = utils.add_derived_wavelengths(self.untrimmed_profiles)
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])
@@ -498,99 +509,6 @@ class Experiment:
         )
 
 
-@dataclass
-class PairExperiment(Experiment):
-    """
-    TODO: Documentation
-    """
-
-    strategy: str = "frame specific midlines with registration"
-    register: bool = True
-
-    # Required initialization parameters
-    image_display_order: List[str] = field(
-        default_factory=lambda: ["410_1", "470_1", "r1", "410_2", "470_2", "r2"]
-    )
-
-    def full_pipeline(self):
-        logging.info(f"Starting full pipeline run for {self.experiment_dir}")
-
-        if self.seg_images is None:
-            self.seg_images = self.segment_pharynxes()
-        self.align_and_center()
-        self.calculate_midlines()
-        self.measure_under_midlines()
-        if self.register:
-            self.register_profiles()
-        self.trim_data()
-        self.calculate_redox()
-        self.persist_to_disk(summary_plots=self.save_summary_plots)
-
-        logging.info(f"Finished full pipeline run for {self.experiment_dir}")
-
-        return self
-
-
-@dataclass
-class CataExperiment(Experiment):
-    """
-    TODO: Documentation
-    """
-
-    strategy: str = "cata"
-    frame_specific_midlines: bool = False
-
-    def full_pipeline(self):
-        logging.info(f"Starting full pipeline run for {self.experiment_dir}")
-        if self.seg_images is None:
-            self.seg_images = self.segment_pharynxes()
-        self.align_and_center()
-        self.calculate_midlines()
-        self.measure_under_midlines()
-        self.trim_data()
-        self.calculate_redox()
-        self.persist_to_disk(summary_plots=self.save_summary_plots)
-
-        logging.info(f"Finished full Cata pipeline run for {self.experiment_dir}")
-
-        return self
-
-    def segment_pharynxes(self):
-        ref_wvl = "410"
-        seg_images = super().segment_pharynxes()
-
-        # In Cata's pipeline, the fluorescent images are also masked
-        for animal_idx in np.arange(seg_images.strain.size):
-            for wvl_idx in np.arange(seg_images.wavelength.size):
-                for pair in seg_images.pair:
-                    ref_seg = seg_images.sel(wavelength=ref_wvl, pair=pair).isel(
-                        strain=animal_idx
-                    )
-                    img = self.images.isel(
-                        strain=animal_idx, wavelength=wvl_idx, pair=pair
-                    )
-
-                    masked = ref_seg * img
-
-                    self.images[animal_idx, wvl_idx, pair] = masked
-
-        return seg_images
-
-    def measure_under_midlines(self, ref_wvl="410"):
-        logging.info("Measuring under midlines")
-        self.untrimmed_profiles = ip.measure_under_midlines(
-            self.rot_fl,
-            self.midlines,
-            n_points=self.n_midline_pts,
-            frame_specific=self.frame_specific_midlines,
-            order=self.measurement_order,
-        )
-        self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
-        self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
-            self.untrimmed_profiles
-        )
-
-
 if __name__ == "__main__":
     import logging
 
@@ -602,7 +520,7 @@ if __name__ == "__main__":
     experiment_path = Path(
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_08_23-HD233_4mm_lev"
     )
-    ex = PairExperiment(experiment_path, "TL/470/410/470/410", register=False)
+    ex = Experiment(experiment_path, "TL/470/410/470/410", register=False)
     ex.full_pipeline()
 
     utils.measure_shifted_midlines(ex, (-2, 2), 5)

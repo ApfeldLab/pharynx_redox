@@ -1,6 +1,6 @@
 import re
 from collections import Counter
-from pharynx_redox import experiment
+from pharynx_redox import experiment, profile_processing as pp
 
 import numpy as np
 import pandas as pd
@@ -9,8 +9,34 @@ from scipy import ndimage as ndi
 import typing
 from skimage.measure import regionprops, label
 from pathlib import Path
-from tqdm import tqdm
 import argparse
+import matlab
+
+
+def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: str):
+    """
+    Send data to MATLAB session currently running. Useful for debugging MATLAB code.
+    
+    Parameters
+    ----------
+    data : typing.Union[xr.DataArray, np.ndarray]
+        The data to send to MATLAB
+    var_name : str
+        The name of the variable that will appear in MATLAB workspace
+    """
+    engines = matlab.engine.find_matlab()
+    if len(engines) == 0:
+        raise EnvironmentError(
+            """
+            No MATLAB instances currently running OR the MATLAB instance is not shared...
+            (1) Ensure MATLAB is running.
+            (2) Make sure that the instance is shared. To do this, run (in MATLAB): matlab.engine.shareEngine
+            (3) Try this function again 
+            """
+        )
+
+    eng = matlab.engine.connect_matlab(engines[0])
+    eng.workspace[var_name] = matlab.double(data.values.tolist())
 
 
 def scale_region_boundaries(regions: dict, profile_length: int):
@@ -362,12 +388,23 @@ def measure_shifted_midlines(
 
 
 def run_all_analyses(meta_dir: str, imaging_scheme: str, **kwargs):
+    """
+    Run all experiment analyeses in the given parent directory
+
+    Parameters
+    ----------
+    meta_dir
+        the parent directory containing all experiment directories
+    imaging_scheme
+        the imaging scheme (see experiment)
+    **kwargs
+        keyword arguments to be passed to the experiment constructor
+    """
 
     meta_dir = Path(meta_dir)
 
-    exps = list(filter(lambda x: x.is_dir(), meta_dir.iterdir()))
-    for exp_dir in tqdm(exps):
-        experiment.PairExperiment(
+    for exp_dir in list(filter(lambda x: x.is_dir(), meta_dir.iterdir())):
+        experiment.Experiment(
             experiment_dir=exp_dir,
             imaging_scheme=imaging_scheme,
             strategy="_".join(f"{k}={v}" for k, v in kwargs.items()),
@@ -391,6 +428,37 @@ def cli_run_all_analyses():
 
     args = parser.parse_args()
     run_all_analyses(meta_dir=args.meta_dir, imaging_scheme=args.imaging_scheme)
+
+
+def expand_dimension(
+    data: xr.DataArray,
+    dim: str,
+    new_coords: typing.Dict[str, typing.Union[xr.DataArray, np.ndarray]],
+):
+    all_coords = np.append(data[dim].data, list(new_coords.keys()))
+    data = data.reindex(**{dim: all_coords})
+    for coord, new_data in new_coords.items():
+        try:
+            # if it's an xr.DataArray
+            data.loc[{dim: coord}] = new_data.values
+        except AttributeError:
+            # if it's an np.ndarray
+            data.loc[{dim: coord}] = new_data
+    return data
+
+
+def add_derived_wavelengths(data):
+    r = data.sel(wavelength="410") / data.sel(wavelength="470")
+    oxd = pp.r_to_oxd(r)
+    e = pp.oxd_to_redox_potential(oxd)
+
+    if "r" in data.wavelength.values:
+        data.loc[dict(wavelength="r")] = r
+        data.loc[dict(wavelength="oxd")] = oxd
+        data.loc[dict(wavelength="e")] = e
+        return data
+    else:
+        return expand_dimension(data, "wavelength", {"r": r, "oxd": oxd, "e": e})
 
 
 if __name__ == "__main__":

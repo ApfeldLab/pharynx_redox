@@ -108,7 +108,8 @@ def summarize_over_regions(
         reg_df = (
             data[dict(position=range(bounds[0], bounds[1]))]
             .mean(dim="position", skipna=True)
-            .to_pandas().to_frame()
+            .to_pandas()
+            .to_frame()
         )
         # reg_df = reg_df.reset_index()
         reg_df["region"] = region
@@ -148,10 +149,10 @@ def smooth_profile_data(
                 .values.astype(np.float)
                 .T.tolist()
             )
+
+            eng = matlab.engine.start_matlab()
             sm_data = np.array(
-                constants.matlab_engine.smooth_profiles(
-                    raw_data, l, order, n_basis, n_eval_pts
-                )
+                eng.smooth_profiles(raw_data, l, order, n_basis, n_eval_pts)
             ).T
             smooth_profile_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
     return smooth_profile_data
@@ -159,24 +160,31 @@ def smooth_profile_data(
 
 def register_profiles_matlab(
     raw_profile_data,
-    n_deriv: int = 2,
-    rough_lambda: float = 10e-3,
-    smooth_lambda: float = 10e-1,
-    warp_lambda: float = 10e-1,
-    smooth_n_breaks: float = 100.0,
+    n_deriv: float = 2.0,
+    rough_lambda: float = 10.0 ** 0.05,
     rough_n_breaks: float = 300.0,
-    warp_n_basis: float = 300.0,
-    warp_order: float = 4.0,
-    smooth_order: float = 4.0,
     rough_order: float = 4.0,
+    smooth_lambda: float = 10.0 ** 2,
+    smooth_n_breaks: float = 100.0,
+    smooth_order: float = 4.0,
+    warp_lambda: float = 5e3,
+    warp_n_basis: float = 3.0,
+    warp_order: float = 4.0,
     resample_resolution: int = None,
+    matlab_engine=None,
 ) -> (xr.DataArray, np.ndarray):
-    eng = matlab.engine.start_matlab()
+    if matlab_engine is None:
+        eng = matlab.engine.start_matlab()
+    else:
+        eng = matlab_engine
     reg_profile_data = raw_profile_data.copy()
 
     # Registration Parameters
     if resample_resolution is None:
         resample_resolution = reg_profile_data.shape[-1]
+
+    # indexed by pair
+    all_warps = []
 
     for pair in raw_profile_data.pair.values:
         print(f"Registering Pair {pair}")
@@ -186,11 +194,11 @@ def register_profiles_matlab(
         i470 = matlab.double(
             raw_profile_data.sel(wavelength="470", pair=pair).values.T.tolist()
         )
-
         # Call the MATLAB subroutine
-        r410, r470, warpfd, wfd, d410, reg_d470 = eng.channel_register_discrete(
+        r410, r470, warps = eng.channel_register(
             i410,
             i470,
+            resample_resolution,
             warp_n_basis,
             warp_order,
             warp_lambda,
@@ -201,19 +209,131 @@ def register_profiles_matlab(
             rough_n_breaks,
             rough_order,
             n_deriv,
-            resample_resolution,
-            nargout=6,
+            nargout=3,
         )
         r410, r470 = np.array(r410).T, np.array(r470).T
-        warpfd = np.array(warpfd)
-        wfd = np.array(wfd)
-        d410 = np.array(d410)
-        reg_d470 = np.array(reg_d470)
 
         reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
 
+        all_warps.append(np.array(warps))
+    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
+    return reg_profile_data, np.array(all_warps)
+
+
+def register_profiles(
+    profile_data: xr.DataArray,
+    eng: matlab.engine.MatlabEngine = None,
+    n_deriv: float = 2.0,
+    rough_lambda: float = 10.0 ** 0.05,
+    rough_n_breaks: float = 300.0,
+    rough_order: float = 4.0,
+    smooth_lambda: float = 10.0 ** 2,
+    smooth_n_breaks: float = 100.0,
+    smooth_order: float = 4.0,
+    warp_lambda: float = 5e3,
+    warp_n_basis: float = 30.0,
+    warp_order: float = 4.0,
+) -> xr.DataArray:
+    """
+    Register the 470nm channel into the 410nm channel profile data
+    
+    Parameters
+    ----------
+    profile_data : xr.DataArray
+        The data to register. Must be maximally 3-dimensional. The dimensions are (animal, wavelength, position along profile).
+    eng: matlab.engine.MatlabEngine
+        The MATLAB engine to use for registration. If None, a new engine is created.
+    """
+    if eng is None:
+        eng = matlab.engine.start_matlab()
+
+    reg_profile_data = profile_data.copy()
+
+    i410 = matlab.double(profile_data.sel(wavelength="410").values.tolist())
+    i470 = matlab.double(profile_data.sel(wavelength="470").values.tolist())
+
+    resample_resolution = profile_data.position.size
+
+    # Call the MATLAB subroutine
+    r410, r470, _ = eng.channel_register(
+        i410,
+        i470,
+        resample_resolution,
+        warp_n_basis,
+        warp_order,
+        warp_lambda,
+        smooth_lambda,
+        smooth_n_breaks,
+        smooth_order,
+        rough_lambda,
+        rough_n_breaks,
+        rough_order,
+        n_deriv,
+        nargout=3,
+    )
+    r410, r470 = np.array(r410).T, np.array(r470).T
+
+    reg_profile_data.loc[dict(wavelength="410")] = r410
+    reg_profile_data.loc[dict(wavelength="470")] = r470
+    
+    reg_profile_data = reg_profile_data.drop_dims(['r', 'oxd', 'e'])
+    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
+
     return reg_profile_data
+
+
+def register_profiles_matlab_standard(
+    raw_profile_data,
+    n_deriv: float = 2.0,
+    smooth_lambda: float = 1e-5,
+    smooth_n_breaks: float = 64.0,
+    smooth_order: float = 4.0,
+    warp_lambda: float = 1e2,
+    warp_n_basis: float = 6.0,
+    warp_order: float = 4.0,
+    resample_resolution: int = None,
+) -> (xr.DataArray, np.ndarray):
+    eng = matlab.engine.start_matlab()
+    reg_profile_data = raw_profile_data.copy()
+
+    # Registration Parameters
+    if resample_resolution is None:
+        resample_resolution = reg_profile_data.position.size
+
+    # indexed by pair
+    all_warps = []
+
+    for pair in raw_profile_data.pair.values:
+        print(f"Registering Pair {pair}")
+        i410 = matlab.double(
+            raw_profile_data.sel(wavelength="410", pair=pair).values.tolist()
+        )
+        i470 = matlab.double(
+            raw_profile_data.sel(wavelength="470", pair=pair).values.tolist()
+        )
+        # Call the MATLAB subroutine
+        r410, r470, warps = eng.channel_register_standard(
+            i410,
+            i470,
+            resample_resolution,
+            warp_n_basis,
+            warp_order,
+            warp_lambda,
+            smooth_lambda,
+            smooth_n_breaks,
+            smooth_order,
+            n_deriv,
+            nargout=3,
+        )
+        r410, r470 = np.squeeze(np.array(r410).T), np.squeeze(np.array(r470).T)
+
+        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
+        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
+
+        all_warps.append(np.array(warps))
+
+    return reg_profile_data, np.array(all_warps)
 
 
 def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
