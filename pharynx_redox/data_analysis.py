@@ -69,7 +69,6 @@ def get_resid_rr(
     return get_resid_rr_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 
-<<<<<<< HEAD
 def relative_error(data, summarize=False, **summarize_kwargs):
     try:
         pair0 = data.sel(wavelength="r", pair=0)
@@ -81,8 +80,6 @@ def relative_error(data, summarize=False, **summarize_kwargs):
     return fold_error_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 def fold_error(data, summarize=False, **summarize_kwargs):
     try:
         pair0 = data.sel(wavelength="r", pair=0)
@@ -254,7 +251,3 @@ def synthetic_shift(
                 shift_data.loc[
                     dict(pair=pair, wavelength="r", shift=shift, direction=direction)
                 ] = (i410_sm / i470_sm)
-<<<<<<< HEAD
-=======
-
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80

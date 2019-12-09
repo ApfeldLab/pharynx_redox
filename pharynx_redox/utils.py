@@ -1,9 +1,6 @@
 import re
 from collections import Counter
-<<<<<<< HEAD
 from pharynx_redox import experiment, profile_processing as pp
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
 import numpy as np
 import pandas as pd
@@ -11,7 +8,6 @@ import xarray as xr
 from scipy import ndimage as ndi
 import typing
 from skimage.measure import regionprops, label
-<<<<<<< HEAD
 from pathlib import Path
 import argparse
 import matlab
@@ -41,8 +37,6 @@ def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: 
 
     eng = matlab.engine.connect_matlab(engines[0])
     eng.workspace[var_name] = matlab.double(data.values.tolist())
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
 
 def scale_region_boundaries(regions: dict, profile_length: int):
@@ -391,7 +385,6 @@ def measure_shifted_midlines(
                 new_animal_idx += 1
 
     return measurements, all_shifts, orig_idx
-<<<<<<< HEAD
 
 
 def run_all_analyses(meta_dir: str, imaging_scheme: str, **kwargs):
@@ -470,5 +463,3 @@ def add_derived_wavelengths(data):
 
 if __name__ == "__main__":
     cli_run_all_analyses()
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80

@@ -231,7 +231,7 @@ def register_profiles(
     smooth_lambda: float = 10.0 ** 2,
     smooth_n_breaks: float = 100.0,
     smooth_order: float = 4.0,
-    warp_lambda: float = 5e3,
+    warp_lambda: float = 5.0e3,
     warp_n_basis: float = 30.0,
     warp_order: float = 4.0,
 ) -> xr.DataArray:
@@ -253,7 +253,7 @@ def register_profiles(
     i410 = matlab.double(profile_data.sel(wavelength="410").values.tolist())
     i470 = matlab.double(profile_data.sel(wavelength="470").values.tolist())
 
-    resample_resolution = profile_data.position.size
+    resample_resolution = float(profile_data.position.size)
 
     # Call the MATLAB subroutine
     r410, r470, _ = eng.channel_register(
@@ -276,8 +276,6 @@ def register_profiles(
 
     reg_profile_data.loc[dict(wavelength="410")] = r410
     reg_profile_data.loc[dict(wavelength="470")] = r470
-    
-    reg_profile_data = reg_profile_data.drop_dims(['r', 'oxd', 'e'])
     reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
 
     return reg_profile_data
@@ -583,7 +581,3 @@ if __name__ == "__main__":
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/analyses/2019-08-26_single_unreg/2017_02_22-HD233_SAY47-profile_data.nc"
     )
     register_profiles_matlab(profile_data)
-<<<<<<< HEAD
-=======
-
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80

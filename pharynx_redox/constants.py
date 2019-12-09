@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 import matlab
 
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 trimmed_regions = {
     "pm3": [0.07, 0.28],
     "pm4": [0.33, 0.45],
@@ -12,11 +9,7 @@ trimmed_regions = {
 }
 untrimmed_regions = {
     "pm3": [0.12, 0.30],
-<<<<<<< HEAD
     "pm4": [0.355, 0.455],
-=======
-    "pm4": [0.35, 0.44],
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
     "pm5": [0.52, 0.65],
     "pm6": [0.73, 0.78],
     "pm7": [0.79, 0.85],
@@ -27,11 +20,7 @@ untrimmed_regions_with_medial = {
     "pm5": [0.52, 0.65],
     "pm6": [0.73, 0.78],
     "pm7": [0.79, 0.85],
-<<<<<<< HEAD
     "medial_axis": [0.12, 0.85],
-=======
-    "medial_axis": [0.05, 0.95],
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 }
 
 trimmed_regions_with_medial = {
@@ -42,7 +31,6 @@ trimmed_regions_with_medial = {
     "pm7": [0.88, 0.96],
     "medial_axis": [0.05, 0.95],
 }
-<<<<<<< HEAD
 
 opt_trimmed_regions = {}
 
@@ -55,5 +43,3 @@ opt_untrimmed_regions = {
 }
 
 # matlab_engine = matlab.engine.start_matlab()
-=======
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
