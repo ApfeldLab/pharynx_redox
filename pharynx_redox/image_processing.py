@@ -2,6 +2,10 @@ from typing import List, Dict, Union
 
 import numpy as np
 import numpy.ma as ma
+<<<<<<< HEAD
+=======
+from tqdm.auto import tqdm
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
@@ -13,7 +17,10 @@ from skimage.transform import warp, AffineTransform
 from skimage.external import tifffile
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
 from scipy.stats import norm
+=======
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
 from pharynx_redox import profile_processing
 
@@ -108,7 +115,13 @@ def center_and_rotate_pharynxes(
     blurred_seg_data = blurred_seg_data > 1000
     blurred_seg.data = blurred_seg_data
 
+<<<<<<< HEAD
     for img_idx in range(fl_images.spec.size):
+=======
+    for img_idx in tqdm(
+        range(fl_images.spec.size), leave=False, desc="aliging pharynxes"
+    ):
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
                 # Optimization potential here...
@@ -312,7 +325,13 @@ def calculate_midlines(
             for wvl in rot_seg_stack.wavelength.data
             if "tl" not in wvl.lower()
         }
+<<<<<<< HEAD
         for img_idx in range(rot_seg_stack.spec.size)
+=======
+        for img_idx in tqdm(
+            range(rot_seg_stack.spec.size), leave=False, desc="calculating midlines"
+        )
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
     ]
 
 
@@ -340,7 +359,11 @@ def calculate_midline(
 
     Notes
     -----
+<<<<<<< HEAD
     Right now this only works for images that this have been centered this and aligned this with their
+=======
+    Right now this only works for images that have been centered and aligned with their
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
     anterior-posterior along the horizontal.
     """
     rp = measure.regionprops(measure.label(rot_seg_img))[0]
@@ -351,6 +374,7 @@ def calculate_midline(
 
 
 def measure_under_midline(
+<<<<<<< HEAD
     fl: xr.DataArray,
     mid: Polynomial,
     n_points: int = 100,
@@ -358,6 +382,9 @@ def measure_under_midline(
     order=1,
     norm_scale=1,
     flatten=True
+=======
+    fl: xr.DataArray, mid: Polynomial, n_points: int = 100, thickness: float = 0.0, order=1
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -371,6 +398,7 @@ def measure_under_midline(
     n_points
         The number of points to measure under
     thickness
+<<<<<<< HEAD
         The thickness of the line to measure under. 
     
     Notes
@@ -384,6 +412,9 @@ def measure_under_midline(
             1.99 ms ± 65.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
         10-thickness:
             3.89 ms ± 92.1 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+=======
+        The thickness of the line to measure under. WARNING: this is a lot slower right now
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
     Returns
     -------
@@ -391,6 +422,7 @@ def measure_under_midline(
         The intensity profile of the image measured under the midline at the given x-coordinates.
 
     """
+<<<<<<< HEAD
 
     if thickness == 0:
         xs, ys = mid.linspace(n=n_points)
@@ -407,25 +439,41 @@ def measure_under_midline(
         xs, ys = mid.linspace(n=n_points)
         
         # Now, we get the angles of each normal vector
+=======
+    if thickness == 0:
+        xs, ys = mid.linspace(n=n_points)
+        fl = np.asarray(fl)
+        return ndi.map_coordinates(fl, np.stack([ys, xs]), order=order)
+    else:
+        xs, ys = mid.linspace()
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
         der = mid.deriv()
         normal_slopes = -1 / der(xs)
         normal_thetas = np.arctan(normal_slopes)
 
+<<<<<<< HEAD
         # We get the x and y components of the start/end of the normal vectors
         mag = thickness / 2
+=======
+        mag = 1.5
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
         x0 = np.cos(normal_thetas) * mag
         y0 = np.sin(normal_thetas) * mag
 
         x1 = np.cos(normal_thetas) * -mag
         y1 = np.sin(normal_thetas) * -mag
 
+<<<<<<< HEAD
         # These are the actual coordinates of the starts/ends of the normal vectors as they move
         # from (x,y) coordinates in the midline
+=======
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
         xs0 = xs + x0
         xs1 = xs + x1
         ys0 = ys + y0
         ys1 = ys + y1
 
+<<<<<<< HEAD
         # This is kinda weird... But we need to do it.
         # TODO: Could be made faster w/ vectorization? Too tired to figure that out when I wrote it though
 
@@ -459,6 +507,18 @@ def measure_under_midline(
             return profile
         else:
             return straightened
+=======
+        prof = []
+        for i in range(len(xs)):
+            line = measure.profile._line_profile_coordinates(
+                (xs0[i], ys0[i]), (xs1[i], ys1[i])
+            )[:, :, 0]
+            line_xs = xr.DataArray(line[0], dims="z")
+            line_ys = xr.DataArray(line[1], dims="z")
+            prof.append(np.mean(fl.interp(x=line_xs, y=line_ys).data, 0))
+        # TODO: optionally use gaussian weight for the profile
+        return np.array(prof)
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
 
 def measure_under_midlines(
@@ -467,8 +527,11 @@ def measure_under_midlines(
     n_points: int = 300,
     frame_specific: bool = False,
     order=1,
+<<<<<<< HEAD
     thickness=0,
     flatten=True
+=======
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 ) -> xr.DataArray:
     """
     Measure under all midlines in stack
@@ -490,8 +553,11 @@ def measure_under_midlines(
     frame_specific: bool
         whether to use a different midline for each frame. if False, a single midline
         will be used within all wavelengths in a pair
+<<<<<<< HEAD
     thickness: float
         the thickness of the midline to measure under
+=======
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
     Returns
     -------
@@ -513,7 +579,13 @@ def measure_under_midlines(
 
     ref_wvl = "410"
 
+<<<<<<< HEAD
     for img_idx in range(fl_stack.spec.size):
+=======
+    for img_idx in tqdm(
+        range(fl_stack.spec.size), leave=False, desc="measuring under midlines"
+    ):
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
         for pair in range(fl_stack.pair.size):
             for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
                 img = fl_stack.sel(wavelength=wvl, pair=pair).isel(spec=img_idx)
@@ -524,7 +596,11 @@ def measure_under_midlines(
                     mid = midlines[img_idx][ref_wvl][pair]
 
                 raw_intensity_data[img_idx, wvl_idx, pair, :] = measure_under_midline(
+<<<<<<< HEAD
                     img, mid, n_points, order=order, thickness=thickness, flatten=True
+=======
+                    img, mid, n_points, order=order
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
                 )
 
     raw_intensity_data.values = np.nan_to_num(raw_intensity_data.values)
@@ -752,12 +828,19 @@ def normalize_images_single_wvl(
 
     return normed_imgs
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 def z_normalize_with_masks(imgs, masks):
     """
     Perform z-normalization [0] on the entire image (relative to the content within the masks).
 
+<<<<<<< HEAD
     That is to say, we center the pixels (within the mask) such that their mean is 0, and ensure their standard deviation is ~1.
+=======
+    That is to say, we center the pixels within the mask such that their mean is 0, and ensure their standard deviation is ~1.
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
 
     This allows us to see spatial patterns within the masked region (even if pixels outside of the masked region
     fall very far above or below those inside) by setting the colormap center around 0.
@@ -767,6 +850,7 @@ def z_normalize_with_masks(imgs, masks):
     masked = ma.masked_array(imgs, np.logical_not(masks))
     mu = np.mean(masked, axis=(-2, -1), keepdims=True)
     sigma = np.std(masked, axis=(-2, -1), keepdims=True)
+<<<<<<< HEAD
 
     return (imgs - mu) / sigma
 
@@ -774,15 +858,26 @@ def z_normalize_with_masks(imgs, masks):
 def create_normed_rgb_ratio_stack(
     r_imgs, seg_imgs, vmin=-7, vmax=7, cmap="coolwarm", output_filename=None
 ):
+=======
+    
+    return (imgs - mu) / sigma 
+
+def create_normed_rgb_ratio_stack(r_imgs, seg_imgs, vmin=-7, vmax=7, cmap='coolwarm', output_filename=None):
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
     """
     Z-normalize the images (relative to the masks), then transform them into RGB with the given colormap
     """
     r_znormed = z_normalize_with_masks(r_imgs, seg_imgs)
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     if isinstance(cmap, str):
         cmap = plt.get_cmap(cmap)
     # TODO generalize dtype? for now, 32-bit only
+<<<<<<< HEAD
     rgb_img = cmap(normalizer(r_znormed))[:, :, :, :3].astype(np.float16)
 
     if output_filename is not None:
@@ -790,3 +885,12 @@ def create_normed_rgb_ratio_stack(
             tifffile.imsave(f, rgb_img)
 
     return rgb_img
+=======
+    rgb_img = cmap(normalizer(r_znormed))[:,:,:,:3].astype(np.float16)
+    
+    if output_filename is not None:
+        with open(output_filename, 'wb') as f:
+            tifffile.imsave(f, rgb_img)
+    
+    return rgb_img
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80

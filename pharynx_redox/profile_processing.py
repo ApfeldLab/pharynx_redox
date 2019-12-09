@@ -327,7 +327,6 @@ def register_profiles_matlab_standard(
             nargout=3,
         )
         r410, r470 = np.squeeze(np.array(r410).T), np.squeeze(np.array(r470).T)
-
         reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
         reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
 
@@ -584,3 +583,7 @@ if __name__ == "__main__":
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/analyses/2019-08-26_single_unreg/2017_02_22-HD233_SAY47-profile_data.nc"
     )
     register_profiles_matlab(profile_data)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
