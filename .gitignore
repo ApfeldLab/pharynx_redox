@@ -1,6 +1,7 @@
 # Project-Specific
+*.nc
+matlab/compiled_project/
 data/
-data_nithin/
 
 .idea/
 
