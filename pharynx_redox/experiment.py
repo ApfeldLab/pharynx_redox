@@ -336,7 +336,7 @@ class Experiment:
             n_points=self.n_midline_pts,
             frame_specific=self.frame_specific_midlines,
             order=self.measurement_order,
-            thickness=self.measure_thickness
+            thickness=self.measure_thickness,
         )
         self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(

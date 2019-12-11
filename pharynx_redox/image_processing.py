@@ -67,7 +67,10 @@ def get_lr_bounds(
 
 
 def center_and_rotate_pharynxes(
-    fl_images: xr.DataArray, seg_images: xr.DataArray, reference_wavelength: str = "410", blur_seg_thresh=1000
+    fl_images: xr.DataArray,
+    seg_images: xr.DataArray,
+    reference_wavelength: str = "410",
+    blur_seg_thresh=1000,
 ) -> (xr.DataArray, xr.DataArray):
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
@@ -357,7 +360,7 @@ def measure_under_midline(
     thickness: float = 0.0,
     order=1,
     norm_scale=1,
-    flatten=True
+    flatten=True,
 ) -> np.ndarray:
     """
     Measure the intensity profile of the given image under the given midline at the given x-coordinates.
@@ -399,13 +402,13 @@ def measure_under_midline(
     else:
         # Gets a bit wonky, but makes sense
         # TODO: maybe refactor this stuff out into individual functions?
-        
+
         # We need to get the normal lines from each point in the midline
         # then measure under those lines.
 
         # First, get the coordinates of the midline
         xs, ys = mid.linspace(n=n_points)
-        
+
         # Now, we get the angles of each normal vector
         der = mid.deriv()
         normal_slopes = -1 / der(xs)
@@ -441,19 +444,21 @@ def measure_under_midline(
                 ys0[i] = ys1[i]
                 ys1[i] = ty
 
-
         n_line_pts = thickness
 
         all_xs = np.linspace(xs0, xs1, n_line_pts)
         all_ys = np.linspace(ys0, ys1, n_line_pts)
 
         straightened = ndi.map_coordinates(fl, [all_ys, all_xs])
-        
+
         if flatten:
             # Create a normal distribution centered around 0 with the given scale (see scipy.norm.pdf)
             # the distribution is then tiled to be the same shape as the straightened pharynx
             # then, this resultant matrix is the weights for averaging
-            w = np.tile(norm.pdf(np.linspace(-1, 1, n_line_pts), scale=norm_scale), (n_points,1)).T
+            w = np.tile(
+                norm.pdf(np.linspace(-1, 1, n_line_pts), scale=norm_scale),
+                (n_points, 1),
+            ).T
             profile = np.average(straightened, axis=0, weights=w)
 
             return profile
@@ -468,7 +473,7 @@ def measure_under_midlines(
     frame_specific: bool = False,
     order=1,
     thickness=0,
-    flatten=True
+    flatten=True,
 ) -> xr.DataArray:
     """
     Measure under all midlines in stack
@@ -751,6 +756,7 @@ def normalize_images_single_wvl(
     normed_imgs = (normed_imgs - prof_mins) / (prof_maxs - prof_mins)
 
     return normed_imgs
+
 
 def z_normalize_with_masks(imgs, masks):
     """

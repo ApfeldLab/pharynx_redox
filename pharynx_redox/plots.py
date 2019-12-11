@@ -240,3 +240,190 @@ def add_img_colorbar(ax, position="right", size="5%", pad=0.05, **colorbar_kwarg
         cax=cax,
         **colorbar_kwargs,
     )
+
+
+def registration_diagnostic_plot_stack(fl, raw_prof, reg_prof, filepath, **reg_params):
+    with PdfPages(filepath) as pdf:
+        for i in range(fl.spec.size):
+            f = registration_diagnostic_plot(fl, raw_prof, reg_prof, i, **reg_params)
+            pdf.savefig(f)
+            plt.close(f)
+
+
+def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.Figure:
+    if "pair" in fl.dims:
+        n_pairs = fl.pair.size
+    else:
+        n_pairs = 1
+
+    fig_width, fig_height = 12, 12
+    fig_scale = 1
+
+    fig, axes = plt.subplots(
+        4, n_pairs, figsize=(fig_scale * fig_width, fig_scale * fig_height)
+    )
+
+    colors = {"410": "tab:blue", "470": "tab:orange"}
+
+    ###############
+    # RATIO IMAGE #
+    ###############
+    for pair in range(n_pairs):
+        ax = axes[0, pair]
+        colormap_profile_buffer = 10
+        imshow_ratio_normed(
+            fl.sel(wavelength="r", pair=pair)[idx],
+            fl.sel(wavelength="410", pair=pair)[idx],
+            profile_data=raw_prof.sel(wavelength="r", pair=pair)[idx][
+                colormap_profile_buffer:-colormap_profile_buffer
+            ],
+            prob=0.999,
+            i_max=2000,
+            colorbar=True,
+            ax=ax,
+        )
+
+        ax.set_xlim(45, 120)
+        ax.set_ylim(50, 80)
+
+    #####################
+    # INTENSITY PROFILE #
+    #####################
+    for pair in range(n_pairs):
+        # Intensity Profile
+        ax = axes[1, pair]
+        xs = np.linspace(0, 1, raw_prof.position.size)
+        # REG 410 ("unregistered, but smooth")
+        ax.scatter(
+            xs,
+            reg_prof.sel(wavelength="410", pair=pair)[idx],
+            color="k",
+            label="raw 410",
+            s=1,
+        )
+        # RAW 410 (to test hyper-fine smoothing)
+        ax.plot(
+            xs,
+            reg_prof.sel(wavelength="410", pair=pair)[idx],
+            lw=1,
+            color=colors["410"],
+            label="r410",
+            linestyle="-",
+        )
+        # RAW 470
+        ax.plot(
+            xs,
+            raw_prof.sel(wavelength="470", pair=pair)[idx],
+            linestyle="-",
+            lw=1,
+            color=colors["470"],
+            label="470",
+        )
+        # REG 470
+        ax.plot(
+            xs,
+            reg_prof.sel(wavelength="470", pair=pair)[idx],
+            linestyle="--",
+            lw=1,
+            color=colors["470"],
+            label="r470",
+        )
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 2.5e4)
+
+        # UNREGISTERED d(I) PROFILE
+        ax = ax.twinx()
+        # RAW 410 (to test hyper-fine smoothing)
+        ax.plot(
+            xs,
+            reg_prof.sel(wavelength="410", pair=pair)[idx].differentiate(
+                coord="position"
+            ),
+            lw=1,
+            color=colors["410"],
+            label="r410",
+            linestyle="-",
+        )
+        # RAW 470
+        ax.plot(
+            xs,
+            raw_prof.sel(wavelength="470", pair=pair)[idx].differentiate(
+                coord="position"
+            ),
+            linestyle="-",
+            lw=1,
+            color=colors["470"],
+            label="470",
+        )
+        # REG 470
+        ax.plot(
+            xs,
+            reg_prof.sel(wavelength="470", pair=pair)[idx].differentiate(
+                coord="position"
+            ),
+            linestyle="--",
+            lw=1,
+            color=colors["470"],
+            label="r470",
+        )
+        ax.axhline(0, linestyle="--", color="lightgray")
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-5e3, 1e3)
+    ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+
+    #################
+    # RATIO PROFILE #
+    #################
+
+    # get appropriate y-limits for ratios
+    buffer = int(raw_prof.position.size * 0.30)
+    r_min = raw_prof.sel(wavelength="r")[..., buffer:-buffer].min()
+    r_max = raw_prof.sel(wavelength="r")[..., buffer:-buffer].max()
+
+    for pair in range(n_pairs):
+        # Intensity Profile
+        ax = axes[2, pair]
+        xs = np.linspace(0, 1, raw_prof.position.size)
+
+        ax.plot(
+            xs, raw_prof.sel(wavelength="r", pair=pair)[idx], label="raw", color="k"
+        )
+        ax.plot(
+            xs,
+            reg_prof.sel(wavelength="r", pair=pair)[idx],
+            label="raw",
+            color="tab:red",
+            linestyle="-",
+        )
+        ax.set_xlim(0, 1)
+        autoscale_percent_buffer = 0.0
+        ax.set_ylim(
+            r_min - (r_min * autoscale_percent_buffer),
+            r_max + (r_max * autoscale_percent_buffer),
+        )
+    ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+
+    ax = axes[3, 0]
+    ax.set_axis_off()
+
+    #################
+    # Parameter box #
+    #################
+    textstr = "\n".join(f"{k}={v:.2f}" for k, v in params.items())
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+    ax.text(
+        0.01,
+        0.97,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        bbox=props,
+    )
+
+    axes[3, 1].set_axis_off()
+
+    plt.tight_layout()
+
+    return fig
