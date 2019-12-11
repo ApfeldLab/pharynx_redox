@@ -350,7 +350,7 @@ class Experiment:
     def register_profiles(self):
         logging.info("Registering profiles")
 
-        self.untrimmed_profiles = profile_processing.register_profiles_matlab(
+        self.untrimmed_profiles = profile_processing.register_profiles_pairs(
             self.untrimmed_profiles,
             n_deriv=self.n_deriv,
             rough_lambda=self.rough_lambda,
@@ -430,15 +430,17 @@ class Experiment:
         self.summary_table.to_csv(summary_table_filename, index=False)
 
     def save_profile_summary_plots(self, prof_data: xr.DataArray):
-        fig_dir = self.make_fig_dir()
-        for wvl in prof_data.wavelength.data:
-            for pair in prof_data.pair.data:
-                fig, ax = plots.plot_profile_avg_by_strain(
-                    prof_data.sel(wavelength=wvl, pair=pair),
-                    ax_title=f"{self.experiment_id}-{wvl}",
-                )
-                plots.add_regions_to_axis(ax, self.scaled_regions)
-                fig.savefig(fig_dir.joinpath(f"{self.experiment_id}-{wvl}-{pair}.pdf"))
+        pass
+        # TODO: fix this
+        # fig_dir = self.make_fig_dir()
+        # for wvl in prof_data.wavelength.data:
+        #     for pair in prof_data.pair.data:
+        #         fig, ax = plots.plot_profile_avg_by_strain(
+        #             prof_data.sel(wavelength=wvl, pair=pair),
+        #             ax_title=f"{self.experiment_id}-{wvl}",
+        #         )
+        #         plots.add_regions_to_axis(ax, self.scaled_regions)
+        #         fig.savefig(fig_dir.joinpath(f"{self.experiment_id}-{wvl}-{pair}.pdf"))
 
     def save_cat_plots(self):
         fig_dir = self.make_fig_dir()

@@ -412,10 +412,3 @@ def find_optimal_regions(initial_regions, err_data, min_width=10, rescale_region
         )
         opt_regions[region] = opt_bounds.astype(np.int)
     return opt_regions
-
-
-if __name__ == "__main__":
-    profile_data = xr.load_dataarray(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/analyses/2019-08-26_single_unreg/2017_02_22-HD233_SAY47-profile_data.nc"
-    )
-    register_profiles_matlab(profile_data)
