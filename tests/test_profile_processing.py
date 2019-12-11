@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import pytest
 import os
 from pathlib import Path
@@ -26,13 +25,3 @@ class TestProfileProcessing:
 
     def test_registration_multiple_pairs(self):
         pytest.fail()
-=======
-import os
-import numpy as np
-
-from pharynx_redox import profile_processing as pp
-
-
-class TestProfileProcessing:
-    pass
->>>>>>> 9e81c2636da482517a0c2c4d99584fa8716aed80
