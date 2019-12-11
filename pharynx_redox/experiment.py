@@ -82,7 +82,7 @@ class Experiment:
     # Pipeline Parameters
     trimmed_profile_length: int = 300
     n_midline_pts: int = 200
-    seg_threshold: int = 2000
+    seg_threshold: int = 500
     trim_threshold: int = 3000
     frame_specific_midlines: bool = False
     smooth_unregistered_data: bool = False
@@ -111,6 +111,8 @@ class Experiment:
     untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
     pointwise_summaries: bool = False
     save_summary_plots: bool = False
+    should_save_profile_data: bool = True
+    should_save_summary_data: bool = True
 
     ###################################################################################
     # COMPUTED PROPERTY PLACEHOLDERS
@@ -318,7 +320,7 @@ class Experiment:
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
-            self.images, self.seg_images
+            self.images, self.seg_images, blur_seg_thresh=self.seg_threshold
         )
 
     def calculate_midlines(self):
@@ -469,10 +471,11 @@ class Experiment:
     def persist_to_disk(self, summary_plots=False):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
 
-        self.save_summary_data()
+        if self.should_save_summary_data:
+            self.save_summary_data()
 
-        # Persist the profile data
-        self.persist_profile_data()
+        if self.should_save_profile_data:
+            self.persist_profile_data()
 
         # Plots
         if summary_plots:

@@ -15,31 +15,6 @@ from sklearn.preprocessing import scale
 from pharynx_redox import utils, constants
 
 
-@dataclass
-class RegData:
-    """
-    A `dataclass <https://docs.python.org/3/library/dataclasses.html>`_ which acts as a
-    container for registered data.
-
-    Attributes
-    ----------
-    r410: skfda.representation.FDataBasis
-        A functional object containing the registered 410nm profile data
-    r470: skfda.representation.FDataBasis
-        A functional object containing the registered 470nm profile data
-    warp: skfda.representation.FDataGrid
-        A functional object containing the warp function that were used to warp the 470nm profile data into the 410nm profile data
-    reg_data: xr.DataArray
-        The quantized registered profile data
-
-    """
-
-    r410: [skfda.representation.FDataBasis]
-    r470: [skfda.representation.FDataBasis]
-    warps: [skfda.representation.FDataGrid]
-    reg_data: xr.DataArray
-
-
 def summarize_over_regions(
     data: Union[np.ndarray, xr.DataArray],
     regions: dict,
@@ -158,67 +133,19 @@ def smooth_profile_data(
     return smooth_profile_data
 
 
-def register_profiles_matlab(
-    raw_profile_data,
-    n_deriv: float = 2.0,
-    rough_lambda: float = 10.0 ** 0.05,
-    rough_n_breaks: float = 300.0,
-    rough_order: float = 4.0,
-    smooth_lambda: float = 10.0 ** 2,
-    smooth_n_breaks: float = 100.0,
-    smooth_order: float = 4.0,
-    warp_lambda: float = 5e3,
-    warp_n_basis: float = 3.0,
-    warp_order: float = 4.0,
-    resample_resolution: int = None,
-    matlab_engine=None,
-) -> (xr.DataArray, np.ndarray):
-    if matlab_engine is None:
+def register_profiles_pairs(
+    profile_data: xr.DataArray, eng: matlab.engine.MatlabEngine = None, **reg_params
+) -> xr.DataArray:
+    if eng is None:
         eng = matlab.engine.start_matlab()
-    else:
-        eng = matlab_engine
-    reg_profile_data = raw_profile_data.copy()
 
-    # Registration Parameters
-    if resample_resolution is None:
-        resample_resolution = reg_profile_data.shape[-1]
+    reg_profile_data = profile_data.copy()
 
-    # indexed by pair
-    all_warps = []
+    for pair in profile_data.pair:
+        reg_pair = register_profiles(profile_data.sel(pair=pair), eng=eng, **reg_params)
+        reg_profile_data.loc[dict(pair=pair)] = reg_pair
 
-    for pair in raw_profile_data.pair.values:
-        print(f"Registering Pair {pair}")
-        i410 = matlab.double(
-            raw_profile_data.sel(wavelength="410", pair=pair).values.T.tolist()
-        )
-        i470 = matlab.double(
-            raw_profile_data.sel(wavelength="470", pair=pair).values.T.tolist()
-        )
-        # Call the MATLAB subroutine
-        r410, r470, warps = eng.channel_register(
-            i410,
-            i470,
-            resample_resolution,
-            warp_n_basis,
-            warp_order,
-            warp_lambda,
-            smooth_lambda,
-            smooth_n_breaks,
-            smooth_order,
-            rough_lambda,
-            rough_n_breaks,
-            rough_order,
-            n_deriv,
-            nargout=3,
-        )
-        r410, r470 = np.array(r410).T, np.array(r470).T
-
-        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
-        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
-
-        all_warps.append(np.array(warps))
-    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
-    return reg_profile_data, np.array(all_warps)
+    return reg_profile_data
 
 
 def register_profiles(
@@ -279,81 +206,6 @@ def register_profiles(
     reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
 
     return reg_profile_data
-
-
-def register_profiles_matlab_standard(
-    raw_profile_data,
-    n_deriv: float = 2.0,
-    smooth_lambda: float = 1e-5,
-    smooth_n_breaks: float = 64.0,
-    smooth_order: float = 4.0,
-    warp_lambda: float = 1e2,
-    warp_n_basis: float = 6.0,
-    warp_order: float = 4.0,
-    resample_resolution: int = None,
-) -> (xr.DataArray, np.ndarray):
-    eng = matlab.engine.start_matlab()
-    reg_profile_data = raw_profile_data.copy()
-
-    # Registration Parameters
-    if resample_resolution is None:
-        resample_resolution = reg_profile_data.position.size
-
-    # indexed by pair
-    all_warps = []
-
-    for pair in raw_profile_data.pair.values:
-        print(f"Registering Pair {pair}")
-        i410 = matlab.double(
-            raw_profile_data.sel(wavelength="410", pair=pair).values.tolist()
-        )
-        i470 = matlab.double(
-            raw_profile_data.sel(wavelength="470", pair=pair).values.tolist()
-        )
-        # Call the MATLAB subroutine
-        r410, r470, warps = eng.channel_register_standard(
-            i410,
-            i470,
-            resample_resolution,
-            warp_n_basis,
-            warp_order,
-            warp_lambda,
-            smooth_lambda,
-            smooth_n_breaks,
-            smooth_order,
-            n_deriv,
-            nargout=3,
-        )
-        r410, r470 = np.squeeze(np.array(r410).T), np.squeeze(np.array(r470).T)
-        reg_profile_data.loc[dict(pair=pair, wavelength="410")] = r410
-        reg_profile_data.loc[dict(pair=pair, wavelength="470")] = r470
-
-        all_warps.append(np.array(warps))
-
-    return reg_profile_data, np.array(all_warps)
-
-
-def scale_by_wvl(data: xr.DataArray) -> xr.DataArray:
-    """
-    Apply Z-transform scaling on a per-wavelength basis
-
-    Parameters
-    ----------
-    data
-        the data to scale
-
-    Returns
-    -------
-    xr.DataArray
-        the z-scaled data
-
-    """
-    scaled = data.copy()
-    for wvl in scaled.wavelength:
-        for pair in scaled.pair:
-            unscaled = scaled.sel(wavelength=wvl, pair=pair).values
-            scaled.loc[dict(wavelength=wvl, pair=pair)] = scale(unscaled, axis=1)
-    return scaled
 
 
 def trim_profile(
@@ -426,20 +278,6 @@ def get_trim_boundaries(
         ).data
     )
     return l_bound, r_bound
-
-
-# def create_empty_profile_xarray(template=None, position_size=None):
-#     return xr.DataArray(
-#         0,
-#         dims=["spec", "wavelength", "pair", "position"],
-#         coords={
-#             "spec": intensity_data.spec,
-#             "wavelength": intensity_data.wavelength,
-#             "pair": intensity_data.pair,
-#             "position": np.arange(new_length),
-#             "strain": ("spec", intensity_data.strain),
-#         },
-#     )
 
 
 def trim_profiles(

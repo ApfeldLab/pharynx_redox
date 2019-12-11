@@ -67,7 +67,7 @@ def get_lr_bounds(
 
 
 def center_and_rotate_pharynxes(
-    fl_images: xr.DataArray, seg_images: xr.DataArray, reference_wavelength: str = "410"
+    fl_images: xr.DataArray, seg_images: xr.DataArray, reference_wavelength: str = "410", blur_seg_thresh=1000
 ) -> (xr.DataArray, xr.DataArray):
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
@@ -105,7 +105,7 @@ def center_and_rotate_pharynxes(
 
     blurred_seg = fl_images.copy()
     blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
-    blurred_seg_data = blurred_seg_data > 1000
+    blurred_seg_data = blurred_seg_data > blur_seg_thresh
     blurred_seg.data = blurred_seg_data
 
     for img_idx in range(fl_images.spec.size):
