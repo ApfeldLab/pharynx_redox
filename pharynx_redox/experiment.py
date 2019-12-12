@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import skfda
 import xarray as xr
 from cached_property import cached_property
 from numpy.polynomial import Polynomial
@@ -135,7 +134,7 @@ class Experiment:
     untrimmed_profiles: xr.DataArray = None
     trimmed_profiles: xr.DataArray = None
 
-    warps: List[skfda.FDataGrid] = field(default_factory=list)
+    warps: List = field(default_factory=list)
 
     _parameter_dict: dict = None
 
@@ -205,7 +204,7 @@ class Experiment:
             return None
 
     @cached_property
-    def analysis_dir(self):
+    def analysis_dir(self) -> Path:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         analysis_dir_ = self.experiment_dir.joinpath(
             "analyses", utils.get_valid_filename(f"{date_str}_{self.strategy}")

@@ -1,18 +1,17 @@
 import collections
 from dataclasses import dataclass
 from typing import Union
+import logging
 
 import scipy
 import numpy as np
 import xarray as xr
 import pandas as pd
-import skfda
-import matlab.engine
-from skfda.representation.basis import BSpline
-from skfda.preprocessing.smoothing import BasisSmoother
 from sklearn.preprocessing import scale
 
 from pharynx_redox import utils, constants
+
+import matlab.engine
 
 
 def summarize_over_regions(
@@ -107,6 +106,7 @@ def smooth_profile_data(
 
     Implemented in MATLAB as smooth_profiles
     """
+
     smooth_profile_data = xr.DataArray(
         0,
         dims=profile_data.dims,
@@ -136,6 +136,7 @@ def smooth_profile_data(
 def register_profiles_pairs(
     profile_data: xr.DataArray, eng: matlab.engine.MatlabEngine = None, **reg_params
 ) -> xr.DataArray:
+
     if eng is None:
         eng = matlab.engine.start_matlab()
 

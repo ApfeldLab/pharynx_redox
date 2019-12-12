@@ -30,12 +30,10 @@ setup(
     python_requires="~=3.7",
     install_requires=[
         "cached-property",
-        "elasticdeform",
         "jupyter",
         "matplotlib",
         "numpy",
         "pandas",
-        "scikit-fda @ git+https://github.com/half-adder/scikit-fda.git@develop#egg=scikit-fda",
         "scikit-image",
         "scikit-learn",
         "scipy",
