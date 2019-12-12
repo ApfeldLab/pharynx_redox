@@ -1,10 +1,10 @@
-import pharynx_io as pio
-import image_processing as ip
-import experiment
-import plots
-import profile_processing as pp
-import utils
-import data_analysis as da
+from . import pharynx_io as pio
+from . import image_processing as ip
+from . import experiment
+from . import plots
+from . import profile_processing as pp
+from . import utils
+from . import data_analysis as da
 import numpy as np
 import matlab
 import logging

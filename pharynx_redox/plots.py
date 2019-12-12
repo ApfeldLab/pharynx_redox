@@ -128,6 +128,18 @@ def plot_profile_avg_with_bounds(
     return ax
 
 
+def plot_profile_avg(data, ax=None, label=None, xs=None, **kwargs):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if xs is not None:
+        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+    else:
+        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+
+    return ax
+
+
 def imshow_ratio_normed(
     ratio_img,
     fl_img,
@@ -296,7 +308,7 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
         # REG 410 ("unregistered, but smooth")
         ax.scatter(
             xs,
-            reg_prof.sel(wavelength="410", pair=pair)[idx],
+            raw_prof.sel(wavelength="410", pair=pair)[idx],
             color="k",
             label="raw 410",
             s=1,
@@ -366,7 +378,7 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
             color=colors["470"],
             label="r470",
         )
-        ax.axhline(0, linestyle="--", color="lightgray")
+        ax.axhline(0, linestyle="--", color="lightgray", lw=1)
 
         ax.set_xlim(0, 1)
         ax.set_ylim(-5e3, 1e3)
@@ -410,7 +422,7 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
     #################
     # Parameter box #
     #################
-    textstr = "\n".join(f"{k}={v:.2f}" for k, v in params.items())
+    textstr = "\n".join(f"{k}={v}" for k, v in params.items())
     props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
     ax.text(
         0.01,
