@@ -7,7 +7,7 @@ from pharynx_redox import pharynx_io as pio
 test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 
 
-class TestPharynxAnalysis:
+class TestPharynxIO:
     img_stk_0 = {
         "img_path": test_data_path.joinpath(
             "paired_ratio_0/2017_02_22-HD233_SAY47.tif"
@@ -27,6 +27,33 @@ class TestPharynxAnalysis:
         "n_HD233": 60,
         "n_SAY47": 63,
     }
+
+    def test_parse_illum_setting_numerical(self):
+        assert pio._parse_illum_setting("pH Sensitive GFP 470") == "470"
+        assert pio._parse_illum_setting("pH Sensitive GFP 410") == "410"
+
+    def test_parse_illum_setting_transmitted_light(self):
+        assert pio._parse_illum_setting("Transmitted Light") == "TL"
+        assert pio._parse_illum_setting("a Transmitted Light") == "TL"
+
+    def test_parse_illum_setting_unkown(self):
+        assert pio._parse_illum_setting("something else") == "something else"
+
+    def test_get_metadata_from_tiff_correct_length(self):
+        img_stack = pio.load_tiff_from_disk(self.img_stk_0["img_path"])
+        metadata = pio.get_metadata_from_tiff(self.img_stk_0["img_path"])
+
+        assert len(metadata) == img_stack.shape[0]
+
+    def test_load_images_loads_metadata_if_required(self):
+        img_stack, img_metadata = pio.load_tiff_from_disk(
+            self.img_stk_0["img_path"], return_metadata=True
+        )
+
+        # now call it without asking for metadata
+        _ = pio.load_tiff_from_disk(self.img_stk_0["img_path"])
+
+        assert len(img_metadata) == img_stack.shape[0]
 
     def test_load_tiff_from_disk_shape(self):
         img_stack = pio.load_tiff_from_disk(self.img_stk_0["img_path"])

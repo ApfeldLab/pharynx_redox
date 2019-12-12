@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List, Dict
 import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
+import re
 
 from pharynx_redox import utils
 
@@ -23,7 +24,78 @@ def save_profile_data(
     profile_data.reset_index("spec").to_netcdf(profile_data_path)
 
 
-def load_tiff_from_disk(image_path: Path) -> np.ndarray:
+def _parse_illum_setting(ilum_setting: str) -> str:
+    """
+    Extract wavelength from `Illumination Setting` string from MetaMorph.
+    
+    Parameters
+    ----------
+    ilum_setting : str
+        the `Illumination Setting` string found as the value in the property tag with
+        the "_IllumSetting_" id.
+    
+    Returns
+    -------
+    str
+        If there is a number in the string, that number is returned. If `transmitted 
+        light` is in the string, "TL" is returned. Otherwise, the string itself is 
+        returned unchanged.
+    """
+    try:
+        return re.search(r"(\d+)", ilum_setting).group(0)
+    except AttributeError:
+        if "transmitted light" in ilum_setting.lower():
+            return "TL"
+        else:
+            return ilum_setting
+
+
+def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
+    """
+    Get metadata from each plane of a TIFF image stack.
+    
+    Parameters
+    ----------
+    image_path : Path
+        the path to the TIFF image stack
+    
+    Returns
+    -------
+    List[Dict]
+        a list where each entry is a dictionary containing the metadata for that image
+    """
+
+    # Each image has a "description" string (formatted as XML) associated with it
+
+    # The keys here refer to the id property in the XML, each of which has a
+    # corresponding value property
+
+    # the functions are how we should process the string stored in the "value" property
+    # for example, ``lambda x: x`` simply returns the string itself.
+    metadata_keyfuncs = [
+        ("_IllumSetting_", lambda x: x),
+        ("Exposure Time", lambda x: x),
+        ("Prior Stage X", lambda x: int(x)),
+        ("Prior Stage Y", lambda x: int(x)),
+        ("Prior Z", lambda x: int(x)),
+        ("acquisition-time-local", lambda x: x),
+        ("camera-binning-x", lambda x: int(x)),
+        ("camera-binning-y", lambda x: int(x)),
+    ]
+
+    with tifffile.TiffFile(str(image_path)) as tif:
+        all_metadata = []
+        for page in tif.pages:
+            descr = str(page.tags["image_description"].value, "utf-8")
+            metadata = {}
+            for key, fn in metadata_keyfuncs:
+                val = fn(re.search(rf'id="{key}".*value="(.*)"', descr).group(1))
+                metadata[key] = val
+            all_metadata.append(metadata)
+        return all_metadata
+
+
+def load_tiff_from_disk(image_path: Path, return_metadata=False) -> np.ndarray:
     """
     Load a tiff file from disk
 
@@ -38,9 +110,16 @@ def load_tiff_from_disk(image_path: Path) -> np.ndarray:
         the image stack as a numpy array with the following dimensions::
 
             (n_images, height, width)
+    metadata: List[Dict]
+        the metadata associated with each image. Only returned if return_metadata=True
 
     """
-    return tifffile.imread(str(image_path))
+    img = tifffile.imread(str(image_path))
+
+    if return_metadata:
+        return img, get_metadata_from_tiff(str(image_path))
+    else:
+        return img
 
 
 def save_images_xarray_to_disk(

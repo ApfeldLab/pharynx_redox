@@ -22,8 +22,6 @@ from cached_property import cached_property
 from numpy.polynomial import Polynomial
 import logging
 
-from marshmallow import Schema, fields, INCLUDE, pprint, ValidationError
-
 from pharynx_redox import (
     image_processing as ip,
     profile_processing,
@@ -32,20 +30,6 @@ from pharynx_redox import (
     utils,
     constants,
 )
-
-
-class ExperimentSchema(Schema):
-    experiment_id = fields.Str(required=True)
-
-    strategy = fields.Str()
-
-    r_min = fields.Float(required=True)
-    r_max = fields.Float(required=True)
-    instrument_factor = fields.Float(required=True)
-
-    midpoint_potential = fields.Float(required=True)
-    z = fields.Float(required=True)
-    temperature = fields.Float(required=True)
 
 
 @dataclass
