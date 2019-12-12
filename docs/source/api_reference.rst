@@ -14,13 +14,6 @@ Experiment
 .. autoclass:: Experiment
     :members:
 
-.. autoclass:: PairExperiment
-    :members:
-
-.. autoclass:: CataExperiment
-    :members:
-
-
 Pharynx IO
 ==========
 This module coordinates loading data from and saving data to disk.

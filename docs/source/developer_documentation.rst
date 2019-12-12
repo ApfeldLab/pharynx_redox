@@ -77,3 +77,26 @@ Documentation
 -------------
 All docstrings should be formatted in the `Numpy docstrings format <https://numpydoc
 .readthedocs.io/en/latest/format.html>`_.
+
+Adding Packages
+===============
+Package management is orchestrated through Anaconda_. To install a new package, use::
+
+    $ conda add <package>
+
+To update the list of required packages, use::
+
+    $ conda list --explicit > conda-spec-file.txt
+
+Building Documentation
+======================
+This documentation is written in RST files, and built using Sphinx. All documentation
+should be written in ``docs/source``. This documentation is auto-built and uploaded to 
+readthedocs on push. To build the documentation as HTML on your local machine, use::
+
+    $ cd docs
+    $ make html
+
+The output is then in ``docs/build/html``
+
+.. _Anaconda: https://docs.conda.io/projects/conda/en/latest/index.html
