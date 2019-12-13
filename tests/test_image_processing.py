@@ -30,11 +30,11 @@ class TestImageProcessing:
         "n_SAY47": 63,
     }
 
-    seg0 = pio.load_images(
-        test_data_path.joinpath("seg_0.tif"), "410", np.repeat("HD233", 154)
+    seg0 = pio.load_tiff_from_disk(
+        test_data_path.joinpath("seg_0.tif"), return_metadata=False
     )
-    fl0 = pio.load_images(
-        test_data_path.joinpath("fl_0.tif"), "410", np.repeat("HD233", 154)
+    fl0 = pio.load_tiff_from_disk(
+        test_data_path.joinpath("fl_0.tif"), return_metadata=False
     )
 
     def test_get_lr_bounds(self):

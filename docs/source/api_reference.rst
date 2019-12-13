@@ -18,8 +18,6 @@ Pharynx IO
 ==========
 This module coordinates loading data from and saving data to disk.
 
-.. py:currentmodule:: pharynx_redox.pharynx_io
-
 .. autosummary::
 
     load_tiff_from_disk
@@ -33,6 +31,7 @@ This module coordinates loading data from and saving data to disk.
 
 .. automodule:: pharynx_redox.pharynx_io
     :members:
+    :undoc-members:
 
 Image Processing
 ================

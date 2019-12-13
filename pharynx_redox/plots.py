@@ -22,6 +22,43 @@ from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
 
 
+def plot_stage_layout(image_data: xr.DataArray, pair: int = 0) -> sns.axisgrid.FacetGrid:
+    """
+    Shows a scatter plot where each point is an animal located on the imaging stage and
+    the points are colored by strain.
+
+    A useful visualization to make sure that the strain map is accurate.
+
+    .. image:: _static/plot_stage_layout.png
+    
+    Parameters
+    ----------
+    image_data : xr.DataArray
+        The image data acquired by metamorph.
+    pair : int
+        The image pair to display
+    
+    Returns
+    -------
+    seaborn.axisgrid.FacetGrid
+        The grid object returned by seaborns's lmplot 
+    
+    See Also
+    --------
+    pharynx_io.load_images
+    seaborn.lmplot
+    """
+    df = pd.DataFrame(
+        dict(
+            stage_x=image_data.sel(wavelength="410", pair=1).stage_x,
+            stage_y=image_data.sel(wavelength="410", pair=1).stage_y,
+            strain=image_data.sel(wavelength="410", pair=1).strain,
+        )
+    )
+
+    return sns.lmplot(x="stage_x", y="stage_y", data=df, hue="strain", fit_reg=False)
+
+
 def cdf_plot(data, *args, **kwargs):
     """
     Plot a CDF, compatible with Seaborn's FacetGrid

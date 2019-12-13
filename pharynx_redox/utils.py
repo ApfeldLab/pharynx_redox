@@ -2,6 +2,8 @@ import re
 from collections import Counter
 from pharynx_redox import experiment, profile_processing as pp
 
+import os
+import subprocess
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -459,6 +461,41 @@ def add_derived_wavelengths(data):
         return data
     else:
         return expand_dimension(data, "wavelength", {"r": r, "oxd": oxd, "e": e})
+
+
+def git_version() -> str:
+    """
+    Return the current git revision.
+    
+    Stolen from Numpy's internal code at https://github.com/numpy/numpy/blob/578f4e7dca4701637284c782d8c74c0d5b688341/setup.py#L65
+    
+    Returns
+    -------
+    str
+        the current git revision
+    """
+
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ["SYSTEMROOT", "PATH"]:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env["LANGUAGE"] = "C"
+        env["LANG"] = "C"
+        env["LC_ALL"] = "C"
+        out = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(["git", "rev-parse", "HEAD"])
+        GIT_REVISION = out.strip().decode("ascii")
+    except OSError:
+        GIT_REVISION = "Unknown"
+
+    return GIT_REVISION
 
 
 if __name__ == "__main__":

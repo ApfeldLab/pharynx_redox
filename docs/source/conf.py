@@ -13,9 +13,9 @@
 import os
 import sys
 
-pharynx_path = os.path.join(os.path.dirname(__file__), "../../")
-sys.path.insert(0, pharynx_path)
-print(pharynx_path)
+# pharynx_path = os.path.join(os.path.dirname(__file__), "../../")
+# sys.path.insert(0, pharynx_path)
+sys.path.insert(0, os.path.abspath("../.."))
 
 
 # -- Project information -----------------------------------------------------

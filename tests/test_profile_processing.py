@@ -20,6 +20,7 @@ class TestProfileProcessing:
 
         assert data_to_register.shape == registered_data.shape
 
+    @pytest.mark.slow
     def test_registeration_multiple_profiles(self):
         data_to_register = self.unreg_profile_data[:3].sel(pair=0)
         registered_data = pp.register_profiles(data_to_register)
@@ -27,6 +28,7 @@ class TestProfileProcessing:
         # TODO: test coordinates equal
         assert data_to_register.shape == registered_data.shape
 
+    @pytest.mark.slow
     def test_registration_multiple_pairs(self):
         data_to_register = self.unreg_profile_data[:3]
         registered_data = pp.register_profiles_pairs(data_to_register)

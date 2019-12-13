@@ -74,8 +74,8 @@ class TestPharynxIO:
         )
 
         assert img_stack.shape[0] == self.img_stk_0["n_animals"]
-        assert img_stack.shape[1] == self.img_stk_0["n_wavelengths"]
-        assert img_stack.shape[2] == self.img_stk_0["n_pairs"]
+        assert img_stack.shape[1] == self.img_stk_0["n_pairs"]
+        assert img_stack.shape[2] == self.img_stk_0["n_wavelengths"]
         assert img_stack.shape[3] == self.img_stk_0["img_h"]
         assert img_stack.shape[4] == self.img_stk_0["img_w"]
 
@@ -86,7 +86,7 @@ class TestPharynxIO:
             pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"]),
         )
 
-        assert img_stack.dims == ("spec", "wavelength", "pair", "y", "x")
+        assert img_stack.dims == ("spec", "pair", "wavelength", "y", "x")
 
     def test_load_strain_map_shape(self):
         strains = pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"])

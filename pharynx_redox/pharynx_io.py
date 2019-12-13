@@ -5,6 +5,7 @@ import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
 import re
+from datetime import datetime
 
 from pharynx_redox import utils
 
@@ -73,14 +74,23 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
     # the functions are how we should process the string stored in the "value" property
     # for example, ``lambda x: x`` simply returns the string itself.
     metadata_keyfuncs = [
-        ("_IllumSetting_", lambda x: x),
-        ("Exposure Time", lambda x: x),
-        ("Prior Stage X", lambda x: int(x)),
-        ("Prior Stage Y", lambda x: int(x)),
-        ("Prior Z", lambda x: int(x)),
-        ("acquisition-time-local", lambda x: x),
-        ("camera-binning-x", lambda x: int(x)),
-        ("camera-binning-y", lambda x: int(x)),
+        ("_IllumSetting_", "wavelength", _parse_illum_setting),
+        (
+            "Exposure Time",
+            "exposure",
+            lambda x: int(re.search(r"(\d+) ms", x).group(1)),
+        ),
+        ("Prior Stage X", "stage_x", int),
+        ("Prior Stage Y", "stage_y", int),
+        ("Prior Z", "stage_z", int),
+        (
+            "acquisition-time-local",
+            "time",
+            lambda x: datetime.strptime(x, "%Y%m%d %H:%M:%S.%f"),
+        ),
+        ("camera-binning-x", "bin_x", int),
+        ("camera-binning-y", "bin_y", int),
+        # TODO: gain
     ]
 
     with tifffile.TiffFile(str(image_path)) as tif:
@@ -88,9 +98,9 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
         for page in tif.pages:
             descr = str(page.tags["image_description"].value, "utf-8")
             metadata = {}
-            for key, fn in metadata_keyfuncs:
+            for key, label, fn in metadata_keyfuncs:
                 val = fn(re.search(rf'id="{key}".*value="(.*)"', descr).group(1))
-                metadata[key] = val
+                metadata[label] = val
             all_metadata.append(metadata)
         return all_metadata
 
@@ -106,7 +116,7 @@ def load_tiff_from_disk(image_path: Path, return_metadata=False) -> np.ndarray:
 
     Returns
     -------
-    img: np.ndarray of shape
+    img_data: np.ndarray of shape
         the image stack as a numpy array with the following dimensions::
 
             (n_images, height, width)
@@ -114,12 +124,12 @@ def load_tiff_from_disk(image_path: Path, return_metadata=False) -> np.ndarray:
         the metadata associated with each image. Only returned if return_metadata=True
 
     """
-    img = tifffile.imread(str(image_path))
+    img_data = tifffile.imread(str(image_path))
 
     if return_metadata:
-        return img, get_metadata_from_tiff(str(image_path))
+        return img_data, get_metadata_from_tiff(str(image_path))
     else:
-        return img
+        return img_data
 
 
 def save_images_xarray_to_disk(
@@ -190,10 +200,7 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
-    intercalated_image_stack_path: Path,
-    imaging_scheme: str,
-    strain_map: [str] = None,
-    indexer_path=None,
+    intercalated_image_stack_path: Path, strain_map: [str] = None, indexer_path=None,
 ) -> xr.DataArray:
     """
     Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,
@@ -240,54 +247,80 @@ def load_images(
             >> only_tl.data.shape
             (60, 130, 174)
     """
-    if indexer_path is not None:
+    imgdata, metadata = load_tiff_from_disk(
+        intercalated_image_stack_path, return_metadata=True
+    )
+
+    if indexer_path:
         strain_map = load_strain_map_from_disk(indexer_path)
 
-    intercalated_image_stack = load_tiff_from_disk(intercalated_image_stack_path)
-    lambdas_with_counts = process_imaging_scheme_str(imaging_scheme, "/")
-    lambdas = np.array([l[0] for l in lambdas_with_counts])
-    pairs = [l[1] for l in lambdas_with_counts]
-    unique_lambdas = [
-        lambdas[idx] for idx in sorted(np.unique(lambdas, return_index=True)[1])
+    # Organize the metadata
+    df = pd.DataFrame(metadata)
+    df["animal"] = df.groupby(["stage_x", "stage_y"], sort=False).ngroup(ascending=True)
+    df["pair"] = df.groupby(["animal", "wavelength"]).cumcount()
+
+    n_animals = len(df["animal"].unique())
+    n_pairs = len(df["pair"].unique())
+    n_wvls = len(df["wavelength"].unique())
+
+    imgdata_reshaped = np.full(
+        (n_animals, n_pairs, n_wvls, imgdata.shape[-2], imgdata.shape[-1]),
+        np.nan,
+        dtype=np.int16,
+    )
+
+    metadata_keys = [
+        ("stage_x", np.int16),
+        ("stage_y", np.int16),
+        ("stage_z", np.int16),
+        ("time", "datetime64[us]"),
+        ("bin_x", np.uint8),
+        ("bin_y", np.uint8),
+        ("exposure", np.uint8),
     ]
-    n_animals = intercalated_image_stack.shape[0] // len(lambdas)
-    img_height = intercalated_image_stack.shape[1]
-    img_width = intercalated_image_stack.shape[2]
 
-    tmp_img_stack = np.reshape(
-        intercalated_image_stack, (n_animals, len(lambdas), img_height, img_width)
-    )
+    all_coords = {
+        k: np.empty((n_animals, n_pairs, n_wvls), dtype=dtype)
+        for k, dtype in metadata_keys
+    }
 
-    reshaped_img_stack = np.empty(
-        (
-            n_animals,
-            len(np.unique(lambdas)),
-            np.max(pairs) + 1,
-            intercalated_image_stack.shape[1],
-            intercalated_image_stack.shape[2],
-        ),
-        dtype=intercalated_image_stack.dtype,
-    )
+    for animal in df["animal"].unique():
+        for pair in df["pair"].unique():
+            for wvl_idx, wvl in enumerate(df["wavelength"].unique()):
+                try:
+                    idx = df.index[
+                        (df["animal"] == animal)
+                        & (df["wavelength"] == wvl)
+                        & (df["pair"] == pair)
+                    ][0]
+                    imgdata_reshaped[animal, pair, wvl_idx] = imgdata[idx]
+                    for key, _ in metadata_keys:
+                        all_coords[key][animal, pair, wvl_idx] = df.loc[idx][key]
+                except IndexError:
+                    # This happens when, for example, TL is only imaged once per pair
+                    continue
 
-    for i, (wvl, pair) in enumerate(lambdas_with_counts):
-        j = np.where(lambdas == wvl)[0][0]
-        reshaped_img_stack[:, j, pair, :, :] = tmp_img_stack[:, i, :, :]
-
-    exp_id = intercalated_image_stack_path.stem
-
-    spec = pd.MultiIndex.from_arrays(
-        [np.repeat(exp_id, n_animals), np.arange(n_animals)],
-        names=("experiment", "animal"),
-    )
-    return xr.DataArray(
-        reshaped_img_stack,
-        dims=["spec", "wavelength", "pair", "y", "x"],
+    da = xr.DataArray(
+        imgdata_reshaped,
+        dims=["animal", "pair", "wavelength", "x", "y"],
         coords={
-            "wavelength": unique_lambdas,
-            "spec": spec,
-            "strain": ("spec", strain_map),
+            "wavelength": df["wavelength"].unique(),
+            "strain": ("animal", strain_map),
+            "experiment_id": "2019-12-10_PD4793_ts",
+            "time": (("animal", "pair", "wavelength"), all_coords["time"]),
+            "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
+            "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),
+            "stage_z": (("animal", "pair", "wavelength"), all_coords["stage_z"]),
+            "exposure": (
+                ("animal", "pair", "wavelength"),
+                all_coords["exposure"],
+                dict(units="ms"),
+            ),
         },
+        attrs={"background_subtracted": False},
     )
+
+    return da
 
 
 def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) -> None:
