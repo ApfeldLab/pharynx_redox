@@ -302,7 +302,7 @@ def load_images(
 
     da = xr.DataArray(
         imgdata_reshaped,
-        dims=["animal", "pair", "wavelength", "x", "y"],
+        dims=["animal", "pair", "wavelength", "y", "x"],
         coords={
             "wavelength": df["wavelength"].unique(),
             "strain": ("animal", strain_map),

@@ -69,7 +69,6 @@ class TestPharynxIO:
     def test_load_images_shape(self):
         img_stack = pio.load_images(
             self.img_stk_0["img_path"],
-            self.img_stk_0["imaging_scheme"],
             pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"]),
         )
 
@@ -82,11 +81,10 @@ class TestPharynxIO:
     def test_load_images_dimension_ordering(self):
         img_stack = pio.load_images(
             self.img_stk_0["img_path"],
-            self.img_stk_0["imaging_scheme"],
             pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"]),
         )
 
-        assert img_stack.dims == ("spec", "pair", "wavelength", "y", "x")
+        assert img_stack.dims == ("animal", "pair", "wavelength", "y", "x")
 
     def test_load_strain_map_shape(self):
         strains = pio.load_strain_map_from_disk(self.img_stk_0["strain_map_path"])

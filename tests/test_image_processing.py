@@ -30,26 +30,28 @@ class TestImageProcessing:
         "n_SAY47": 63,
     }
 
-    seg0 = pio.load_tiff_from_disk(
-        test_data_path.joinpath("seg_0.tif"), return_metadata=False
-    )
-    fl0 = pio.load_tiff_from_disk(
-        test_data_path.joinpath("fl_0.tif"), return_metadata=False
+    imgdata = pio.load_images(
+        img_stk_0["img_path"], indexer_path=img_stk_0["strain_map_path"]
     )
 
+    seg0 = imgdata > 2000
+    fl0 = imgdata.sel(wavelength="410", pair=0)
+
+    rot_fl, rot_seg = ip.center_and_rotate_pharynxes(imgdata, imgdata > 2000)
+
     def test_get_lr_bounds(self):
-        expected_bounds = np.asarray([[88, 140], [28, 79], [27, 74]])
-        actual_bounds = ip.get_lr_bounds(self.seg0)
+        expected_bounds = np.asarray([[55, 112], [55, 112], [55, 112]])
+        actual_bounds = ip.get_lr_bounds(self.rot_seg)
 
         np.testing.assert_array_equal(expected_bounds, actual_bounds[:3, :])
 
     def test_get_lr_bounds_padding(self):
         padding = 5
-        expected_bounds = np.asarray([[88, 140], [28, 79], [27, 74]])
+        expected_bounds = np.asarray([[55, 112], [55, 112], [55, 112]])
         expected_bounds[:, 0] = expected_bounds[:, 0] - padding
         expected_bounds[:, 1] = expected_bounds[:, 1] + padding
 
-        actual_bounds = ip.get_lr_bounds(self.seg0, pad=padding)
+        actual_bounds = ip.get_lr_bounds(self.rot_seg, pad=padding)
         np.testing.assert_array_equal(expected_bounds, actual_bounds[:3, :])
 
     @pytest.mark.skip(
