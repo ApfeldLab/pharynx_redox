@@ -9,7 +9,8 @@ import xarray as xr
 import pandas as pd
 from sklearn.preprocessing import scale
 
-from pharynx_redox import utils, constants
+from . import utils
+from . import constants
 
 import matlab.engine
 
@@ -111,7 +112,7 @@ def smooth_profile_data(
         0,
         dims=profile_data.dims,
         coords={
-            "spec": profile_data.spec,
+            "animal": profile_data.animal,
             "wavelength": profile_data.wavelength,
             "pair": profile_data.pair,
             "position": np.arange(n_eval_pts),
@@ -301,26 +302,26 @@ def trim_profiles(
     """
     trimmed_intensity_data = xr.DataArray(
         0,
-        dims=["spec", "wavelength", "pair", "position"],
+        dims=["animal", "wavelength", "pair", "position"],
         coords={
-            "spec": intensity_data.spec,
+            "animal": intensity_data.animal,
             "wavelength": intensity_data.wavelength,
             "pair": intensity_data.pair,
             "position": np.arange(new_length),
-            "strain": ("spec", intensity_data.strain),
+            "strain": ("animal", intensity_data.strain),
         },
     )
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
-    for img_idx in range(intensity_data.spec.size):
+    for img_idx in range(intensity_data.animal.size):
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
             if "tl" not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
                     data = (
                         intensity_data.sel(wavelength=wvl, pair=pair)
-                        .isel(spec=img_idx)
+                        .isel(animal=img_idx)
                         .data
                     )
 

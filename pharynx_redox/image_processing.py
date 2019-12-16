@@ -1,5 +1,8 @@
-from typing import List, Dict, Union
+from typing import Dict, List, Union
 
+import logging
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import xarray as xr
@@ -8,18 +11,16 @@ from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
-from skimage import measure, transform
-from skimage.transform import warp, AffineTransform
-from skimage.external import tifffile
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from scipy.stats import norm
+from skimage import measure, transform
+from skimage.external import tifffile
+from skimage.transform import AffineTransform, warp
 
-from pharynx_redox import profile_processing
+from . import profile_processing
 
 
 def subtract_medians(
-    imgs: Union[np.ndarray, xr.DataArray], img_dims=(-2, -1)
+    imgs: Union[np.ndarray, xr.DataArray]
 ) -> Union[np.ndarray, xr.DataArray]:
     """
     Subtract the median from each image.
@@ -303,20 +304,9 @@ def calculate_midlines(
     --------
     calculate_midline
     """
-    return [
-        {
-            wvl: [
-                calculate_midline(
-                    rot_seg_stack.isel(animal=img_idx).sel(wavelength=wvl, pair=pair),
-                    degree=degree,
-                )
-                for pair in rot_seg_stack.pair.data
-            ]
-            for wvl in rot_seg_stack.wavelength.data
-            if "tl" not in wvl.lower()
-        }
-        for img_idx in range(rot_seg_stack.animal.size)
-    ]
+    return xr.apply_ufunc(
+        calculate_midline, rot_seg_stack, input_core_dims=[["y", "x"]], vectorize=True
+    )
 
 
 def calculate_midline(
@@ -346,11 +336,17 @@ def calculate_midline(
     Right now this only works for images that this have been centered this and aligned this with their
     anterior-posterior along the horizontal.
     """
-    rp = measure.regionprops(measure.label(rot_seg_img))[0]
-    xs, ys = rp.coords[:, 1], rp.coords[:, 0]
-    left_bound, _, _, right_bound = rp.bbox
-    # noinspection PyTypeChecker
-    return Polynomial.fit(xs, ys, degree, domain=[left_bound - pad, right_bound + pad])
+    try:
+        rp = measure.regionprops(measure.label(rot_seg_img))[0]
+        xs, ys = rp.coords[:, 1], rp.coords[:, 0]
+        left_bound, _, _, right_bound = rp.bbox
+        # noinspection PyTypeChecker
+        return Polynomial.fit(
+            xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
+        )
+    except IndexError:
+        # Indicates trying to measure on TL for example
+        return None
 
 
 def measure_under_midline(
@@ -394,81 +390,83 @@ def measure_under_midline(
         The intensity profile of the image measured under the midline at the given x-coordinates.
 
     """
-
-    if thickness == 0:
-        xs, ys = mid.linspace(n=n_points)
-        fl = np.asarray(fl)
-        return ndi.map_coordinates(fl, np.stack([ys, xs]), order=1)
-    else:
-        # Gets a bit wonky, but makes sense
-        # TODO: maybe refactor this stuff out into individual functions?
-
-        # We need to get the normal lines from each point in the midline
-        # then measure under those lines.
-
-        # First, get the coordinates of the midline
-        xs, ys = mid.linspace(n=n_points)
-
-        # Now, we get the angles of each normal vector
-        der = mid.deriv()
-        normal_slopes = -1 / der(xs)
-        normal_thetas = np.arctan(normal_slopes)
-
-        # We get the x and y components of the start/end of the normal vectors
-        mag = thickness / 2
-        x0 = np.cos(normal_thetas) * mag
-        y0 = np.sin(normal_thetas) * mag
-
-        x1 = np.cos(normal_thetas) * -mag
-        y1 = np.sin(normal_thetas) * -mag
-
-        # These are the actual coordinates of the starts/ends of the normal vectors as they move
-        # from (x,y) coordinates in the midline
-        xs0 = xs + x0
-        xs1 = xs + x1
-        ys0 = ys + y0
-        ys1 = ys + y1
-
-        # This is kinda weird... But we need to do it.
-        # TODO: Could be made faster w/ vectorization? Too tired to figure that out when I wrote it though
-
-        # We need to measure in a consistent direction along the normal line
-        # y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
-        for y0, y1, x0, x1, i in zip(ys0, ys1, xs0, xs1, range(len(xs0))):
-            if y0 < y1:
-                tx = xs0[i]
-                xs0[i] = xs1[i]
-                xs1[i] = tx
-
-                ty = ys0[i]
-                ys0[i] = ys1[i]
-                ys1[i] = ty
-
-        n_line_pts = thickness
-
-        all_xs = np.linspace(xs0, xs1, n_line_pts)
-        all_ys = np.linspace(ys0, ys1, n_line_pts)
-
-        straightened = ndi.map_coordinates(fl, [all_ys, all_xs])
-
-        if flatten:
-            # Create a normal distribution centered around 0 with the given scale (see scipy.norm.pdf)
-            # the distribution is then tiled to be the same shape as the straightened pharynx
-            # then, this resultant matrix is the weights for averaging
-            w = np.tile(
-                norm.pdf(np.linspace(-1, 1, n_line_pts), scale=norm_scale),
-                (n_points, 1),
-            ).T
-            profile = np.average(straightened, axis=0, weights=w)
-
-            return profile
+    try:
+        if thickness == 0:
+            xs, ys = mid.linspace(n=n_points)
+            fl = np.asarray(fl)
+            return ndi.map_coordinates(fl, np.stack([xs, ys]), order=1)
         else:
-            return straightened
+            # Gets a bit wonky, but makes sense
+            # TODO: maybe refactor this stuff out into individual functions?
+
+            # We need to get the normal lines from each point in the midline
+            # then measure under those lines.
+
+            # First, get the coordinates of the midline
+            xs, ys = mid.linspace(n=n_points)
+
+            # Now, we get the angles of each normal vector
+            der = mid.deriv()
+            normal_slopes = -1 / der(xs)
+            normal_thetas = np.arctan(normal_slopes)
+
+            # We get the x and y components of the start/end of the normal vectors
+            mag = thickness / 2
+            x0 = np.cos(normal_thetas) * mag
+            y0 = np.sin(normal_thetas) * mag
+
+            x1 = np.cos(normal_thetas) * -mag
+            y1 = np.sin(normal_thetas) * -mag
+
+            # These are the actual coordinates of the starts/ends of the normal vectors as they move
+            # from (x,y) coordinates in the midline
+            xs0 = xs + x0
+            xs1 = xs + x1
+            ys0 = ys + y0
+            ys1 = ys + y1
+
+            # This is kinda weird... But we need to do it.
+            # TODO: Could be made faster w/ vectorization? Too tired to figure that out when I wrote it though
+
+            # We need to measure in a consistent direction along the normal line
+            # y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
+            for y0, y1, x0, x1, i in zip(ys0, ys1, xs0, xs1, range(len(xs0))):
+                if y0 < y1:
+                    tx = xs0[i]
+                    xs0[i] = xs1[i]
+                    xs1[i] = tx
+
+                    ty = ys0[i]
+                    ys0[i] = ys1[i]
+                    ys1[i] = ty
+
+            n_line_pts = thickness
+
+            all_xs = np.linspace(xs0, xs1, n_line_pts)
+            all_ys = np.linspace(ys0, ys1, n_line_pts)
+
+            straightened = ndi.map_coordinates(fl, [all_xs, all_ys])
+
+            if flatten:
+                # Create a normal distribution centered around 0 with the given scale (see scipy.norm.pdf)
+                # the distribution is then tiled to be the same shape as the straightened pharynx
+                # then, this resultant matrix is the weights for averaging
+                w = np.tile(
+                    norm.pdf(np.linspace(-1, 1, n_line_pts), scale=norm_scale),
+                    (n_points, 1),
+                ).T
+                profile = np.average(straightened, axis=0, weights=w)
+
+                return profile
+            else:
+                return straightened
+    except:
+        return np.zeros((1, n_points))
 
 
 def measure_under_midlines(
     fl_stack: xr.DataArray,
-    midlines: List[Dict[str, List[Polynomial]]],
+    midlines: xr.DataArray,
     n_points: int = 300,
     frame_specific: bool = False,
     order=1,
@@ -503,37 +501,22 @@ def measure_under_midlines(
     profile_data: xr.DataArray
         the intensity profiles for each image in the stack
     """
-    non_tl_wvls = list(filter(lambda x: x != "TL", fl_stack.wavelength.data))
-    raw_intensity_data = xr.DataArray(
-        0,
-        dims=["animal", "wavelength", "pair", "position"],
-        coords={
-            "animal": fl_stack.animal,
-            "wavelength": non_tl_wvls,
-            "pair": fl_stack.pair,
-            "position": np.arange(n_points),
-            "strain": ("animal", fl_stack.strain),
-        },
+    if not frame_specific:
+        midlines.loc[dict(wavelength="470")] = midlines.sel(wavelength="410")
+
+    measurements = xr.apply_ufunc(
+        measure_under_midline,
+        fl_stack,
+        midlines,
+        input_core_dims=[["x", "y"], []],
+        output_core_dims=[["position"]],
+        vectorize=True,
+        kwargs={"n_points": n_points, "thickness": thickness, "order": order},
     )
 
-    ref_wvl = "410"
+    # measurements.attrs["frame_specific_midlines"] = frame_specific
 
-    for img_idx in range(fl_stack.animal.size):
-        for pair in range(fl_stack.pair.size):
-            for wvl_idx, wvl in enumerate(raw_intensity_data.wavelength.data):
-                img = fl_stack.sel(wavelength=wvl, pair=pair).isel(animal=img_idx)
-
-                if frame_specific:
-                    mid = midlines[img_idx][wvl][pair]
-                else:
-                    mid = midlines[img_idx][ref_wvl][pair]
-
-                raw_intensity_data[img_idx, wvl_idx, pair, :] = measure_under_midline(
-                    img, mid, n_points, order=order, thickness=thickness, flatten=True
-                )
-
-    raw_intensity_data.values = np.nan_to_num(raw_intensity_data.values)
-    return raw_intensity_data
+    return measurements
 
 
 def align_pa(

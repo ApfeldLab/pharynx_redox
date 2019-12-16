@@ -28,6 +28,10 @@ class TestPharynxIO:
         "n_SAY47": 63,
     }
 
+    def test_save_load_profile_data(self):
+        # TODO
+        pass
+
     def test_parse_illum_setting_numerical(self):
         assert pio._parse_illum_setting("pH Sensitive GFP 470") == "470"
         assert pio._parse_illum_setting("pH Sensitive GFP 410") == "410"

@@ -9,9 +9,10 @@ multiple pairs of images are taken sequentially for each animal.
 """
 
 import datetime
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,16 +21,11 @@ import seaborn as sns
 import xarray as xr
 from cached_property import cached_property
 from numpy.polynomial import Polynomial
-import logging
 
-from pharynx_redox import (
-    image_processing as ip,
-    profile_processing,
-    pharynx_io as pio,
-    plots,
-    utils,
-    constants,
-)
+from . import constants
+from . import image_processing as ip
+from . import pharynx_io as pio
+from . import profile_processing, utils
 
 
 @dataclass
@@ -43,12 +39,11 @@ class Experiment:
     ###################################################################################
 
     experiment_dir: Path
-    imaging_scheme: str
 
     ###################################################################################
     # PIPELINE PARAMETERS
     ###################################################################################
-    strategy: str = None
+    strategy: str = ""
 
     register: bool = False
 
@@ -65,7 +60,7 @@ class Experiment:
     # Pipeline Parameters
     trimmed_profile_length: int = 300
     n_midline_pts: int = 200
-    seg_threshold: int = 500
+    seg_threshold: int = 2000
     trim_threshold: int = 3000
     frame_specific_midlines: bool = False
     smooth_unregistered_data: bool = False
@@ -165,9 +160,7 @@ class Experiment:
         This returns the raw (non-median-subtracted) images
         """
         raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + ".tif")
-        self._raw_image_data = pio.load_images(
-            raw_image_path, self.imaging_scheme, self.strains
-        )
+        self._raw_image_data = pio.load_images(raw_image_path, self.strains)
         return self._raw_image_data
 
     @cached_property

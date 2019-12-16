@@ -9,14 +9,15 @@ from scipy import ndimage as ndi
 
 from pandas.core.indexes.base import InvalidIndexError
 
-from pharynx_redox import profile_processing, pharynx_io as pio
+from . import profile_processing
+from . import pharynx_io as pio
 
 
 def load_all_cached_profile_data(meta_dir, glob_pattern):
     try:
         return xr.concat(
             (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
-            dim="spec",
+            dim="animal",
         )
     except InvalidIndexError:
         return xr.concat(
@@ -197,7 +198,7 @@ def synthetic_shift(
     shift_data = xr.DataArray(
         0.0,
         coords={
-            "spec": rot_fl.spec.values,
+            "animal": rot_fl.animal.values,
             "pair": rot_fl.pair.values,
             "wavelengths": ["410", "470", "r"],
             "shifts": shifts,

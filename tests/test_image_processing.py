@@ -6,7 +6,6 @@ import pytest
 from pharynx_redox import image_processing as ip, pharynx_io as pio
 
 test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
-print(test_data_path)
 
 
 class TestImageProcessing:

@@ -1,18 +1,20 @@
-import re
-from collections import Counter
-from pharynx_redox import experiment, profile_processing as pp
-
+import argparse
 import os
+import re
 import subprocess
+import typing
+import matlab
+from collections import Counter
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import ndimage as ndi
-import typing
-from skimage.measure import regionprops, label
-from pathlib import Path
-import argparse
-import matlab
+from skimage.measure import label, regionprops
+
+from . import experiment
+from . import profile_processing as pp
 
 
 def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: str):
@@ -185,9 +187,9 @@ def calc_max_bbox(
     """
     b_boxes = []
 
-    for i in range(rot_seg_stack.spec.size):
+    for i in range(rot_seg_stack.animal.size):
         props = regionprops(
-            label(rot_seg_stack.sel(pair=ref_pair, wavelength=ref_wvl).isel(spec=i))
+            label(rot_seg_stack.sel(pair=ref_pair, wavelength=ref_wvl).isel(animal=i))
         )[0]
         b_boxes.append(props.bbox)
 
@@ -335,7 +337,7 @@ def measure_shifted_midlines(
                 n_points,
             )
         ),
-        dims=["spec", "wavelength", "pair", "position"],
+        dims=["animal", "wavelength", "pair", "position"],
         coords={"wavelength": ex_meas.wavelength, "pair": ex_meas.pair},
     )
 
@@ -389,7 +391,7 @@ def measure_shifted_midlines(
     return measurements, all_shifts, orig_idx
 
 
-def run_all_analyses(meta_dir: str, imaging_scheme: str, **kwargs):
+def run_all_analyses(meta_dir: str, **kwargs):
     """
     Run all experiment analyeses in the given parent directory
 
@@ -408,7 +410,6 @@ def run_all_analyses(meta_dir: str, imaging_scheme: str, **kwargs):
     for exp_dir in list(filter(lambda x: x.is_dir(), meta_dir.iterdir())):
         experiment.Experiment(
             experiment_dir=exp_dir,
-            imaging_scheme=imaging_scheme,
             strategy="_".join(f"{k}={v}" for k, v in kwargs.items()),
         ).full_pipeline()
 

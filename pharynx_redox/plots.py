@@ -3,9 +3,9 @@ from typing import Dict, Tuple, Union
 
 from tqdm.auto import tqdm
 
-from pharynx_redox import profile_processing as pp
-from pharynx_redox import data_analysis as da
-from pharynx_redox import utils
+from . import profile_processing as pp
+from . import data_analysis as da
+from . import utils
 
 import matplotlib.colors
 import matplotlib.pyplot as plt

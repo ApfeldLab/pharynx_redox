@@ -1,28 +1,27 @@
+import re
+import logging
+from datetime import datetime
 from pathlib import Path
-from typing import Union, List, Dict
+from typing import Dict, List, Union
+
 import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
-import re
-from datetime import datetime
 
-from pharynx_redox import utils
+from . import utils
 
 
-def load_profile_data(profile_data_path: Union[Path, str]) -> xr.DataArray:
-    try:
-        return xr.load_dataarray(profile_data_path).set_index(
-            spec=["experiment", "animal"]
-        )
-    except ValueError:
-        return xr.load_dataarray(profile_data_path)
+def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
+    logging.info('Loading data from %s' % path)
+    return xr.load_dataarray(path)
 
 
 def save_profile_data(
-    profile_data: xr.DataArray, profile_data_path: Union[Path, str]
+    profile_data: xr.DataArray, path: Union[Path, str]
 ) -> xr.DataArray:
-    profile_data.reset_index("spec").to_netcdf(profile_data_path)
+    logging.info('Saving data to %s' % path)
+    profile_data.to_netcdf(path)
 
 
 def _parse_illum_setting(ilum_setting: str) -> str:
@@ -38,7 +37,7 @@ def _parse_illum_setting(ilum_setting: str) -> str:
     Returns
     -------
     str
-        If there is a number in the string, that number is returned. If `transmitted 
+        If there is a number in the string, that number is returned. If `transmitted
         light` is in the string, "TL" is returned. Otherwise, the string itself is 
         returned unchanged.
     """
@@ -99,7 +98,12 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
             descr = str(page.tags["image_description"].value, "utf-8")
             metadata = {}
             for key, label, fn in metadata_keyfuncs:
-                val = fn(re.search(rf'id="{key}".*value="(.*)"', descr).group(1))
+                try:
+                    val = fn(re.search(rf'id="{key}".*value="(.*)"', descr).group(1))
+                except AttributeError:
+                    raise AttributeError(
+                        f"Could not find key[{key}] in plane description\n{descr}"
+                    )
                 metadata[label] = val
             all_metadata.append(metadata)
         return all_metadata
@@ -317,7 +321,6 @@ def load_images(
                 dict(units="ms"),
             ),
         },
-        attrs={"background_subtracted": False},
     )
 
     return da

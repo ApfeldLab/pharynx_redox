@@ -12,8 +12,23 @@ class PolySplineROI(pg.PolyLineROI):
     pass
 
 
-# CONSTANTS
-CURRENT_PAIR = 0
+class ImageStackWidget(PyQt5.QWidget):
+    def __init__(self, image_data: xr.DataArray, *args, **kwargs):
+        super(ImageStackWidget, self).__init__(*args, **kwargs)
+
+        self.layout = QtWidgets.QLayout()
+
+        self.imv = pg.ImageView()
+
+        self._img_data = image_data
+        self.pair = image_data.pair.values[0]
+        self.wavelength = image_data.wavelength.values[0]
+        self.selected_stack_data = self.image_data.sel(
+            wavelength=self.wavelength, pair=self.pair
+        ).values
+
+        self.imv.setImage(self.selected_stack_data)
+
 
 img_data = xr.load_dataarray(
     "/Users/sean/code/pharynx_redox/data/paired_ratio/all_rot_fl.nc"
@@ -31,6 +46,7 @@ pair_selector = pg.ComboBox(items=list(img_data.pair.values.astype(str)))
 
 # ROI
 midline_roi = PolySplineROI([(10, 10), (20, 20), (30, 30)])
+midline_roi
 
 imv = pg.ImageView()
 animal_label = pg.LabelItem(text="Animal 0 | Pair 0")
@@ -43,8 +59,8 @@ imv.getView().addItem(midline_roi)
 I = (
     (img_data.sel(wavelength="410") / img_data.sel(wavelength="470"))
     .sel(pair=0)
-    .transpose("spec", "x", "y")
     .values
+    # .transpose("animal", "x", "y")
 )
 
 
@@ -63,7 +79,7 @@ def update_img_data():
     pair = get_current_pair()
     try:
         imv.setImage(
-            img_data.sel(wavelength=wvl, pair=pair).transpose("spec", "x", "y").values
+            img_data.sel(wavelength=wvl, pair=pair).transpose("animal", "x", "y").values
         )
         imv.setCurrentIndex(idx)
         set_img_label()
