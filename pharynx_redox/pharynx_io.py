@@ -315,11 +315,11 @@ def load_images(
             "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
             "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),
             "stage_z": (("animal", "pair", "wavelength"), all_coords["stage_z"]),
-            "exposure": (
-                ("animal", "pair", "wavelength"),
-                all_coords["exposure"],
-                dict(units="ms"),
-            ),
+            # "exposure": (
+            #     ("animal", "pair", "wavelength"),
+            #     all_coords["exposure"],
+            #     dict(units="ms"),
+            # ),
         },
     )
 
