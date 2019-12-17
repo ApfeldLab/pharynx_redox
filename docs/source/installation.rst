@@ -32,7 +32,7 @@ Click on ``Environments``, then click ``Import``:
 
 .. image:: _static/anaconda_import_button.png
 
-Now, use ``pharedox`` as the environment name. Use the ``conda-spec-file.txt`` (found
+Now, use ``pharedox`` as the environment name. Use the ``conda-env.yml`` (found
 in the top level of the source code directory) as the import file. 
 
 MATLAB
