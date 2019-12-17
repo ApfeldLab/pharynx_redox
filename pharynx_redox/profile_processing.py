@@ -285,7 +285,6 @@ def get_trim_boundaries(
 def trim_profiles(
     intensity_data: xr.DataArray,
     threshold: float,
-    new_length: int,
     ref_wvl: str = "410",
 ):
     """
@@ -300,37 +299,24 @@ def trim_profiles(
     -------
 
     """
-    trimmed_intensity_data = xr.DataArray(
-        0,
-        dims=["animal", "wavelength", "pair", "position"],
-        coords={
-            "animal": intensity_data.animal,
-            "wavelength": intensity_data.wavelength,
-            "pair": intensity_data.pair,
-            "position": np.arange(new_length),
-            "strain": ("animal", intensity_data.strain),
-        },
-    )
+    trimmed_intensity_data = intensity_data.copy() 
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
-    for img_idx in range(intensity_data.animal.size):
+    for img_idx in intensity_data.animal:
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
             if "tl" not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
-                    data = (
-                        intensity_data.sel(wavelength=wvl, pair=pair)
-                        .isel(animal=img_idx)
-                        .data
-                    )
+                    selector = dict(wavelength=wvl, pair=pair, animal=img_idx)
+                    data = intensity_data.sel(selector).data
 
                     trimmed = data[l[img_idx, pair] : r[img_idx, pair]]
-                    new_xs = np.linspace(0, len(trimmed), new_length)
+                    new_xs = np.linspace(0, len(trimmed), len(trimmed))
                     old_xs = np.arange(0, len(trimmed))
                     resized = np.interp(new_xs, old_xs, trimmed)
 
-                    trimmed_intensity_data[img_idx, wvl_idx, pair, :] = resized
+                    trimmed_intensity_data.loc[selector] = resized
 
     return trimmed_intensity_data
 

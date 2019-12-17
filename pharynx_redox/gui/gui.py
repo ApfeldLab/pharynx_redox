@@ -81,13 +81,13 @@ class ImageWidget(QtWidgets.QWidget):
 
 
 
-# imgs = pio.load_images(
-#     "/Users/sean/code/pharynx_redox/data/timeseries/2019-12-13 calibration 1-6 diamide 30/2019-12-13 calibration 1-6 diamide 30.tif",
-#     strain_map=np.repeat("HD233", 6),
-# )
+imgs = pio.load_images(
+    "/Users/sean/code/pharynx_redox/data/timeseries/2019-12-13 calibration 1-6 baseline 10/2019-12-13 calibration 1-6 baseline 10.tif",
+    strain_map=np.repeat("HD233", 6),
+)
 # imgs[0:5].to_netcdf('~/Desktop/test_imgs.nc')
 
-imgs = xr.load_dataarray('~/Desktop/test_seg.nc')
+# imgs = xr.load_dataarray('~/Desktop/test_seg.nc')
 
 qapp = QtWidgets.QApplication(sys.argv)
 

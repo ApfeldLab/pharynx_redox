@@ -58,7 +58,7 @@ class Experiment:
     temperature: float = 22.0
 
     # Pipeline Parameters
-    trimmed_profile_length: int = 300
+    trimmed_profile_length: int = 200
     n_midline_pts: int = 200
     seg_threshold: int = 2000
     trim_threshold: int = 3000
@@ -337,7 +337,7 @@ class Experiment:
         logging.info("Trimming intensity data")
 
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
-            profile_processing.trim_profiles(
+            profile_processing.trim_profdiamideiles(
                 self.untrimmed_profiles,
                 self.trim_threshold,
                 self.trimmed_profile_length,

@@ -48,4 +48,18 @@ Running the Analysis
 
 Once all of the files are in place, running the analysis is easy.
 
-TODO: write run documentation
+We will interact with the pipeline using Jupyter Notebooks. To start the notebook,
+execute the following command in the root of the source directory::
+
+    $ jupyter notebook
+
+A web browser should open. Navigate to the ``notebooks/Image Analysis/examples``, where
+you will find example notebooks with various types of analysis and plots.
+
+Getting at the Data
+===================
+
+Once the analysis runs, you are left with an ``Experiment`` object. All of the relevant
+data is stored in this object. This section will explain how to interact with it
+to effectively answer the questions you have about your data.
+
