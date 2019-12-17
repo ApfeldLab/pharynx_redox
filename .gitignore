@@ -1,6 +1,7 @@
 # Project-Specific
 matlab/compiled_project/
 data/
+tests/test_data/all_rot_fl.nc
 
 .idea/
 
