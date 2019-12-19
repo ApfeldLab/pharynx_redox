@@ -13,14 +13,14 @@ from . import utils
 
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
-    logging.info('Loading data from %s' % path)
+    logging.info("Loading data from %s" % path)
     return xr.load_dataarray(path)
 
 
 def save_profile_data(
     profile_data: xr.DataArray, path: Union[Path, str]
 ) -> xr.DataArray:
-    logging.info('Saving data to %s' % path)
+    logging.info("Saving data to %s" % path)
     profile_data.to_netcdf(path)
 
 
@@ -204,7 +204,7 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
-    intercalated_image_stack_path: Path, strain_map: [str] = None, indexer_path=None,
+    intercalated_image_stack_path: Path, strain_map: [str] = None, indexer_path=None
 ) -> xr.DataArray:
     """
     Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,

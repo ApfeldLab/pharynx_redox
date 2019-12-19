@@ -130,7 +130,9 @@ def center_and_rotate_pharynxes(
                         measure.label(reference_seg), coordinates="rc"
                     )[0]
                 except IndexError:
-                    raise ValueError(f'No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]')
+                    raise ValueError(
+                        f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
+                    )
 
                 # pharynx_center_y, pharynx_center_x = props.centroid
                 pharynx_center_y, pharynx_center_x = np.mean(
@@ -182,20 +184,22 @@ def extract_largest_binary_object(
         return bin_img
     return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
+
 def get_area_of_largest_object(S):
     try:
         return measure.regionprops(measure.label(S))[0].area
     except IndexError:
         return 0
 
+
 def segment_pharynx(fl_img):
     seg = fl_img.copy()
 
-    if 'tl' in seg.wavelength.values[()].lower():
+    if "tl" in seg.wavelength.values[()].lower():
         seg[:] = 0
         return seg
 
-    target_area = 450 # experimentally derived
+    target_area = 450  # experimentally derived
     area_range = 100
     min_area = target_area - area_range
     max_area = target_area + area_range
@@ -207,24 +211,25 @@ def segment_pharynx(fl_img):
     area = get_area_of_largest_object(S)
     while (min_area > area) or (area > max_area):
         area = get_area_of_largest_object(S)
-        
+
         if area > max_area:
             p = p + 0.01
         if area < min_area:
             p = p - 0.01
-        logging.debug(f'Setting p={p}')
+        logging.debug(f"Setting p={p}")
         t = fl_img.max() * p
         S = fl_img > t
 
         if p < 0:
             # break out if loop gets stuck w/ sensible default
-            logging.warn('Caught infinite loop')
+            logging.warn("Caught infinite loop")
             return fl_img > (fl_img.max() * 0.15)
         if p > 0.9:
-            logging.warn('Caught infinite loop')
+            logging.warn("Caught infinite loop")
             return fl_img > (fl_img.max() * 0.15)
 
     return S
+
 
 def segment_pharynxes_ufunc(fl_stack) -> xr.DataArray:
     # seg = xr.apply_ufunc(
@@ -237,6 +242,7 @@ def segment_pharynxes_ufunc(fl_stack) -> xr.DataArray:
     # return seg
     # TODO: somehow need to skip TL coordinate
     raise NotImplementedError
+
 
 # noinspection PyUnresolvedReferences
 def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataArray:
@@ -270,7 +276,9 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
         for wvl_idx in range(fl_stack.wavelength.size):
             for pair in range(fl_stack.pair.size):
                 selector = dict(animal=img_idx, wavelength=wvl_idx, pair=pair)
-                logging.debug(f'Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}')
+                logging.debug(
+                    f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
+                )
                 I = fl_stack.isel(selector)
                 S = segment_pharynx(I)
                 seg[selector] = extract_largest_binary_object(S)

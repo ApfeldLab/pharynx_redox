@@ -22,7 +22,9 @@ from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
 
 
-def plot_stage_layout(image_data: xr.DataArray, pair: int = 0) -> sns.axisgrid.FacetGrid:
+def plot_stage_layout(
+    image_data: xr.DataArray, pair: int = 0
+) -> sns.axisgrid.FacetGrid:
     """
     Shows a scatter plot where each point is an animal located on the imaging stage and
     the points are colored by strain.

@@ -498,12 +498,14 @@ def git_version() -> str:
 
     return GIT_REVISION
 
+
 def get_last2d(data):
     if data.ndim <= 2:
         return data
     slc = [0] * (data.ndim - 2)
     slc += [slice(None), slice(None)]
     return data[slc]
+
 
 if __name__ == "__main__":
     cli_run_all_analyses()

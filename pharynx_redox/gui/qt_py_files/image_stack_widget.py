@@ -8,14 +8,15 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_XArrayDisplayWidget(object):
     def setupUi(self, XArrayDisplayWidget):
         XArrayDisplayWidget.setObjectName("XArrayDisplayWidget")
         XArrayDisplayWidget.resize(1680, 1005)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(XArrayDisplayWidget)
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.gridLayout_2 = QtWidgets.QGridLayout(XArrayDisplayWidget)
+        self.gridLayout_2.setObjectName("gridLayout_2")
         self.widget = QtWidgets.QWidget(XArrayDisplayWidget)
-        self.widget.setMinimumSize(QtCore.QSize(200, 0))
+        self.widget.setMinimumSize(QtCore.QSize(300, 0))
         self.widget.setMaximumSize(QtCore.QSize(200, 16777215))
         self.widget.setObjectName("widget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.widget)
@@ -50,26 +51,25 @@ class Ui_XArrayDisplayWidget(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_2.addWidget(self.line_2)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_2.addItem(spacerItem)
         self.line = QtWidgets.QFrame(self.widget)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout_2.addWidget(self.line)
-        self.groupBox = QtWidgets.QGroupBox(self.widget)
-        self.groupBox.setMaximumSize(QtCore.QSize(300, 16777215))
-        self.groupBox.setObjectName("groupBox")
-        self.formLayout_3 = QtWidgets.QFormLayout(self.groupBox)
-        self.formLayout_3.setObjectName("formLayout_3")
-        self.label_4 = QtWidgets.QLabel(self.groupBox)
-        self.label_4.setObjectName("label_4")
-        self.formLayout_3.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_4)
-        self.label_3 = QtWidgets.QLabel(self.groupBox)
-        self.label_3.setObjectName("label_3")
-        self.formLayout_3.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.label_3)
-        self.verticalLayout_2.addWidget(self.groupBox)
-        self.horizontalLayout.addWidget(self.widget)
+        self.propertiesGroupBox = QtWidgets.QGroupBox(self.widget)
+        self.propertiesGroupBox.setMaximumSize(QtCore.QSize(300, 16777215))
+        self.propertiesGroupBox.setObjectName("propertiesGroupBox")
+        self.gridLayout_3 = QtWidgets.QGridLayout(self.propertiesGroupBox)
+        self.gridLayout_3.setObjectName("gridLayout_3")
+        self.propertiesDataTreeWidget = DataTreeWidget(self.propertiesGroupBox)
+        self.propertiesDataTreeWidget.setObjectName("propertiesDataTreeWidget")
+        self.gridLayout_3.addWidget(self.propertiesDataTreeWidget, 0, 0, 1, 1)
+        self.verticalLayout_2.addWidget(self.propertiesGroupBox)
+        self.gridLayout_2.addWidget(self.widget, 0, 0, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setSpacing(1)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -88,9 +88,10 @@ class Ui_XArrayDisplayWidget(object):
         self.tab_2.setObjectName("tab_2")
         self.tabWidget.addTab(self.tab_2, "")
         self.verticalLayout.addWidget(self.tabWidget)
-        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.gridLayout_2.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
         self.retranslateUi(XArrayDisplayWidget)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(XArrayDisplayWidget)
 
     def retranslateUi(self, XArrayDisplayWidget):
@@ -100,10 +101,16 @@ class Ui_XArrayDisplayWidget(object):
         self.label.setText(_translate("XArrayDisplayWidget", "Wavelength"))
         self.label_2.setText(_translate("XArrayDisplayWidget", "Pair"))
         self.pushButton.setText(_translate("XArrayDisplayWidget", "View Mask"))
-        self.groupBox.setTitle(_translate("XArrayDisplayWidget", "Properties"))
-        self.label_4.setText(_translate("XArrayDisplayWidget", "property"))
-        self.label_3.setText(_translate("XArrayDisplayWidget", "value"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Tab 1"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Tab 2"))
+        self.propertiesGroupBox.setTitle(
+            _translate("XArrayDisplayWidget", "Properties")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_2),
+            _translate("XArrayDisplayWidget", "Segmented"),
+        )
 
-from pyqtgraph import ImageView
+
+from pyqtgraph import DataTreeWidget, ImageView

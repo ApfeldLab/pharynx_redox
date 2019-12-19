@@ -282,11 +282,7 @@ def get_trim_boundaries(
     return l_bound, r_bound
 
 
-def trim_profiles(
-    intensity_data: xr.DataArray,
-    threshold: float,
-    ref_wvl: str = "410",
-):
+def trim_profiles(intensity_data: xr.DataArray, threshold: float, ref_wvl: str = "410"):
     """
     Parameters
     ----------
@@ -299,7 +295,7 @@ def trim_profiles(
     -------
 
     """
-    trimmed_intensity_data = intensity_data.copy() 
+    trimmed_intensity_data = intensity_data.copy()
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
