@@ -8,7 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
 class Ui_XArrayDisplayWidget(object):
     def setupUi(self, XArrayDisplayWidget):
         XArrayDisplayWidget.setObjectName("XArrayDisplayWidget")
@@ -42,18 +41,16 @@ class Ui_XArrayDisplayWidget(object):
         self.pairSlider.setOrientation(QtCore.Qt.Horizontal)
         self.pairSlider.setObjectName("pairSlider")
         self.verticalLayout_3.addWidget(self.pairSlider)
-        self.pushButton = QtWidgets.QPushButton(self.groupBox_2)
-        self.pushButton.setObjectName("pushButton")
-        self.verticalLayout_3.addWidget(self.pushButton)
+        self.displayMaskCheckbox = QtWidgets.QCheckBox(self.groupBox_2)
+        self.displayMaskCheckbox.setObjectName("displayMaskCheckbox")
+        self.verticalLayout_3.addWidget(self.displayMaskCheckbox)
         self.verticalLayout_2.addWidget(self.groupBox_2)
         self.line_2 = QtWidgets.QFrame(self.widget)
         self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_2.addWidget(self.line_2)
-        spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem)
         self.line = QtWidgets.QFrame(self.widget)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -100,17 +97,9 @@ class Ui_XArrayDisplayWidget(object):
         self.groupBox_2.setTitle(_translate("XArrayDisplayWidget", "Controls"))
         self.label.setText(_translate("XArrayDisplayWidget", "Wavelength"))
         self.label_2.setText(_translate("XArrayDisplayWidget", "Pair"))
-        self.pushButton.setText(_translate("XArrayDisplayWidget", "View Mask"))
-        self.propertiesGroupBox.setTitle(
-            _translate("XArrayDisplayWidget", "Properties")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2),
-            _translate("XArrayDisplayWidget", "Segmented"),
-        )
-
+        self.displayMaskCheckbox.setText(_translate("XArrayDisplayWidget", "Display Mask"))
+        self.propertiesGroupBox.setTitle(_translate("XArrayDisplayWidget", "Properties"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Segmented"))
 
 from pyqtgraph import DataTreeWidget, ImageView

@@ -7,20 +7,35 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
+from matplotlib import cm
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
+import pyqtgraph as pg
 
 from .. import pharynx_io as pio
+from .. import image_processing as ip
 from .. import utils
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget
+from .qt_py_files.maskable_img_stack_widget import Ui_Form
 
 
 class ImageStackWidget(QtWidgets.QWidget):
-    def __init__(self, imgs):
+    def __init__(self, imgs, masks):
         super(ImageStackWidget, self).__init__()
 
-        self.imgs = imgs
+        self.imgs = imgs.transpose(
+            "animal", "wavelength", "pair", "x", "y", transpose_coords=True
+        )
+        self.masks = masks.transpose(
+            "animal", "wavelength", "pair", "x", "y", transpose_coords=True
+        )
         self.current_animal = 0
+        self.display_mask = True
+
+        pos = np.array([0, 1])
+        color = np.array([[0, 0, 0, 0], [255, 0, 0, 128]], dtype=np.ubyte)
+        cmap = pg.ColorMap(pos, color)
+        self.lut = cmap.getLookupTable(0, 1, 2)
 
         # Build UI
         self.ui = Ui_XArrayDisplayWidget()
@@ -30,6 +45,15 @@ class ImageStackWidget(QtWidgets.QWidget):
         self.ui.pairSlider.setMaximum(self.imgs.pair.size - 1)
         self.ui.wvlBox.addItems(imgs.wavelength.values)
 
+        self.mask_item = pg.ImageItem(
+            image=self.masks.sel(
+                wavelength=self.get_current_wvl(),
+                pair=self.get_current_pair(),
+                animal=0,
+            ).values
+        )
+        self.mask_item.setLookupTable(self.lut)
+
         self.set_image_stack(
             imgs.isel(pair=0, wavelength=0), update_scale=True, autoLevels=True
         )
@@ -37,9 +61,28 @@ class ImageStackWidget(QtWidgets.QWidget):
         # connect signals
         self.ui.pairSlider.valueChanged.connect(self.handle_pairSlider_changed)
         self.ui.wvlBox.currentIndexChanged.connect(self.handle_wvlBox_change)
+        self.ui.displayMaskCheckbox.stateChanged.connect(
+            self.handle_display_mask_pressed
+        )
+        self.ui.ImageViewBox.sigTimeChanged.connect(self.handle_animal_slider_changed)
+
+    def handle_display_mask_pressed(self):
+        self.display_mask = self.ui.displayMaskCheckbox.isChecked()
+        print(f"display_mask={self.display_mask}")
+        if self.display_mask:
+            self.ui.ImageViewBox.addItem(self.mask_item)
+        else:
+            self.ui.ImageViewBox.removeItem(self.mask_item)
 
     def get_current_img_frame(self):
         return self.imgs.sel(
+            wavelength=self.get_current_wvl(),
+            pair=int(self.get_current_pair()),
+            animal=self.current_animal,
+        )
+
+    def get_current_mask_frame(self):
+        return self.masks.sel(
             wavelength=self.get_current_wvl(),
             pair=int(self.get_current_pair()),
             animal=self.current_animal,
@@ -54,10 +97,12 @@ class ImageStackWidget(QtWidgets.QWidget):
         self.current_animal = animal_no
         self.ui.ImageViewBox.setCurrentIndex(animal_no)
         self.update_img_properties_tree()
+        self.mask_item.setImage(self.get_current_mask_frame().values)
 
     def handle_animal_slider_changed(self):
         self.current_animal = self.ui.ImageViewBox.currentIndex
-        self.update_img_properties_tree()
+        print(f"current animal: {self.current_animal}")
+        self.mask_item.setImage(self.get_current_mask_frame().values)
 
     def handle_pairSlider_changed(self):
         self.set_image_stack(
@@ -86,11 +131,7 @@ class ImageStackWidget(QtWidgets.QWidget):
         return int(self.ui.pairSlider.value())
 
     def set_image_stack(
-        self,
-        img_stack: xr.DataArray,
-        update_scale=False,
-        autoLevels=False,
-        transpose=True,
+        self, img_stack: xr.DataArray, update_scale=False, autoLevels=False,
     ):
         # Save scale
         _view = self.ui.ImageViewBox.getView()
@@ -102,12 +143,11 @@ class ImageStackWidget(QtWidgets.QWidget):
         else:
             levels = self.ui.ImageViewBox.getHistogramWidget().getLevels()
 
-        if transpose:
-            imgdata = img_stack.transpose("animal", "x", "y").values
-        else:
-            imgdata = img_stack.values
+        imgdata = img_stack.values
 
         self.ui.ImageViewBox.setImage(imgdata, autoLevels=autoLevels, levels=levels)
+
+        # if self.display_mask:
 
         if not update_scale:
             # Restore scale
@@ -118,16 +158,14 @@ class ImageStackWidget(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     imgs = pio.load_images(
-        "/Users/sean/code/pharynx_redox/data/timeseries/2019-12-13 calibration 1-6 baseline 10/2019-12-13 calibration 1-6 baseline 10.tif",
-        strain_map=np.repeat("HD233", 6),
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
+        indexer_path="/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
     )
-    # imgs[0:5].to_netcdf('~/Desktop/test_imgs.nc')
-
-    # imgs = xr.load_dataarray('~/Desktop/test_seg.nc')
+    masks = ip.segment_pharynxes(imgs, threshold=2000)
 
     qapp = QtWidgets.QApplication(sys.argv)
 
-    xarray_widget = ImageStackWidget(imgs)
+    xarray_widget = ImageStackWidget(imgs, masks)
     xarray_widget.show()
 
     qapp.exec_()
