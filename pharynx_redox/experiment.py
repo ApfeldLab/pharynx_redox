@@ -134,6 +134,10 @@ class Experiment:
         return self.experiment_dir.joinpath("processed_images", "segmented_images")
 
     @property
+    def fl_imgs_dir(self):
+        return self.experiment_dir.joinpath("processed_images", "fluorescent_images")
+
+    @property
     def parameter_dict(self):
         return {}
 
@@ -284,6 +288,9 @@ class Experiment:
 
     def full_pipeline(self):
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
+
+        logging.info(f'Saving fluorescent images to {self.fl_imgs_dir}')
+        pio.save_images_xarray_to_disk(self.images)
 
         self.segment_pharynxes()
         self.align_and_center()

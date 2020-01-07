@@ -17,6 +17,19 @@ from . import experiment
 from . import profile_processing as pp
 
 
+def validate_pharynx_mask(mask: xr.DataArray):
+    """
+    Validate that the given pharyngeal mask image satisfies all requirements for further
+    analysis.
+    
+    Parameters
+    ----------
+    mask : xr.DataArray
+        the pharyngeal mask to validate
+    """
+    raise NotImplementedError
+
+
 def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: str):
     """
     Send data to MATLAB session currently running. Useful for debugging MATLAB code.
