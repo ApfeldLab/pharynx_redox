@@ -307,7 +307,7 @@ def trim_profiles(
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
-    trimmed_intensity_data.to_netcdf("/Users/sean/Desktop/test_trimming-untrimmed.nc")
+    # trimmed_intensity_data.to_netcdf("/Users/sean/Desktop/test_trimming-untrimmed.nc")
 
     for img_idx in intensity_data.animal:
         for wvl_idx in range(intensity_data.wavelength.size):
