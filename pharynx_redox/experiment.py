@@ -290,7 +290,7 @@ class Experiment:
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
 
         logging.info(f'Saving fluorescent images to {self.fl_imgs_dir}')
-        pio.save_images_xarray_to_disk(self.images)
+        pio.save_images_xarray_to_disk(self.images, self.fl_imgs_dir, prefix=self.experiment_id)
 
         self.segment_pharynxes()
         self.align_and_center()
