@@ -5,7 +5,6 @@ channels:
 dependencies:
   - python=3.7
   - numpy
-  - scikit-image
   - tqdm
   - sphinx_rtd_theme
   - jupyter
@@ -15,7 +14,6 @@ dependencies:
   - numpydoc
   - pytest
   - xarray
-  - pyqtgraph
   - statsmodels
   - seaborn
   - pytest-cov

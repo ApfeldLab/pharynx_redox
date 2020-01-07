@@ -148,7 +148,9 @@ def center_and_rotate_pharynxes(
                 )
 
                 rotated_img = rotate(img.data, translation_matrix, pharynx_orientation)
-                rotated_seg = rotate(seg.data, translation_matrix, pharynx_orientation)
+                rotated_seg = rotate(
+                    seg.data, translation_matrix, pharynx_orientation, order=0
+                )
 
                 fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][
                     img_idx
@@ -315,7 +317,7 @@ def get_centroids(fl_stack: xr.DataArray, threshold=1000, gaussian_sigma=6):
     # TODO finish implementation
 
 
-def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation):
+def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
     """
     Rotate the
 
@@ -327,6 +329,8 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation):
         the translation matrix to apply
     orientation
         the angle of orientation (in radians)
+    order
+        the order of the interpolation
 
     Returns
     -------
@@ -336,9 +340,10 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation):
     """
     # noinspection PyTypeChecker
     return transform.rotate(
-        transform.warp(img, tform, preserve_range=True, mode="wrap"),
+        transform.warp(img, tform, preserve_range=True, mode="wrap", order=order),
         np.degrees(np.pi / 2 - orientation),
         mode="edge",
+        order=order,
     )
 
 
@@ -383,7 +388,7 @@ def calculate_midlines(
 
 
 def calculate_midline(
-    rot_seg_img: Union[np.ndarray, xr.DataArray], degree: int = 4, pad: int = 5
+    rot_seg_img: Union[np.ndarray, xr.DataArray], degree: int = 4, pad: int = 10
 ) -> Polynomial:
     """
     Calculate a the midline for a single image by fitting a polynomial to the segmented

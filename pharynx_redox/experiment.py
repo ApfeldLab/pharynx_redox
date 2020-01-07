@@ -122,6 +122,18 @@ class Experiment:
     ####################################################################################
 
     @property
+    def rot_seg_dir(self):
+        return self.experiment_dir.joinpath("processed_images", "rot_seg")
+
+    @property
+    def rot_fl_dir(self):
+        return self.experiment_dir.joinpath("processed_images", "rot_fl")
+
+    @property
+    def seg_imgs_dir(self):
+        return self.experiment_dir.joinpath("processed_images", "segmented_images")
+
+    @property
     def parameter_dict(self):
         return {}
 
@@ -273,8 +285,7 @@ class Experiment:
     def full_pipeline(self):
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
 
-        if self.seg_images is None:
-            self.seg_images = self.segment_pharynxes()
+        self.segment_pharynxes()
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
@@ -288,16 +299,33 @@ class Experiment:
 
         return self
 
-    def segment_pharynxes(self):
-        logging.info("Segmenting pharynxes")
+    def load_seg_imgs_from_disk(self, filepath):
+        logging.info(f"Skipping segmentation; loading from {filepath}")
 
-        return ip.segment_pharynxes(self.images, self.seg_threshold)
+    def segment_pharynxes(self):
+        try:
+            self.seg_images = pio.load_and_restack_img_set(
+                self.seg_imgs_dir, self.images
+            )
+            logging.info(f"Loaded masks from {self.seg_imgs_dir}")
+        except:
+            # First time running the pipeline
+            logging.info("Generating masks")
+            self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
+            logging.info(f"writing masks to {self.seg_imgs_dir}")
+            pio.save_images_xarray_to_disk(self.seg_images, self.seg_imgs_dir, prefix=self.experiment_id)
 
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
             self.images, self.seg_images, blur_seg_thresh=self.seg_threshold
         )
+
+        logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
+        pio.save_images_xarray_to_disk(self.rot_fl, self.rot_fl_dir, prefix=self.experiment_id)
+
+        logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
+        pio.save_images_xarray_to_disk(self.rot_seg, self.rot_seg_dir, prefix=self.experiment_id)
 
     def calculate_midlines(self):
         logging.info("Calculating midlines")
@@ -337,10 +365,8 @@ class Experiment:
         logging.info("Trimming intensity data")
 
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
-            profile_processing.trim_profdiamideiles(
-                self.untrimmed_profiles,
-                self.trim_threshold,
-                self.trimmed_profile_length,
+            profile_processing.trim_profiles(
+                self.untrimmed_profiles, self.trim_threshold, ref_wvl="410"
             )
         )
 

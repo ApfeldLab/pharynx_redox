@@ -282,22 +282,32 @@ def get_trim_boundaries(
     return l_bound, r_bound
 
 
-def trim_profiles(intensity_data: xr.DataArray, threshold: float, ref_wvl: str = "410"):
+def trim_profiles(
+    intensity_data: xr.DataArray, threshold: float, ref_wvl: str = "410"
+) -> xr.DataArray:
     """
+    Trim the background away from the profiles.
+    
     Parameters
     ----------
-    ref_wvl
-    intensity_data
-    threshold
-    new_length
-
+    intensity_data : xr.DataArray
+        the profile data to trim
+    threshold : float
+        the threshold under which data will be thrown away
+    ref_wvl : str, optional
+        the wavelength to be used to calculate trim boundaries. Other wavelengths will
+        be trimmed using these boundaries. By default "410"
+    
     Returns
     -------
-
+    xr.DataArray
+        the trimmed profiles
     """
     trimmed_intensity_data = intensity_data.copy()
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
+
+    trimmed_intensity_data.to_netcdf("/Users/sean/Desktop/test_trimming-untrimmed.nc")
 
     for img_idx in intensity_data.animal:
         for wvl_idx in range(intensity_data.wavelength.size):
@@ -308,7 +318,7 @@ def trim_profiles(intensity_data: xr.DataArray, threshold: float, ref_wvl: str =
                     data = intensity_data.sel(selector).data
 
                     trimmed = data[l[img_idx, pair] : r[img_idx, pair]]
-                    new_xs = np.linspace(0, len(trimmed), len(trimmed))
+                    new_xs = np.linspace(0, len(trimmed), intensity_data.position.size)
                     old_xs = np.arange(0, len(trimmed))
                     resized = np.interp(new_xs, old_xs, trimmed)
 

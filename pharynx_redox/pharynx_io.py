@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
+import os
 
 import numpy as np
 import pandas as pd
@@ -157,8 +158,12 @@ def save_images_xarray_to_disk(
     Returns
     -------
     """
+    # TODO: test
     dir_path = Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
+
+    prefix = f"{prefix}-" if prefix else ""
+    suffix = f"-{suffix}" if suffix else ""
 
     if prefix is not None:
         prefix = f"{prefix}-"
@@ -168,7 +173,7 @@ def save_images_xarray_to_disk(
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
             final_path = dir_path.joinpath(
-                f"{prefix}_wvl={wvl}_pair={pair}_{suffix}.tif"
+                f"{prefix}wvl={wvl}_pair={pair}{suffix}.tif"
             )
             if imgs.data.dtype == np.bool:
                 data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
@@ -176,6 +181,33 @@ def save_images_xarray_to_disk(
                 data = imgs.sel(wavelength=wvl, pair=pair).data
 
             tifffile.imsave(str(final_path), data)
+
+
+def load_and_restack_img_set(
+    dir_path: Union[str, Path], template_img_stack: xr.DataArray
+):
+    """
+    Given a directory containing multiple .TIFF files, each labeled with wavelength
+    and pair, load them into an xarray in memory.
+    
+    Parameters
+    ----------
+    dir_path : Union[str, Path]
+        the directory containing the images. Must contain *only* those images to load
+        into the xarray.
+    """
+    # TODO: test
+    new_array = template_img_stack.copy()
+
+    for fn in os.listdir(dir_path):
+        fn = dir_path.joinpath(fn)
+        wvl = re.search("wvl=(.+)_pair", str(fn)).group(1)
+        pair = int(re.search("pair=(\d+)_?", str(fn)).group(1))
+
+        img = load_tiff_from_disk(fn)
+        new_array.loc[dict(wavelength=wvl, pair=pair)] = img
+
+    return new_array
 
 
 def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int)]:
@@ -204,7 +236,10 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
-    intercalated_image_stack_path: Path, strain_map: [str] = None, indexer_path=None
+    intercalated_image_stack_path: Path,
+    strain_map: [str] = None,
+    indexer_path=None,
+    movement_path=None,
 ) -> xr.DataArray:
     """
     Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 from matplotlib import cm
+from skimage.morphology import disk
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
@@ -16,7 +17,6 @@ from .. import pharynx_io as pio
 from .. import image_processing as ip
 from .. import utils
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget
-from .qt_py_files.maskable_img_stack_widget import Ui_Form
 
 
 class ImageStackWidget(QtWidgets.QWidget):
@@ -37,6 +37,12 @@ class ImageStackWidget(QtWidgets.QWidget):
         cmap = pg.ColorMap(pos, color)
         self.lut = cmap.getLookupTable(0, 1, 2)
 
+        # EDITING STATE
+        self.is_editing_mask = False
+        self.is_erasing = False
+        self.mask_draw_radius = 5
+        self.kernel = disk(self.mask_draw_radius)
+
         # Build UI
         self.ui = Ui_XArrayDisplayWidget()
         self.ui.setupUi(self)
@@ -44,6 +50,7 @@ class ImageStackWidget(QtWidgets.QWidget):
         self.ui.pairSlider.setMinimum(0)
         self.ui.pairSlider.setMaximum(self.imgs.pair.size - 1)
         self.ui.wvlBox.addItems(imgs.wavelength.values)
+        self.ui.drawToolButton.setCheckable(True)
 
         self.mask_item = pg.ImageItem(
             image=self.masks.sel(
@@ -64,15 +71,55 @@ class ImageStackWidget(QtWidgets.QWidget):
         self.ui.displayMaskCheckbox.stateChanged.connect(
             self.handle_display_mask_pressed
         )
+        self.ui.editMaskCheckBox.stateChanged.connect(self.handle_edit_mask_check)
         self.ui.ImageViewBox.sigTimeChanged.connect(self.handle_animal_slider_changed)
+        self.ui.drawToolButton.pressed.connect(self.handle_pressed_draw_mask)
+
+    def handle_edit_mask_check(self):
+        self.is_editing_mask = self.ui.editMaskCheckBox.isChecked()
+        if self.is_editing_mask:
+            if self.is_erasing:
+                kernel = 1 - self.kernel
+            else:
+                kernel = self.kernel
+            self.mask_item.setDrawKernel(
+                kernel,
+                mask=self.kernel,
+                center=(self.mask_draw_radius, self.mask_draw_radius),
+                mode="set",
+            )
+        else:
+            self.mask_item.setDrawKernel(None)
+
+    def keyPressEvent(self, ev):
+        print(ev.key())
+
+        if ev.key() == QtCore.Qt.Key_M:
+            self.is_editing_mask = not self.is_editing_mask
+            self.ui.drawToolButton.setChecked(self.is_editing_mask)
+            self.ui.drawToolButton.pressed.emit()
+        if ev.key() == QtCore.Qt.Key_Minus:
+            self.is_erasing = not self.is_erasing
+            self.ui.drawToolButton.pressed.emit()
+            print(f"is erasing? {self.is_erasing}")
+        else:
+            super(ImageStackWidget, self).keyPressEvent(ev)
+
+    def handle_pressed_draw_mask(self):
+        print(f"drawing? {self.is_editing_mask}")
+        print(f"erasing? {self.is_erasing}")
 
     def handle_display_mask_pressed(self):
         self.display_mask = self.ui.displayMaskCheckbox.isChecked()
         print(f"display_mask={self.display_mask}")
         if self.display_mask:
             self.ui.ImageViewBox.addItem(self.mask_item)
+            self.ui.drawToolButton.setEnabled(True)
         else:
             self.ui.ImageViewBox.removeItem(self.mask_item)
+            self.ui.drawToolButton.setChecked(False)
+            self.ui.drawToolButton.setEnabled(False)
+            self.is_editing_mask = False
 
     def get_current_img_frame(self):
         return self.imgs.sel(
@@ -131,7 +178,7 @@ class ImageStackWidget(QtWidgets.QWidget):
         return int(self.ui.pairSlider.value())
 
     def set_image_stack(
-        self, img_stack: xr.DataArray, update_scale=False, autoLevels=False,
+        self, img_stack: xr.DataArray, update_scale=False, autoLevels=False
     ):
         # Save scale
         _view = self.ui.ImageViewBox.getView()
