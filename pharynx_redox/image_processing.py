@@ -117,7 +117,7 @@ def center_and_rotate_pharynxes(
             for pair in fl_images.pair.data:
                 # Optimization potential here...
                 # this recalculates all region properties for the reference each time
-                reference_seg = blurred_seg.isel(animal=img_idx).sel(
+                reference_seg = seg_images.isel(animal=img_idx).sel(
                     wavelength=reference_wavelength, pair=pair
                 )
                 img = fl_images.isel(animal=img_idx).sel(wavelength=wvl, pair=pair)
