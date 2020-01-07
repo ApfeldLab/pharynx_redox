@@ -363,7 +363,6 @@ class Experiment:
 
     def trim_data(self):
         logging.info("Trimming intensity data")
-
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
             profile_processing.trim_profiles(
                 self.untrimmed_profiles, self.trim_threshold, ref_wvl="410"

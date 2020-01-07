@@ -165,11 +165,6 @@ def save_images_xarray_to_disk(
     prefix = f"{prefix}-" if prefix else ""
     suffix = f"-{suffix}" if suffix else ""
 
-    if prefix is not None:
-        prefix = f"{prefix}-"
-    if suffix is not None:
-        suffix = f"-{suffix}"
-
     for pair in imgs.pair.data:
         for wvl in imgs.wavelength.data:
             final_path = dir_path.joinpath(
