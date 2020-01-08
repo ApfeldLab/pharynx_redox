@@ -194,7 +194,7 @@ def get_area_of_largest_object(S):
         return 0
 
 
-def segment_pharynx(fl_img):
+def segment_pharynx(fl_img: xr.DataArray):
     seg = fl_img.copy()
 
     if "tl" in seg.wavelength.values[()].lower():
@@ -206,19 +206,25 @@ def segment_pharynx(fl_img):
     min_area = target_area - area_range
     max_area = target_area + area_range
 
+    max_iter = 300
+
     p = 0.15
     t = fl_img.max() * p
     S = fl_img > t
 
     area = get_area_of_largest_object(S)
-    while (min_area > area) or (area > max_area):
+
+    i = 0 
+    while (min_area > area) or (area > max_area) or (i >= max_iter):
         area = get_area_of_largest_object(S)
 
+        logging.debug(f"Setting p={p}")
         if area > max_area:
             p = p + 0.01
         if area < min_area:
             p = p - 0.01
-        logging.debug(f"Setting p={p}")
+        i = i + 1
+
         t = fl_img.max() * p
         S = fl_img > t
 
