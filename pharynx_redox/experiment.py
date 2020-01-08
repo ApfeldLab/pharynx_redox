@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -140,6 +141,10 @@ class Experiment:
     @property
     def parameter_dict(self):
         return {}
+    
+    @property
+    def movement_filepath(self):
+        return self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv')
 
     @property
     def scaled_regions(self):
@@ -176,7 +181,14 @@ class Experiment:
         This returns the raw (non-median-subtracted) images
         """
         raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + ".tif")
-        self._raw_image_data = pio.load_images(raw_image_path, self.strains)
+
+        if os.path.isfile(self.movement_filepath):
+            logging.info('Loading movement data into data arrays')
+            self._raw_image_data = pio.load_images(raw_image_path, self.strains, movement_path=self.movement_filepath)
+        else:
+            logging.warn('No movement data found in experiment directory. NOT added to data arrays')
+            self._raw_image_data = pio.load_images(raw_image_path, self.strains)
+
         return self._raw_image_data
 
     @cached_property
