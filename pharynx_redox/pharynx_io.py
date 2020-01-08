@@ -340,7 +340,7 @@ def load_images(
         coords={
             "wavelength": df["wavelength"].unique(),
             "strain": ("animal", strain_map),
-            "experiment_id": "2019-12-10_PD4793_ts",
+            "experiment_id": "N/A",
             "time": (("animal", "pair", "wavelength"), all_coords["time"]),
             "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
             "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),

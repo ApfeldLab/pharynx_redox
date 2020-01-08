@@ -188,6 +188,8 @@ class Experiment:
         else:
             logging.warn('No movement data found in experiment directory. NOT added to data arrays')
             self._raw_image_data = pio.load_images(raw_image_path, self.strains)
+        
+        self._raw_image_data['experiment_id'] = self.experiment_id
 
         return self._raw_image_data
 
