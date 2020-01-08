@@ -345,13 +345,28 @@ def load_images(
             "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
             "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),
             "stage_z": (("animal", "pair", "wavelength"), all_coords["stage_z"]),
-            # "exposure": (
-            #     ("animal", "pair", "wavelength"),
-            #     all_coords["exposure"],
-            #     dict(units="ms"),
-            # ),
+            "exposure": (
+                ("animal", "pair", "wavelength"),
+                all_coords["exposure"],
+            ),
         },
     )
+
+    if movement_path:
+        mvmt = pd.read_csv(movement_path)
+        mvmt_metadata = {r: np.zeros((da.animal.size, da.pair.size)) for r in mvmt.region.unique()}
+        for animal in mvmt.animal.unique():
+            for pair in mvmt.pair.unique():
+                for region in mvmt.region.unique():
+                    idx = mvmt.index[(mvmt['animal'] == animal) & (mvmt['region'] == region) & (mvmt['pair'] == pair)]
+                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx]['movement']
+
+        mvmt_coords = {
+            f'mvmt-{r}': (('animal', 'pair'), mvmt_labels) for r, mvmt_labels in mvmt_metadata.items()
+        }
+
+        da = da.assign_coords(mvmt_coords)
+
 
     return da
 
