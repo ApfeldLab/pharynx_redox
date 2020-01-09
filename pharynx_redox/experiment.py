@@ -205,7 +205,6 @@ class Experiment:
         logging.debug(
             f'len(idx(animal)): {len(self._raw_image_data.get_index("animal"))}'
         )
-        # logging.debug(f'img[experiment_id]: {self._raw_image_data["experiment_id"]}')
 
         self._raw_image_data = self._raw_image_data.reindex(
             animal=pd.MultiIndex.from_arrays(
@@ -215,7 +214,6 @@ class Experiment:
                 ]
             )
         )
-        logging.debug(self._raw_image_data)
 
         return self._raw_image_data
 

@@ -15,19 +15,21 @@ n_worms = size(meas_410, 1);
 
 % TODO make the basis range more general
 warpBasis = create_bspline_basis([1 100], WARP_N_BASIS, WARP_ORDER);
-fdParObj = fdPar(warpBasis, int2Lfd(2), WARP_LAMBDA);
+warp_fdParObj = fdPar(warpBasis, int2Lfd(2), WARP_LAMBDA);
 
 disp('Registering 470 to 410: ');
 
-sm410 = makeWormFd_SJ(meas_410, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
-sm470 = makeWormFd_SJ(meas_470, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
+[sm410, ~] = makeWormFd_SJ(meas_410, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
+[sm470, ~] = makeWormFd_SJ(meas_470, 'lambda', SMOOTH_LAMBDA, 'n_order', SMOOTH_ORDER, 'n_breaks', SMOOTH_N_BREAKS);
 
-rgh410 = makeWormFd_SJ(meas_410, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
-rgh470 = makeWormFd_SJ(meas_470, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
+[rgh410, ~] = makeWormFd_SJ(meas_410, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
+[rgh470, rgh470Par] = makeWormFd_SJ(meas_470, 'lambda', ROUGH_LAMBDA, 'n_order', ROUGH_ORDER, 'n_breaks', ROUGH_N_BREAKS);
 
-[~, warpFd, wfd] = register_fd(deriv(sm410, N_DERIV), deriv(sm470, N_DERIV), fdParObj);
+[~, warpFd, wfd] = register_fd(deriv(sm410, N_DERIV), deriv(sm470, N_DERIV), warp_fdParObj);
 
-reg_rgh_470 = synch(linspace(1, 100, 1000), rgh470, wfd);
+putfd(rgh470Par, rgh470);
+
+reg_rgh_470 = synch2(linspace(1, 100, 1000), rgh470Par, wfd);
 
 % Resample
 xs = linspace(1, 100, resample_resolution);

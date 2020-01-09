@@ -1,4 +1,4 @@
-function wormFd = makeWormFd_SJ(intensityData, varargin)
+function [wormFd, wormFdPar] = makeWormFd_SJ(intensityData, varargin)
     %SmoothIntensity Return a functional data object containing a smoothing of the
     %intensity Data
     %   intensityData should be length-normalized (see square).
@@ -29,4 +29,6 @@ function wormFd = makeWormFd_SJ(intensityData, varargin)
     wormFdPar = fdPar(bspline_basis, Lfd2, lambda);
     argvals = linspace(basis_range(1), basis_range(2), size(intensityData, 2));
     [wormFd, ~, ~] = smooth_basis(argvals, intensityData.', wormFdPar);
+    
+    wormFdPar = fdPar(wormFd, int2Lfd(2), lambda, 1, []);
 end
