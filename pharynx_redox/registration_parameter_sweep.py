@@ -19,7 +19,7 @@ logging.basicConfig(
 )
 
 meta_dir = Path(
-    "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47"
+    "/Users/sean/code/pharynx_redox/data/paired_ratio/"
 )
 prof_raw = xr.concat(
     [
