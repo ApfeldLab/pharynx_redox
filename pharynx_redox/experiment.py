@@ -141,10 +141,10 @@ class Experiment:
     @property
     def parameter_dict(self):
         return {}
-    
+
     @property
     def movement_filepath(self):
-        return self.experiment_dir.joinpath(self.experiment_id + '-mvmt.csv')
+        return self.experiment_dir.joinpath(self.experiment_id + "-mvmt.csv")
 
     @property
     def scaled_regions(self):
@@ -183,13 +183,39 @@ class Experiment:
         raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + ".tif")
 
         if os.path.isfile(self.movement_filepath):
-            logging.info('Loading movement data into data arrays')
-            self._raw_image_data = pio.load_images(raw_image_path, self.strains, movement_path=self.movement_filepath)
+            logging.info("Loading movement data into data arrays")
+            self._raw_image_data = pio.load_images(
+                raw_image_path, self.strains, movement_path=self.movement_filepath
+            )
         else:
-            logging.warn('No movement data found in experiment directory. NOT added to data arrays')
+            logging.warn(
+                "No movement data found in experiment directory. NOT added to data arrays"
+            )
             self._raw_image_data = pio.load_images(raw_image_path, self.strains)
-        
-        self._raw_image_data['experiment_id'] = self.experiment_id
+
+        self._raw_image_data = self._raw_image_data.assign_coords(
+            {
+                "experiment_id": (
+                    ("animal",),
+                    np.repeat(self.experiment_id, self._raw_image_data.animal.size),
+                )
+            }
+        )
+
+        logging.debug(
+            f'len(idx(animal)): {len(self._raw_image_data.get_index("animal"))}'
+        )
+        # logging.debug(f'img[experiment_id]: {self._raw_image_data["experiment_id"]}')
+
+        self._raw_image_data = self._raw_image_data.reindex(
+            animal=pd.MultiIndex.from_arrays(
+                [
+                    self._raw_image_data.get_index("animal"),
+                    self._raw_image_data["experiment_id"],
+                ]
+            )
+        )
+        logging.debug(self._raw_image_data)
 
         return self._raw_image_data
 
@@ -303,8 +329,10 @@ class Experiment:
     def full_pipeline(self):
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
 
-        logging.info(f'Saving fluorescent images to {self.fl_imgs_dir}')
-        pio.save_images_xarray_to_disk(self.images, self.fl_imgs_dir, prefix=self.experiment_id)
+        logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
+        pio.save_images_xarray_to_disk(
+            self.images, self.fl_imgs_dir, prefix=self.experiment_id
+        )
 
         self.segment_pharynxes()
         self.align_and_center()
@@ -334,7 +362,9 @@ class Experiment:
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
             logging.info(f"writing masks to {self.seg_imgs_dir}")
-            pio.save_images_xarray_to_disk(self.seg_images, self.seg_imgs_dir, prefix=self.experiment_id)
+            pio.save_images_xarray_to_disk(
+                self.seg_images, self.seg_imgs_dir, prefix=self.experiment_id
+            )
 
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
@@ -343,10 +373,14 @@ class Experiment:
         )
 
         logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
-        pio.save_images_xarray_to_disk(self.rot_fl, self.rot_fl_dir, prefix=self.experiment_id)
+        pio.save_images_xarray_to_disk(
+            self.rot_fl, self.rot_fl_dir, prefix=self.experiment_id
+        )
 
         logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
-        pio.save_images_xarray_to_disk(self.rot_seg, self.rot_seg_dir, prefix=self.experiment_id)
+        pio.save_images_xarray_to_disk(
+            self.rot_seg, self.rot_seg_dir, prefix=self.experiment_id
+        )
 
     def calculate_midlines(self):
         logging.info("Calculating midlines")

@@ -13,6 +13,42 @@ from . import profile_processing
 from . import pharynx_io as pio
 
 
+def select_by_mvmt(prof_data: xr.DataArray, region: str, moving: bool) -> xr.DataArray:
+    """
+    Return the data in the given DataArray, filtered according to movement in the 
+    specified region.
+
+    Stationary animals are those that are labelled as stationary in both pair 0 and pair
+    1.
+
+    Moving animals are those that are labelled as stationary in pair 0 and moving in 
+    pair 1.
+    
+    Parameters
+    ----------
+    prof_data : xr.DataArray
+        the profile data to filter
+    region: str
+        the region to filter movement on
+    moving : bool
+        if True, returns moving animals. If False, returns stationary animals.
+    
+    Returns
+    -------
+    xr.DataArray
+        [description]
+    """
+    d0 = prof_data.sel(pair=0)
+    d0 = d0.where(d0[f"mvmt-{region}"] == 0, drop=True)
+
+    d1 = prof_data.sel(pair=1)
+    mvmt = 1 if moving else 0
+    d1 = d1.where(d1[f"mvmt-{region}"] == mvmt, drop=True)
+
+    d = xr.align(d0, d1, join="inner")
+    return xr.concat(d, dim="pair")
+
+
 def load_all_cached_profile_data(meta_dir, glob_pattern):
     try:
         return xr.concat(

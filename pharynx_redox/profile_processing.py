@@ -309,15 +309,14 @@ def trim_profiles(
 
     # trimmed_intensity_data.to_netcdf("/Users/sean/Desktop/test_trimming-untrimmed.nc")
 
-    for img_idx in intensity_data.animal:
+    for i, img_idx in enumerate(intensity_data.animal):
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
             if "tl" not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
                     selector = dict(wavelength=wvl, pair=pair, animal=img_idx)
                     data = intensity_data.sel(selector).data
-
-                    trimmed = data[l[img_idx, pair] : r[img_idx, pair]]
+                    trimmed = data[l[i, pair] : r[i, pair]]
                     new_xs = np.linspace(0, len(trimmed), intensity_data.position.size)
                     old_xs = np.arange(0, len(trimmed))
                     resized = np.interp(new_xs, old_xs, trimmed)
