@@ -13,7 +13,108 @@ from . import profile_processing
 from . import pharynx_io as pio
 
 
-def select_by_mvmt(prof_data: xr.DataArray, region: str, moving: bool) -> xr.DataArray:
+def get_moving_idx(
+    data: xr.DataArray, regions: typing.Union[str, typing.List[str]]
+) -> typing.Tuple[xr.DataArray, xr.DataArray]:
+    """
+    Returns a boolean indexing array to select the moving animals from the data array.
+
+    The resultant array will be the same length as the `animal` index of the input
+    array, allowing one to use it to select the moving (or stationary) animals from the
+    original array by using traditional numpy boolean indexing.
+    
+    Parameters
+    ----------
+    data : xr.DataArray
+        The data
+    regions : typing.Union[str, typing.List[str]]
+        which region(s) should be considered for movement stratification
+    
+    Returns
+    -------
+    moving: xr.DataArray
+        A boolean array where `True` indicates that the animal was moving at that index
+        and `False` indicates that the animal was either stationary or unacceptable (as
+        in the case where the animal moves in both the 0th and 1st pair)
+    stationary: xr.DataArray
+        A boolean array where `True` indicates that the animal was stationary at that index
+        and `False` indicates that the animal was either moving or unacceptable (as
+        in the case where the animal moves in both the 0th and 1st pair)
+    """
+    if type(regions) == str:
+        regions = [regions]
+
+    st_idx = np.logical_and.reduce(
+        [
+            (data.sel(pair=0)[f"mvmt-{region}"] == 0)
+            & (data.sel(pair=1)[f"mvmt-{region}"] == 0)
+            for region in regions
+        ]
+    )
+    mv_idx = np.logical_or.reduce(
+        [
+            (data.sel(pair=0)[f"mvmt-{region}"] == 0)
+            & (data.sel(pair=1)[f"mvmt-{region}"] != 0)
+            for region in regions
+        ]
+    )
+
+    return mv_idx, st_idx
+
+
+def resample_moving(
+    data: xr.DataArray,
+    p_moving: float,
+    n: float,
+    regions: typing.Union[str, typing.List[str]],
+) -> xr.DataArray:
+    """
+    Sample from moving and stationary populations in proportion to a hypothetical
+    scenario wherein ``p`` percent animals are moving.
+    
+    Parameters
+    ----------
+    data : xr.DataArray
+        the Profile Data to resampel
+    p_moving : float
+        the percent moving for the hypothetical population
+    n : float
+        the hypothetical populationsize
+    regions : typing.Union[str, typing.List[str]]
+        which region(s) should be considered for movement stratification
+
+    Returns
+    -------
+    xr.DataArray
+        the resampled hypothetical population
+    """
+    mv_idx, st_idx = get_moving_idx(data, regions)
+
+    # Create the probability of selection map - each idx indicates the probability of
+    # selection during re-sampling... initialize with 0s for all idx
+    p_selected = np.zeros((data.shape[0],))
+
+    # we need to divide by the number of animals in each movement group
+    p_selected[mv_idx] = p_moving / np.sum(mv_idx)
+    p_selected[st_idx] = (1 - p_moving) / np.sum(st_idx)
+
+    # Finally, normalize the entire probability array so that it sums to 1, which is
+    # required by np.random.choice
+    p_selected = p_selected / p_selected.sum(0)
+
+    # The idx that are False for mv_idx AND st_idx were never assigned probabilities,
+    # so they stay at 0.0
+    # This is what we want, where if the animal moved in both frames, we are not
+    # interested in it
+
+    idx = np.random.choice(np.arange(data.shape[0]), size=n, replace=True, p=p_selected)
+
+    return data[idx]
+
+
+def select_by_mvmt(
+    prof_data: xr.DataArray, regions: typing.Union[str, typing.List[str]]
+) -> typing.Union[xr.DataArray, xr.DataArray]:
     """
     Return the data in the given DataArray, filtered according to movement in the 
     specified region.
@@ -35,31 +136,20 @@ def select_by_mvmt(prof_data: xr.DataArray, region: str, moving: bool) -> xr.Dat
     
     Returns
     -------
-    xr.DataArray
+    moving: xr.DataArray
         [description]
+    stationary: xr.DataArray
     """
-    d0 = prof_data.sel(pair=0)
-    d0 = d0.where(d0[f"mvmt-{region}"] == 0, drop=True)
+    mv_idx, st_idx = get_moving_idx(prof_data, regions)
 
-    d1 = prof_data.sel(pair=1)
-    mvmt = 1 if moving else 0
-    d1 = d1.where(d1[f"mvmt-{region}"] == mvmt, drop=True)
-
-    d = xr.align(d0, d1, join="inner")
-    return xr.concat(d, dim="pair")
+    return prof_data[mv_idx], prof_data[st_idx]
 
 
 def load_all_cached_profile_data(meta_dir, glob_pattern):
-    try:
-        return xr.concat(
-            (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
-            dim="animal",
-        )
-    except InvalidIndexError:
-        return xr.concat(
-            (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
-            dim="strain",
-        )
+    return xr.concat(
+        (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
+        dim="animal",
+    )
 
 
 def load_all_summaries(meta_dir: Union[Path, str]) -> pd.DataFrame:
@@ -106,15 +196,31 @@ def get_resid_rr(
     return get_resid_rr_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 
-def relative_error(data, summarize=False, **summarize_kwargs):
+def relative_error(data):
     try:
         pair0 = data.sel(wavelength="r", pair=0)
         pair1 = data.sel(wavelength="r", pair=1)
     except KeyError:
         pair0 = data.sel(wavelength="410", pair=0) / data.sel(wavelength="470", pair=0)
         pair1 = data.sel(wavelength="410", pair=1) / data.sel(wavelength="470", pair=1)
+    return relative_error_pairs(pair0, pair1)
 
-    return fold_error_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
+
+def relative_error_pairs(pair0, pair1):
+    err = 1 - (pair0 / pair1)
+
+    err = err.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)
+    for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
+        mvmt_coords = {
+            f"mvmt-{region}": (
+                ("animal",),
+                profile_processing.get_mvmt(
+                    pair0[f"mvmt-{region}"].values, pair1[f"mvmt-{region}"].values
+                ),
+            )
+        }
+        err = err.assign_coords(mvmt_coords)
+    return err
 
 
 def fold_error(data, summarize=False, **summarize_kwargs):
@@ -128,10 +234,26 @@ def fold_error(data, summarize=False, **summarize_kwargs):
     return fold_error_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 
-def fold_error_pairs(pair0, pair1, summarize=False, **summarize_kwargs):
+def fold_error_pairs(
+    pair0: xr.DataArray, pair1: xr.DataArray, summarize=False, **summarize_kwargs
+):
     with np.errstate(divide="ignore"):
         prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
         # prof_data = np.abs(1 - (pair0 / pair1))
+
+    prof_data = prof_data.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)
+
+    for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
+        mvmt_coords = {
+            f"mvmt-{region}": (
+                ("animal",),
+                profile_processing.get_mvmt(
+                    pair0[f"mvmt-{region}"].values, pair1[f"mvmt-{region}"].values
+                ),
+            )
+        }
+        prof_data = prof_data.assign_coords(mvmt_coords)
+
     if summarize:
         summary_table = profile_processing.summarize_over_regions(
             prof_data, **summarize_kwargs
