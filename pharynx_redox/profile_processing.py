@@ -13,6 +13,17 @@ from . import utils
 from . import constants
 
 import matlab.engine
+from numba import vectorize, int64
+
+
+@vectorize
+def get_mvmt(a, b):
+    if a == False:
+        return b
+    if b == False:
+        return a
+    else:
+        return np.nan
 
 
 def summarize_over_regions(
@@ -86,11 +97,13 @@ def summarize_over_regions(
             .to_pandas()
             .to_frame()
         )
-        # reg_df = reg_df.reset_index()
         reg_df["region"] = region
-        # reg_df["animal"] = range(len(reg_df))
         reg_df.rename({0: value_name}, inplace=True, axis="columns")
-        # reg_df.drop(reg_df.columns[0], axis=1, inplace=True)
+        for attr, val in data.attrs.items():
+            reg_df[attr] = val
+        for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
+            reg_df[f"mvmt-{region}"] = data[f"mvmt-{region}"]
+
         dfs.append(reg_df)
     return pd.concat(dfs)
 
