@@ -214,7 +214,7 @@ def segment_pharynx(fl_img: xr.DataArray):
 
     area = get_area_of_largest_object(S)
 
-    i = 0 
+    i = 0
     while (min_area > area) or (area > max_area) or (i >= max_iter):
         area = get_area_of_largest_object(S)
 
@@ -597,8 +597,11 @@ def measure_under_midlines(
         vectorize=True,
         kwargs={"n_points": n_points, "thickness": thickness, "order": order},
     )
-
     # measurements.attrs["frame_specific_midlines"] = frame_specific
+
+    measurements = measurements.assign_coords(
+        {"position": np.linspace(0, 1, measurements.position.size)}
+    )
 
     return measurements
 

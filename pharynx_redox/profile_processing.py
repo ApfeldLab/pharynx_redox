@@ -31,6 +31,7 @@ def summarize_over_regions(
     regions: dict,
     value_name: str = None,
     rescale: bool = False,
+    add_attrs: bool = True,
 ):
     """
     Summarize the profile data over region boundaries, storing the resultant data in a pandas DataFrame.
@@ -64,6 +65,8 @@ def summarize_over_regions(
     rescale
         whether the regions should be rescaled, see the ``regions`` parameter for more
         info
+    add_attrs
+        add attributes from each observation to the table
 
     Returns
     -------
@@ -87,22 +90,33 @@ def summarize_over_regions(
         value_name = "value"
 
     if type(data) == np.ndarray:
-        data = xr.DataArray(data, dims=("observations", "position"))
+        try:
+            data = xr.DataArray(data, dims=("observations", "position"))
+        except ValueError:
+            data = xr.DataArray(data, dims=("position",))
 
     dfs = []
     for region, bounds in regions.items():
-        reg_df = (
-            data[dict(position=range(bounds[0], bounds[1]))]
-            .mean(dim="position", skipna=True)
-            .to_pandas()
-            .to_frame()
+        reg_df = data[dict(position=range(bounds[0], bounds[1]))].mean(
+            dim="position", skipna=True
         )
+        try:
+            reg_df = reg_df.to_pandas().to_frame()
+        except:
+            reg_df = pd.DataFrame({value_name: [reg_df.values[()]]})
+
         reg_df["region"] = region
         reg_df.rename({0: value_name}, inplace=True, axis="columns")
-        for attr, val in data.attrs.items():
-            reg_df[attr] = val
+
+        if add_attrs:
+            for attr, val in data.attrs.items():
+                reg_df[attr] = val
+
         for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
-            reg_df[f"mvmt-{region}"] = data[f"mvmt-{region}"]
+            try:
+                reg_df[f"mvmt-{region}"] = data[f"mvmt-{region}"]
+            except KeyError:
+                pass
 
         dfs.append(reg_df)
     return pd.concat(dfs)

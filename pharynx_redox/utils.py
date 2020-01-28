@@ -17,6 +17,41 @@ from . import experiment
 from . import profile_processing as pp
 
 
+def parse_reg_param_filename(s: Path):
+    """
+    Extract the parameters used in the registration parameter sweep into a dictionary
+
+    Example
+    -------
+    >>> s = Path("/Users/sean/code/pharynx_redox/data/registration_param_sweep/n_deriv=2.0_rough_lambda=0.01_rough_n_breaks=300.0_rough_order=6.0_smooth_lambda=8.0_smooth_n_breaks=100.0_smooth_order=6.0_warp_lambda=10000.0_warp_n_basis=10.0_warp_order=4.0.nc")
+    >>> parse_reg_param_filename(s)
+    >>> {'n_deriv': '2.0',
+    ...  'rough_lambda': '0.01',
+    ...  'rough_n_breaks': '300.0',
+    ...  'rough_order': '6.0',
+    ...  'smooth_lambda': '8.0',
+    ...  'smooth_n_breaks': '100.0',
+    ...  'smooth_order': '6.0',
+    ...  'warp_lambda': '10000.0',
+    ...  'warp_n_basis': '10.0',
+    ...  'warp_order': '4.0'} 
+    
+    Parameters
+    ----------
+    s : Path
+        the filename for the registration data
+    
+    Returns
+    -------
+    dict
+        a dictionary mapping parameter keys to values
+    """
+    s = s.stem
+    param_vals = re.findall(r"=(\d+\.\d+)_?", s)
+    param_keys = re.split(r"=(\d+\.\d+)_?", s)[::2]
+    return dict(zip(param_keys, param_vals))
+
+
 def validate_pharynx_mask(mask: xr.DataArray):
     """
     Validate that the given pharyngeal mask image satisfies all requirements for further

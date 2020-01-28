@@ -18,9 +18,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(message)s",
 )
 
-meta_dir = Path(
-    "/Users/sean/code/pharynx_redox/data/paired_ratio/"
-)
+meta_dir = Path("/Users/sean/code/pharynx_redox/data/paired_ratio/")
 prof_raw = xr.concat(
     [
         xr.load_dataarray(x)
@@ -32,8 +30,8 @@ prof_raw = xr.concat(
 eng = matlab.engine.connect_matlab()
 
 n_derivs = [1.0, 2.0]
-smooth_lambdas = [1.0e-1, 1.0, 10.0, 100.0]
-warp_lambdas = [1.0e-1, 1.0, 1.0e1, 1.0e2, 1.0e3, 1.0e4]
+smooth_lambdas = [float(x) for x in np.power(10, np.linspace(0, 2, 30))]
+warp_lambdas = [1.0e4, 5.0e4]
 
 all_params = []
 for n_deriv in n_derivs:

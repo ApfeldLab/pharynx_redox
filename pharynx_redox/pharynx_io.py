@@ -15,7 +15,10 @@ from . import utils
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
     logging.info("Loading data from %s" % path)
-    return xr.load_dataarray(path)
+
+    data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
+
+    return data
 
 
 def save_profile_data(
@@ -311,6 +314,7 @@ def load_images(
         ("exposure", np.uint8),
     ]
 
+    # Generate Coordinates
     all_coords = {
         k: np.empty((n_animals, n_pairs, n_wvls), dtype=dtype)
         for k, dtype in metadata_keys
@@ -343,7 +347,7 @@ def load_images(
             "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
             "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),
             "stage_z": (("animal", "pair", "wavelength"), all_coords["stage_z"]),
-            "exposure": (("animal", "pair", "wavelength"), all_coords["exposure"],),
+            "exposure": (("animal", "pair", "wavelength"), all_coords["exposure"]),
         },
     )
 

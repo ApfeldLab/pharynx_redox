@@ -1,3 +1,7 @@
+"""
+Miscellaneous and sundry plotting functions for to please your visual cortex 
+"""
+
 from pprint import pformat
 from typing import Dict, Tuple, Union
 

@@ -58,8 +58,22 @@ def get_moving_idx(
             for region in regions
         ]
     )
+    # mv_both_idx = np.logical_or.reduce(
+    #     [
+    #         (data.sel(pair=0)[f"mvmt-{region}"] != 0)
+    #         & (data.sel(pair=1)[f"mvmt-{region}"] != 0)
+    #         for region in regions
+    #     ]
+    # )
+    # mv_first_idx = np.logical_or.reduce(
+    #     [
+    #         (data.sel(pair=0)[f"mvmt-{region}"] != 0)
+    #         & (data.sel(pair=1)[f"mvmt-{region}"] == 0)
+    #         for region in regions
+    #     ]
+    # )
 
-    return mv_idx, st_idx
+    return mv_idx, st_idx  # , mv_both_idx, mv_first_idx
 
 
 def resample_moving(
@@ -207,7 +221,7 @@ def relative_error(data):
 
 
 def relative_error_pairs(pair0, pair1):
-    err = 1 - (pair0 / pair1)
+    err = 1 - (pair1 / pair0)
 
     err = err.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)
     for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
@@ -241,18 +255,26 @@ def fold_error_pairs(
         prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
         # prof_data = np.abs(1 - (pair0 / pair1))
 
-    prof_data = prof_data.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)
+    try:
+        prof_data = prof_data.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)
 
-    for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
-        mvmt_coords = {
-            f"mvmt-{region}": (
-                ("animal",),
-                profile_processing.get_mvmt(
-                    pair0[f"mvmt-{region}"].values, pair1[f"mvmt-{region}"].values
-                ),
-            )
-        }
-        prof_data = prof_data.assign_coords(mvmt_coords)
+        try:
+            for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
+                mvmt_coords = {
+                    f"mvmt-{region}": (
+                        ("animal",),
+                        profile_processing.get_mvmt(
+                            pair0[f"mvmt-{region}"].values,
+                            pair1[f"mvmt-{region}"].values,
+                        ),
+                    )
+                }
+                prof_data = prof_data.assign_coords(mvmt_coords)
+        except:
+            pass
+    except AttributeError:
+        # this is if the pairs are numpy arrays not dataarrays
+        return prof_data
 
     if summarize:
         summary_table = profile_processing.summarize_over_regions(
@@ -351,62 +373,67 @@ def label_by_movement_types(df, t=0):
 
 
 def synthetic_shift(
-    rot_fl: xr.DataArray, shifts: List[float], n_points=300
+    rot_fl: xr.DataArray, midlines: xr.DataArray, shifts: List[float], n_points=300
 ) -> xr.DataArray:
     shift_data = xr.DataArray(
         0.0,
         coords={
             "animal": rot_fl.animal.values,
             "pair": rot_fl.pair.values,
-            "wavelengths": ["410", "470", "r"],
-            "shifts": shifts,
+            "wavelength": ["410", "470", "r"],
+            "shift": shifts,
             "direction": ["x", "y"],
             "position": np.arange(n_points),
         },
-        dims=["strain", "pair", "wavelength", "shift", "direction", "position"],
+        dims=["animal", "pair", "wavelength", "shift", "direction", "position"],
     )
 
     for pair in range(rot_fl.pair.size):
         for shift in shifts:
             for direction in ["x", "y"]:
-                i410_ = np.zeros((rot_fl.strain.size, n_points), dtype=rot_fl.dtype)
+                i410_ = np.zeros((rot_fl.animal.size, n_points), dtype=rot_fl.dtype)
                 i470_ = i410_.copy()
 
-                for img_idx in range(rot_fl.strain.size):
+                for img_idx in range(rot_fl.animal.size):
                     if direction == "x":
                         dx, dy = shift, 0
                     if direction == "y":
                         dx, dy = 0, shift
 
                     # select image
-                    mid_xs, mid_ys = midlines[img_idx]["410"][pair].linspace(n=200)
+                    mid_xs, mid_ys = (
+                        midlines.sel(wavelength="410", pair=pair)[img_idx]
+                        .values[()]
+                        .linspace(n=n_points)
+                    )
                     im410 = rot_fl.sel(wavelength="410", pair=pair)[img_idx]
                     im470 = rot_fl.sel(wavelength="470", pair=pair)[img_idx]
 
                     # measure under midline
                     i410_[img_idx, :] = ndi.map_coordinates(
-                        im410, np.stack([m_ys, m_xs]), order=1
+                        im410, np.stack([mid_ys, mid_xs]), order=1
                     )
                     i470_[img_idx, :] = ndi.map_coordinates(
-                        im470, np.stack([m_ys + dy, m_xs + dx]), order=1
+                        im470, np.stack([mid_ys + dy, mid_xs + dx]), order=1
                     )
 
                 # smooth / resample
-                new_xs = np.linspace(0, 1, n_points)
-                i410_sm = np.squeeze(
-                    profile_processing.smooth_profile_data(i410_)[0](new_xs)
-                )
-                i470_sm = np.squeeze(
-                    profile_processing.smooth_profile_data(i470_)[0](new_xs)
-                )
+                # new_xs = np.linspace(0, 1, n_points)
+                # i410_sm = np.squeeze(
+                #     profile_processing.smooth_profile_data(i410_)[0](new_xs)
+                # )
+                # i470_sm = np.squeeze(
+                #     profile_processing.smooth_profile_data(i470_)[0](new_xs)
+                # )
 
                 # save
                 shift_data.loc[
                     dict(pair=pair, wavelength="410", shift=shift, direction=direction)
-                ] = i410_sm
+                ] = i410_
                 shift_data.loc[
                     dict(pair=pair, wavelength="470", shift=shift, direction=direction)
-                ] = i470_sm
+                ] = i470_
                 shift_data.loc[
                     dict(pair=pair, wavelength="r", shift=shift, direction=direction)
-                ] = (i410_sm / i470_sm)
+                ] = (i410_ / i470_)
+    return shift_data
