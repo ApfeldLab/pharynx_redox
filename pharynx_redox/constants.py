@@ -31,7 +31,7 @@ trimmed_regions_with_medial = {
     "pm5": [0.53, 0.70],
     "pm6": [0.80, 0.86],
     "pm7": [0.88, 0.96],
-    "medial_axis": [0.05, 0.95],
+    "medial_axis": [0.07, 0.96],
 }
 
 opt_trimmed_regions = {}

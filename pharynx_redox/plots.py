@@ -129,7 +129,7 @@ def add_regions_to_axis(
     text_x_offset = (max_x - min_x) * label_x_offset_percent
 
     for region, bounds in regions.items():
-        ax.axvspan(bounds[0], bounds[1], alpha=alpha, color=color, **kwargs)
+        ax.axvspan(bounds[0], bounds[1], alpha=alpha, color=color, linewidth=0, **kwargs)
         if not hide_labels:
             ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
@@ -160,6 +160,45 @@ def plot_profile_avg_with_bounds(
     else:
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
+    if xs is None:
+        xs = np.arange(len(lower))
+
+    kwargs.pop("linestyle", None)
+    kwargs.pop("linewidth", None)
+    kwargs.pop("lw", None)
+    ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
+
+    return ax
+
+def plot_profile_avg_with_sem_bounds(
+    data, ax=None, label=None, xs=None, **kwargs
+):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    data
+    ax
+    label
+    kwargs
+
+    Returns
+    -------
+
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    mean = np.nanmean(data, axis=0)
+    if xs is not None:
+        ax.plot(xs, mean, label=label, **kwargs)
+    else:
+        ax.plot(mean, label=label, **kwargs)
+    
+    sem = stats.sem(data)
+
+    lower, upper = mean-sem, mean+sem
     if xs is None:
         xs = np.arange(len(lower))
 

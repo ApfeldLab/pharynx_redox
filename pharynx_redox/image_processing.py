@@ -599,9 +599,9 @@ def measure_under_midlines(
     )
     # measurements.attrs["frame_specific_midlines"] = frame_specific
 
-    measurements = measurements.assign_coords(
-        {"position": np.linspace(0, 1, measurements.position.size)}
-    )
+    # measurements = measurements.assign_coords(
+    #     {"position": np.linspace(0, 1, measurements.position.size)}
+    # )
 
     return measurements
 

@@ -1,22 +1,23 @@
 name: pharedox
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - python=3.7
   - numpy
+  - xarray
+  - scikit-image
+  - scipy
+  - numba
   - tqdm
   - sphinx_rtd_theme
   - jupyter
+  - jupyterlab
   - black
   - sphinx
-  - scipy
   - numpydoc
-  - pytest
-  - xarray
   - statsmodels
   - seaborn
-  - pytest-cov
   - matplotlib
   - scikit-learn
   - netcdf4
@@ -25,7 +26,8 @@ dependencies:
   - keras
   - pylint
   - cached-property
-  - marshmallow
   - sphinx-autodoc-typehints
+  - pytest
   - pytest-xdist
+  - pytest-cov
 # prefix: /Users/sean/opt/anaconda3/envs/pharedox

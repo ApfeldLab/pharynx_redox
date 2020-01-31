@@ -16,6 +16,23 @@ from skimage.measure import label, regionprops
 from . import experiment
 from . import profile_processing as pp
 
+def cm2inch(*tupl):
+    inch = 2.54
+    if isinstance(tupl[0], tuple):
+        return tuple(i/inch for i in tupl[0])
+    else:
+        return tuple(i/inch for i in tupl)
+
+def mm2inch(*tupl):
+    inch = 25.4
+    if isinstance(tupl[0], tuple):
+        return tuple(i/inch for i in tupl[0])
+    else:
+        return tuple(i/inch for i in tupl)
+
+def custom_round(x, base=5):
+    return int(base * round(float(x) / base))
+
 
 def parse_reg_param_filename(s: Path):
     """
@@ -490,10 +507,10 @@ def expand_dimension(
     data = data.reindex(**{dim: all_coords})
     for coord, new_data in new_coords.items():
         try:
-            # if it's an xr.DataArray
+            # if new_data is an xr.DataArray
             data.loc[{dim: coord}] = new_data.values
         except AttributeError:
-            # if it's an np.ndarray
+            # if new_data is an np.ndarray
             data.loc[{dim: coord}] = new_data
     return data
 
@@ -505,11 +522,20 @@ def add_derived_wavelengths(data):
 
     if "r" in data.wavelength.values:
         data.loc[dict(wavelength="r")] = r
-        data.loc[dict(wavelength="oxd")] = oxd
-        data.loc[dict(wavelength="e")] = e
-        return data
     else:
-        return expand_dimension(data, "wavelength", {"r": r, "oxd": oxd, "e": e})
+        data = expand_dimension(data, "wavelength", {"r": r})
+
+    if "oxd" in data.wavelength.values:
+        data.loc[dict(wavelength="oxd")] = oxd
+    else:
+        data = expand_dimension(data, "wavelength", {"oxd": oxd})
+
+    if "e" in data.wavelength.values:
+        data.loc[dict(wavelength="e")] = e
+    else:
+        data = expand_dimension(data, "wavelength", {"e": e})
+    
+    return data
 
 
 def git_version() -> str:

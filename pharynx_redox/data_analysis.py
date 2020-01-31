@@ -6,11 +6,111 @@ import pandas as pd
 import typing
 import xarray as xr
 from scipy import ndimage as ndi
+from functools import reduce
 
 from pandas.core.indexes.base import InvalidIndexError
 
 from . import profile_processing
 from . import pharynx_io as pio
+
+
+def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFrame:
+    """
+    summarize the given data with errors using both the point-wise and region-wise
+    formulations.
+    
+    Parameters
+    ----------
+    data : xr.DataArray
+        the data to summarize. expected to have animal, wavelength, pair, position
+        dimensions.
+    regions: dict
+        a region dictionary. should map `[region -> [left_bound, right_bound]]` where
+        `region` is a string and `left_bound` and `right_bound` are floats from 
+        `[0, 1]`. See the `pharynx_redox.constants` module
+    
+    Returns
+    -------
+    pd.DataFrame
+        a summary DataFrame with 
+    """
+    df = []
+    for wvl, val_name in [
+        ("410", "I410"),
+        ("470", "I470"),
+        ("r", "R_point"),
+    ]:
+        sub_df = []
+        for pair in [0, 1]:
+            pair_df = profile_processing.summarize_over_regions(
+                data.sel(wavelength=wvl, pair=pair),
+                regions,
+                rescale=True,
+                add_attrs=False,
+                value_name=val_name,
+            )
+            pair_df["pair"] = pair
+            sub_df.append(pair_df)
+        sub_df = pd.concat(sub_df, sort=False)
+        df.append(sub_df)
+
+    df = reduce(
+        lambda left, right: left.merge(
+            right,
+            on=[
+                "animal",
+                "region",
+                "mvmt-posterior",
+                "mvmt-anterior",
+                "mvmt-sides_of_tip",
+                "mvmt-tip",
+                "pair",
+            ],
+            how="inner",
+        ),
+        df,
+    )
+
+    df["R_region"] = df["I410"] / df["I470"]
+
+    ## Now add the fold_errors
+    # we have to do this separately and massage the data a little bit since fold_error
+    # gets ride of pair information... so we are essentially duplicating the errors
+    # across pairs, getting rid of the movement annotations, then merging into the
+    # big table
+
+    fold_df_pairs = []
+    for pair in [0, 1]:
+        fold_error_df = profile_processing.summarize_over_regions(
+            fold_error(data),
+            regions=regions,
+            rescale=True,
+            add_attrs=False,
+            value_name="fold_error_point",
+        )
+        fold_error_df["pair"] = pair
+        fold_df_pairs.append(fold_error_df)
+    fold_error_df = pd.concat(fold_df_pairs)
+    fold_error_df = fold_error_df[
+        fold_error_df.columns.drop(list(fold_error_df.filter(regex="^mvmt-")))
+    ]
+
+    df = df.merge(fold_error_df, on=["animal", "region", "pair"], how="inner")
+
+    ## Now we stack the pair data
+
+    df = df.set_index(["region", "pair"], append=True).unstack()
+
+    fold_error_region = fold_error_pairs(
+        df["R_region"][0].values, df["R_region"][1].values
+    )
+    df[("fold_error_region", 0)] = fold_error_region
+    df[("fold_error_region", 1)] = fold_error_region
+
+    for k, v in kwargs.items():
+        df[k] = v
+
+    return df
 
 
 def get_moving_idx(
@@ -51,13 +151,13 @@ def get_moving_idx(
             for region in regions
         ]
     )
-    mv_idx = np.logical_or.reduce(
-        [
-            (data.sel(pair=0)[f"mvmt-{region}"] == 0)
-            & (data.sel(pair=1)[f"mvmt-{region}"] != 0)
-            for region in regions
-        ]
+    st_pair_0_idx = np.logical_and.reduce(
+        [data.sel(pair=0)[f"mvmt-{region}"] == 0 for region in regions]
     )
+    mv_pair_1_idx = np.logical_or.reduce(
+        [data.sel(pair=1)[f"mvmt-{region}"] != 0 for region in regions]
+    )
+    mv_idx = np.logical_and(st_pair_0_idx, mv_pair_1_idx)
     # mv_both_idx = np.logical_or.reduce(
     #     [
     #         (data.sel(pair=0)[f"mvmt-{region}"] != 0)
@@ -407,7 +507,7 @@ def synthetic_shift(
                         .linspace(n=n_points)
                     )
                     im410 = rot_fl.sel(wavelength="410", pair=pair)[img_idx]
-                    im470 = rot_fl.sel(wavelength="470", pair=pair)[img_idx]
+                    im470 = rot_fl.sel(wavelength="410", pair=pair)[img_idx]
 
                     # measure under midline
                     i410_[img_idx, :] = ndi.map_coordinates(
@@ -416,15 +516,6 @@ def synthetic_shift(
                     i470_[img_idx, :] = ndi.map_coordinates(
                         im470, np.stack([mid_ys + dy, mid_xs + dx]), order=1
                     )
-
-                # smooth / resample
-                # new_xs = np.linspace(0, 1, n_points)
-                # i410_sm = np.squeeze(
-                #     profile_processing.smooth_profile_data(i410_)[0](new_xs)
-                # )
-                # i470_sm = np.squeeze(
-                #     profile_processing.smooth_profile_data(i470_)[0](new_xs)
-                # )
 
                 # save
                 shift_data.loc[

@@ -291,7 +291,14 @@ def load_images(
 
     # Organize the metadata
     df = pd.DataFrame(metadata)
-    df["animal"] = df.groupby(["stage_x", "stage_y"], sort=False).ngroup(ascending=True)
+
+    # Round x,y so grouping is robust to small stage movements
+    df["stage_x_rnd"] = df["stage_x"].apply(utils.custom_round)
+    df["stage_y_rnd"] = df["stage_y"].apply(utils.custom_round)
+
+    df["animal"] = df.groupby(["stage_x_rnd", "stage_y_rnd"], sort=False).ngroup(
+        ascending=True
+    )
     df["pair"] = df.groupby(["animal", "wavelength"]).cumcount()
 
     n_animals = len(df["animal"].unique())
