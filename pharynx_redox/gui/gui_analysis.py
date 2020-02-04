@@ -17,6 +17,7 @@ from .. import pharynx_io as pio
 from .. import image_processing as ip
 from .. import utils
 from .qt_py_files.load_dialog import Ui_Dialog
+from .run_experiment_log import ExperimentRunWidget
 
 
 class RunExperimentDialogWidget(QtWidgets.QWidget):
@@ -29,25 +30,31 @@ class RunExperimentDialogWidget(QtWidgets.QWidget):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
 
+        self.exp_run_widget = ExperimentRunWidget()
+
         # Connect Signals
         self.ui.dirSelectToolButton.pressed.connect(self.handle_dir_select_pressed)
+        self.ui.cancelButton.pressed.connect(self.cancel)
+        self.ui.runButton.pressed.connect(self.run)
+        self.ui.experimentDirectoryLineEdit.textChanged.connect(
+            self.handle_exp_dir_text_changed
+        )
+
+    def handle_exp_dir_text_changed(self):
+        self.selected_directory = self.ui.experimentDirectoryLineEdit.text()
 
     def handle_dir_select_pressed(self):
-        if self.selected_directory:
-            dir_ = self.selected_directory
-        else:
-            dir_ = "/"
-        fname = QFileDialog.getExistingDirectory(
-            self, "Select Experiment Directory", dir_
-        )
+        fname = QFileDialog.getExistingDirectory(self, "Select Experiment Directory")
         if fname:
             self.selected_directory = fname
             self.ui.experimentDirectoryLineEdit.setText(fname)
 
-    def accept(self):
-        pass
+    def run(self):
+        self.exp_run_widget.set_exp_dir(self.selected_directory)
+        self.exp_run_widget.show()
+        self.exp_run_widget.exp_thread.start()
 
-    def reject(self):
+    def cancel(self):
         self.close()
 
 

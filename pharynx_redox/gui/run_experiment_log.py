@@ -31,7 +31,7 @@ class QTextEditLogger(logging.Handler, QtCore.QObject):
 
 
 class ExperimentRunWidget(QtWidgets.QWidget):
-    def __init__(self, experiment_dir):
+    def __init__(self):
         super(ExperimentRunWidget, self).__init__()
 
         # Build UI
@@ -45,8 +45,9 @@ class ExperimentRunWidget(QtWidgets.QWidget):
 
         logTextBox.log_signal.connect(self.on_new_log_msg)
 
-        self.exp_thread = RunExperimentThread(experiment_dir)
-        self.exp_thread.start()
+    def set_exp_dir(self, exp_dir):
+        self.exp_dir = exp_dir
+        self.exp_thread = RunExperimentThread(exp_dir)
 
     def on_new_log_msg(self, msg):
         self.ui.logTextBox.appendPlainText(msg)
@@ -61,30 +62,11 @@ class RunExperimentThread(QtCore.QThread):
         self.exp.full_pipeline()
 
 
-class Worker(QtCore.QRunnable):
-    def __init__(self, fn, *args, **kwargs):
-        super(Worker, self).__init__()
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        self.fn(args, kwargs)
-
-
-import sys
-from PyQt5 import QtWidgets
-import logging
-
-# Uncomment below for terminal log messages
-# logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-
-app = QtWidgets.QApplication(sys.argv)
-dlg = ExperimentRunWidget(
-    "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47"
-)
-dlg.show()
-dlg.raise_()
-sys.exit(app.exec_())
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    dlg = ExperimentRunWidget(
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47"
+    )
+    dlg.show()
+    dlg.raise_()
+    sys.exit(app.exec_())
