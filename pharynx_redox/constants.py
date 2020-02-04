@@ -43,5 +43,3 @@ opt_untrimmed_regions = {
     "pm6": [0.75333333, 0.77],
     "pm7": [0.81, 0.82666667],
 }
-
-# matlab_engine = matlab.engine.start_matlab()

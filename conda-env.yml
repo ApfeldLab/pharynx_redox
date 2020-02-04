@@ -4,30 +4,44 @@ channels:
   - defaults
 dependencies:
   - python=3.7
+
+  # Numerical
   - numpy
   - xarray
   - scikit-image
   - scipy
   - numba
-  - tqdm
-  - sphinx_rtd_theme
-  - jupyter
-  - jupyterlab
-  - black
-  - sphinx
-  - numpydoc
-  - statsmodels
-  - seaborn
-  - matplotlib
   - scikit-learn
-  - netcdf4
-  - pandas
-  - pyqt
   - keras
-  - pylint
-  - cached-property
-  - sphinx-autodoc-typehints
+  - pandas
+  - statsmodels
+
+  # Viz
+  - matplotlib
+  - seaborn
+  - pyqt
+  - pyqtgraph
+  - tqdm
+
+  # Testing
   - pytest
   - pytest-xdist
   - pytest-cov
+
+  # Docs
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-autodoc-typehints
+  - numpydoc
+
+  # Misc / Utils
+  - cached-property
+  - netcdf4
+  - jupyter
+  - jupyterlab
+
+  # Code tools
+  - pylint
+  - black
+
 # prefix: /Users/sean/opt/anaconda3/envs/pharedox

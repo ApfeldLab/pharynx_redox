@@ -12,7 +12,6 @@ from sklearn.preprocessing import scale
 from . import utils
 from . import constants
 
-import matlab.engine
 from numba import vectorize, int64
 
 
@@ -135,6 +134,12 @@ def smooth_profile_data(
     Implemented in MATLAB as smooth_profiles
     """
 
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed. Skipping smoothing.")
+        return profile_data
+
     smooth_profile_data = xr.DataArray(
         0,
         dims=profile_data.dims,
@@ -162,8 +167,14 @@ def smooth_profile_data(
 
 
 def register_profiles_pairs(
-    profile_data: xr.DataArray, eng: matlab.engine.MatlabEngine = None, **reg_params
+    profile_data: xr.DataArray, eng=None, **reg_params
 ) -> xr.DataArray:
+
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Skipping registration.")
+        return profile_data
 
     if eng is None:
         eng = matlab.engine.start_matlab()
@@ -179,7 +190,7 @@ def register_profiles_pairs(
 
 def register_profiles(
     profile_data: xr.DataArray,
-    eng: matlab.engine.MatlabEngine = None,
+    eng=None,
     n_deriv: float = 2.0,
     rough_lambda: float = 10.0 ** 0.05,
     rough_n_breaks: float = 300.0,
@@ -201,6 +212,13 @@ def register_profiles(
     eng: matlab.engine.MatlabEngine
         The MATLAB engine to use for registration. If None, a new engine is created.
     """
+
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Skipping registration.")
+        return profile_data
+
     if eng is None:
         eng = matlab.engine.start_matlab()
 

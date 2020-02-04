@@ -192,7 +192,10 @@ class ImageStackWidget(QtWidgets.QWidget):
 
         imgdata = img_stack.values
 
-        self.ui.ImageViewBox.setImage(imgdata, autoLevels=autoLevels, levels=levels)
+        self.ui.ImageViewBox.setImage(
+            imgdata, autoLevels=autoLevels, levels=levels,
+        )
+        self.ui.ImageViewBox.getImageItem().setBorder({"color": "FF0", "width": 2})
 
         # if self.display_mask:
 

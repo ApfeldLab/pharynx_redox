@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-import experiment
+# import experiment
 
 
 @click.group()
@@ -16,20 +16,13 @@ def pharedox():
 
 
 @pharedox.command()
-@click.option(
-    "-r",
-    "--register",
-    is_flag=True,
-    default=False,
-    help="Apply channel-registration to the intensity profiles. Will export both registered and unregistered data.",
-)
 @click.argument(
     "experiment-directory",
     type=click.Path(
         exists=True, file_okay=False, dir_okay=True, writable=True, readable=True
     ),
 )
-def analyze_stack(experiment_directory, register=False):
+def analyze_stack(experiment_directory):
     """
     Run a new analysis on EXPERIMENT_DIRECTORY
 
@@ -39,6 +32,12 @@ def analyze_stack(experiment_directory, register=False):
     experiment.Experiment(experiment_dir=Path(experiment_directory)).full_pipeline()
 
 
+@click.command()
+def hello():
+    click.echo("hello world")
+
+
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
-    pharedox()
+    # pharedox()
+    hello()

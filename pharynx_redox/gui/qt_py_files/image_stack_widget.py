@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/pharynx_redox/gui/qt_ui_files/image_stack_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -64,9 +65,7 @@ class Ui_XArrayDisplayWidget(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_2.addWidget(self.line_2)
-        spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem)
         self.line = QtWidgets.QFrame(self.widget)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -113,23 +112,10 @@ class Ui_XArrayDisplayWidget(object):
         self.groupBox_2.setTitle(_translate("XArrayDisplayWidget", "Controls"))
         self.label.setText(_translate("XArrayDisplayWidget", "Wavelength"))
         self.label_2.setText(_translate("XArrayDisplayWidget", "Pair"))
-        self.displayMaskCheckbox.setText(
-            _translate("XArrayDisplayWidget", "Display Mask")
-        )
-        self.editMaskCheckBox.setText(
-            _translate("XArrayDisplayWidget", "Edit Mask (m)")
-        )
+        self.displayMaskCheckbox.setText(_translate("XArrayDisplayWidget", "Display Mask"))
+        self.editMaskCheckBox.setText(_translate("XArrayDisplayWidget", "Edit Mask (m)"))
         self.drawToolButton.setText(_translate("XArrayDisplayWidget", "Draw (d)"))
-        self.propertiesGroupBox.setTitle(
-            _translate("XArrayDisplayWidget", "Properties")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2),
-            _translate("XArrayDisplayWidget", "Segmented"),
-        )
-
-
+        self.propertiesGroupBox.setTitle(_translate("XArrayDisplayWidget", "Properties"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Segmented"))
 from pyqtgraph import DataTreeWidget, ImageView

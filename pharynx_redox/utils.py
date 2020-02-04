@@ -3,7 +3,6 @@ import os
 import re
 import subprocess
 import typing
-import matlab
 from collections import Counter
 from pathlib import Path
 
@@ -16,19 +15,25 @@ from skimage.measure import label, regionprops
 from . import experiment
 from . import profile_processing as pp
 
+def requires_matlab(func):
+    pass
+    
+
 def cm2inch(*tupl):
     inch = 2.54
     if isinstance(tupl[0], tuple):
-        return tuple(i/inch for i in tupl[0])
+        return tuple(i / inch for i in tupl[0])
     else:
-        return tuple(i/inch for i in tupl)
+        return tuple(i / inch for i in tupl)
+
 
 def mm2inch(*tupl):
     inch = 25.4
     if isinstance(tupl[0], tuple):
-        return tuple(i/inch for i in tupl[0])
+        return tuple(i / inch for i in tupl[0])
     else:
-        return tuple(i/inch for i in tupl)
+        return tuple(i / inch for i in tupl)
+
 
 def custom_round(x, base=5):
     return int(base * round(float(x) / base))
@@ -93,6 +98,12 @@ def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: 
     var_name : str
         The name of the variable that will appear in MATLAB workspace
     """
+
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Data not sent to MATLAB")
+
     engines = matlab.engine.find_matlab()
     if len(engines) == 0:
         raise EnvironmentError(
@@ -534,7 +545,7 @@ def add_derived_wavelengths(data):
         data.loc[dict(wavelength="e")] = e
     else:
         data = expand_dimension(data, "wavelength", {"e": e})
-    
+
     return data
 
 
