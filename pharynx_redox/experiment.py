@@ -1,11 +1,6 @@
 """
-This module contains the experiment data structures and classes - the central objects
-that manage data and perform the measurement extraction, quantification, and analysis.
-
-``Experiment`` is the base class, on which different types of experiments may be built.
-For example, the ``PairExperiment`` class encompasses the acquisition strategy wherein
-multiple pairs of images are taken sequentially for each animal.
-
+This module contains the Experiment class. This class is the object that orchestrates
+the analysis pipeline for redox imaging experiments.
 """
 
 import datetime
@@ -23,22 +18,21 @@ import xarray as xr
 from cached_property import cached_property
 from numpy.polynomial import Polynomial
 
-from . import constants
-from . import image_processing as ip
-from . import pharynx_io as pio
-from . import profile_processing, utils
+from pharynx_redox import constants
+from pharynx_redox import image_processing as ip
+from pharynx_redox import pharynx_io as pio
+from pharynx_redox import profile_processing, utils
 
 
 @dataclass
 class Experiment:
     """
-    TODO: Documentation
+    This class orchestrates the analysis pipeline for our redox imaging experiments.
     """
 
     ###################################################################################
     # REQUIRED PARAMETERS
     ###################################################################################
-
     experiment_dir: Path
 
     ###################################################################################
@@ -60,7 +54,7 @@ class Experiment:
 
     # Pipeline Parameters
     trimmed_profile_length: int = 200
-    n_midline_pts: int = 200
+    untrimmed_profile_length: int = 200
     seg_threshold: int = 2000
     trim_threshold: int = 3000
     frame_specific_midlines: bool = False
@@ -122,48 +116,53 @@ class Experiment:
     # COMPUTED PROPERTIES
     ####################################################################################
 
-    @property
-    def rot_seg_dir(self):
-        return self.experiment_dir.joinpath("processed_images", "rot_seg")
+    def __post_init__(self):
+        self.experiment_id = self.experiment_dir.stem
 
-    @property
-    def rot_fl_dir(self):
-        return self.experiment_dir.joinpath("processed_images", "rot_fl")
+        # compute the filenames/paths for this experiment
+        self.raw_img_stack_filepath = self.experiment_dir.joinpath(
+            self.experiment_id + ".tif"
+        )
+        self.processed_images_dir = self.experiment_dir.joinpath("processed_images")
+        self.rot_seg_dir = self.processed_images_dir.joinpath("rot_seg")
+        self.rot_fl_dir = self.processed_images_dir.joinpath("rot_fl")
+        self.seg_imgs_dir = self.processed_images_dir.joinpath("segmented_images")
+        self.fl_imgs_dir = self.processed_images_dir.joinpath("fluorescent_images")
+        self.analysis_dir = self.get_analysis_dir()
+        self.movement_filepath = self.experiment_dir.joinpath(
+            self.experiment_id + "-mvmt.csv"
+        )
+        self.indexer_filepath = self.experiment_dir.joinpath(
+            self.experiment_id + "-indexer.csv"
+        )
+        self.untrimmed_profile_data_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-untrimmed_profile_data.nc"
+        )
+        self.trimmed_profile_data_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-trimmed_profile_data.nc"
+        )
+        self.warp_data_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-warp_data.npy"
+        )
 
-    @property
-    def seg_imgs_dir(self):
-        return self.experiment_dir.joinpath("processed_images", "segmented_images")
+        # Other computed properties
+        self.strains = pio.load_strain_map_from_disk(self.indexer_filepath)
 
-    @property
-    def fl_imgs_dir(self):
-        return self.experiment_dir.joinpath("processed_images", "fluorescent_images")
-
-    @property
-    def parameter_dict(self):
-        return {}
-
-    @property
-    def movement_filepath(self):
-        return self.experiment_dir.joinpath(self.experiment_id + "-mvmt.csv")
-
-    @property
-    def scaled_regions(self):
-        self._scaled_regions = {
+        self.scaled_regions_trimmed = {
             region: [int(self.trimmed_profile_length * x) for x in bounds]
             for region, bounds in self.trimmed_regions.items()
         }
-        return self._scaled_regions
 
-    @cached_property
-    def strains(self):
-        self._strains = pio.load_strain_map_from_disk(
-            self.experiment_dir.joinpath(self.experiment_id + "-indexer.csv")
-        )
-        return self._strains
+        self.scaled_regions_untrimmed = {
+            region: [int(self.untrimmed_profile_length * x) for x in bounds]
+            for region, bounds in self.untrimmed_regions.items()
+        }
 
-    @property
-    def experiment_id(self):
-        return self.experiment_dir.stem
+        # load images
+        self.images = self._load_raw_images()
+
+        # load movement
+        self.movement = self._load_movement()
 
     @cached_property
     def images(self):
@@ -175,50 +174,35 @@ class Experiment:
         self._image_data = self.raw_images
         return self._image_data
 
-    @cached_property
-    def raw_images(self):
+    def _load_raw_images(self):
         """
         This returns the raw (non-median-subtracted) images
         """
-        raw_image_path = Path(self.experiment_dir).joinpath(self.experiment_id + ".tif")
+        logging.info(f"Loading image data from {self.raw_img_stack_filepath}")
+        raw_image_data = pio.load_images(
+            self.raw_img_stack_filepath,
+            self.strains,
+            movement_path=self.movement_filepath,
+        )
 
-        if os.path.isfile(self.movement_filepath):
-            logging.info("Loading movement data into data arrays")
-            self._raw_image_data = pio.load_images(
-                raw_image_path, self.strains, movement_path=self.movement_filepath
-            )
-        else:
-            logging.warn(
-                "No movement data found in experiment directory. NOT added to data arrays"
-            )
-            self._raw_image_data = pio.load_images(raw_image_path, self.strains)
-
-        self._raw_image_data = self._raw_image_data.assign_coords(
+        raw_image_data = raw_image_data.assign_coords(
             {
                 "experiment_id": (
                     ("animal",),
-                    np.repeat(self.experiment_id, self._raw_image_data.animal.size),
+                    np.repeat(self.experiment_id, raw_image_data.animal.size),
                 )
             }
         )
 
-        logging.debug(
-            f'len(idx(animal)): {len(self._raw_image_data.get_index("animal"))}'
-        )
-
-        self._raw_image_data = self._raw_image_data.reindex(
+        raw_image_data = raw_image_data.reindex(
             animal=pd.MultiIndex.from_arrays(
-                [
-                    self._raw_image_data.get_index("animal"),
-                    self._raw_image_data["experiment_id"],
-                ]
+                [raw_image_data.get_index("animal"), raw_image_data["experiment_id"],]
             )
         )
 
-        return self._raw_image_data
+        return raw_image_data
 
-    @cached_property
-    def movement(self):
+    def _load_movement(self) -> pd.DataFrame:
         movement_filepath = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
@@ -228,14 +212,13 @@ class Experiment:
                 index="animal", columns=["region", "pair"], values="movement"
             )
             df = df.stack("pair")
-            self._movement = df
-            return self._movement
+            _movement = df
+            return _movement
         except FileNotFoundError:
             logging.warning(f"Tried to access {movement_filepath}; file was not found")
             return None
 
-    @cached_property
-    def analysis_dir(self) -> Path:
+    def get_analysis_dir(self) -> Path:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         analysis_dir_ = self.experiment_dir.joinpath(
             "analyses", utils.get_valid_filename(f"{date_str}_{self.strategy}")
@@ -246,7 +229,7 @@ class Experiment:
     @property
     def summary_table(self):
         dfs = []
-        for region, bounds in self.scaled_regions.items():
+        for region, bounds in self.scaled_regions_trimmed.items():
             region_dfs = []
             for wvl in self.trimmed_profiles.wavelength.data:
                 sub_df = (
@@ -303,22 +286,6 @@ class Experiment:
             )
 
         return self._summary_table
-
-    @property
-    def untrimmed_profile_data_filepath(self):
-        return self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_profile_data.nc"
-        )
-
-    @property
-    def trimmed_profile_data_filepath(self):
-        return self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_profile_data.nc"
-        )
-
-    @property
-    def warp_data_filepath(self):
-        return self.analysis_dir.joinpath(self.experiment_id + "-warp_data.npy")
 
     ####################################################################################
     # PIPELINE
@@ -390,7 +357,7 @@ class Experiment:
         self.untrimmed_profiles = ip.measure_under_midlines(
             self.rot_fl,
             self.midlines,
-            n_points=self.n_midline_pts,
+            n_points=self.untrimmed_profile_length,
             frame_specific=self.frame_specific_midlines,
             order=self.measurement_order,
             thickness=self.measure_thickness,
@@ -485,44 +452,9 @@ class Experiment:
 
     def save_profile_summary_plots(self, prof_data: xr.DataArray):
         pass
-        # TODO: fix this
-        # fig_dir = self.make_fig_dir()
-        # for wvl in prof_data.wavelength.data:
-        #     for pair in prof_data.pair.data:
-        #         fig, ax = plots.plot_profile_avg_by_strain(
-        #             prof_data.sel(wavelength=wvl, pair=pair),
-        #             ax_title=f"{self.experiment_id}-{wvl}",
-        #         )
-        #         plots.add_regions_to_axis(ax, self.scaled_regions)
-        #         fig.savefig(fig_dir.joinpath(f"{self.experiment_id}-{wvl}-{pair}.pdf"))
 
     def save_cat_plots(self):
-        fig_dir = self.make_fig_dir()
-        cat_plot_dir = fig_dir.joinpath("statistical")
-        cat_plot_dir.mkdir(parents=True, exist_ok=True)
-
-        for wvl in self.trimmed_profiles.wavelength.data:
-            for pair in self.trimmed_profiles.pair.data:
-                plt.clf()
-                sns.violinplot(
-                    y=wvl,
-                    x="strain",
-                    data=self.summary_table[self.summary_table.pair == pair],
-                    inner="quartiles",
-                )
-                plt.savefig(cat_plot_dir.joinpath(f"violin-{wvl}-{pair}.pdf"))
-
-                plt.clf()
-                sns.catplot(
-                    y=wvl,
-                    x="strain",
-                    col="region",
-                    col_wrap=2,
-                    kind="violin",
-                    data=self.summary_table[self.summary_table.pair == pair],
-                )
-                plt.savefig(cat_plot_dir.joinpath(f"violin_regions-{wvl}-{pair}.pdf"))
-                plt.close()
+        pass
 
     def persist_to_disk(self, summary_plots=False):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
@@ -532,11 +464,6 @@ class Experiment:
 
         if self.should_save_profile_data:
             self.persist_profile_data()
-
-        # Plots
-        if summary_plots:
-            self.save_profile_summary_plots(self.trimmed_profiles)
-            self.save_cat_plots()
 
     def save_normed_ratio_images(self, vmin=-5, vmax=5):
         for pair in self.images.pair.values:

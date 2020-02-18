@@ -16,8 +16,7 @@ from skimage import measure, transform
 from skimage.external import tifffile
 from skimage.transform import AffineTransform, warp
 
-from . import profile_processing
-
+from pharynx_redox import profile_processing
 
 def subtract_medians(
     imgs: Union[np.ndarray, xr.DataArray]
@@ -127,7 +126,7 @@ def center_and_rotate_pharynxes(
 
                 try:
                     props = measure.regionprops(
-                        measure.label(reference_seg), coordinates="rc"
+                        measure.label(reference_seg)
                     )[0]
                 except IndexError:
                     raise ValueError(

@@ -9,8 +9,8 @@ import xarray as xr
 import pandas as pd
 from sklearn.preprocessing import scale
 
-from . import utils
-from . import constants
+from pharynx_redox import utils
+from pharynx_redox import constants
 
 from numba import vectorize, int64
 

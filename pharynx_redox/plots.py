@@ -2,14 +2,15 @@
 Miscellaneous and sundry plotting functions for to please your visual cortex 
 """
 
+import logging
 from pprint import pformat
 from typing import Dict, Tuple, Union
 
 from tqdm.auto import tqdm
 
-from . import profile_processing as pp
-from . import data_analysis as da
-from . import utils
+from pharynx_redox import profile_processing as pp
+from pharynx_redox import data_analysis as da
+from pharynx_redox import utils
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -65,6 +66,14 @@ def plot_stage_layout(
     return sns.lmplot(x="stage_x", y="stage_y", data=df, hue="strain", fit_reg=False)
 
 
+def ecdf_(data):
+    """ Compute ECDF """
+    x = np.sort(data)
+    n = x.size
+    y = np.arange(1, n + 1) / n
+    return (x, y)
+
+
 def cdf_plot(data, *args, **kwargs):
     """
     Plot a CDF, compatible with Seaborn's FacetGrid
@@ -76,15 +85,20 @@ def cdf_plot(data, *args, **kwargs):
     **kwargs
         keyword arguments passed onto ``plt.step``
     """
-    ecdf = sm.distributions.ECDF(data)
-    x = np.linspace(min(data), max(data))
-    y = ecdf(x)
+    # ecdf = sm.distributions.ECDF(data)
+    x, y = ecdf_(data)
+    # x = np.linspace(min(data), max(data), len(data))
+    # logging.debug(x)
+    # y = ecdf(x)
+    # plt.step(x, y, **kwargs)
+    # sns.kdeplot(data, cumulative=True)
     plt.step(x, y, **kwargs)
 
 
 def add_regions_to_axis(
     ax,
     regions: dict,
+    skip=[],
     label_dist_bottom_percent: float = 0.03,
     label_x_offset_percent: float = 0.005,
     alpha: float = 0.03,
@@ -108,7 +122,8 @@ def add_regions_to_axis(
                     'pm4': [12, 30],
                     ...
                 }
-
+    skip
+        the regions to skip plotting
     label_dist_bottom_percent
         the distance from the bottom of the axis that the region labels should be placed, expressed as a percentage of the axis height
     label_x_offset_percent
@@ -129,7 +144,11 @@ def add_regions_to_axis(
     text_x_offset = (max_x - min_x) * label_x_offset_percent
 
     for region, bounds in regions.items():
-        ax.axvspan(bounds[0], bounds[1], alpha=alpha, color=color, linewidth=0, **kwargs)
+        if region in skip:
+            continue
+        ax.axvspan(
+            bounds[0], bounds[1], alpha=alpha, color=color, linewidth=0, **kwargs
+        )
         if not hide_labels:
             ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
@@ -170,9 +189,8 @@ def plot_profile_avg_with_bounds(
 
     return ax
 
-def plot_profile_avg_with_sem_bounds(
-    data, ax=None, label=None, xs=None, **kwargs
-):
+
+def plot_profile_avg_with_sem_bounds(data, ax=None, label=None, xs=None, **kwargs):
     """
     TODO: Documentation
 
@@ -195,10 +213,10 @@ def plot_profile_avg_with_sem_bounds(
         ax.plot(xs, mean, label=label, **kwargs)
     else:
         ax.plot(mean, label=label, **kwargs)
-    
+
     sem = stats.sem(data)
 
-    lower, upper = mean-sem, mean+sem
+    lower, upper = mean - sem, mean + sem
     if xs is None:
         xs = np.arange(len(lower))
 
@@ -239,32 +257,45 @@ def imshow_ratio_normed(
     **imshow_kwargs,
 ):
     """
-    Show the given ratio image, first converting to HSV and setting the "V" (value) channel to be the given (normalized) intensity image
+    Show the given ratio image, first converting to HSV and setting the "V" (value) 
+    channel to be the given (normalized) intensity image
 
     Parameters
     ----------
     ratio_img
         the ratio image to display
     fl_img
-        the fluorescent intensity image with which to "value-correct" the ratio image. A good choice here is the max value of both intensity channels used in the ratio.
+        the fluorescent intensity image with which to "value-correct" the ratio image. 
+        A good choice here is the max value of both intensity channels used in the 
+        ratio.
     profile_data
-        the midline profile data corresponding to the ratio image. This is used to center and to choose min/max values for the ratio colormap.
+        the midline profile data corresponding to the ratio image. This is used to 
+        center and to choose min/max values for the ratio colormap.
     prob
-        The "confidence interval" around the center of the ratio values to include in the colormap. For example, 0.95 translates to a min/max of mean(ratio) +/- (1.96*std(ratio))
+        The "confidence interval" around the center of the ratio values to include in 
+        the colormap. For example, 0.95 translates to a min/max of 
+        mean(ratio) +/- (1.96*std(ratio))
     cmap
-        The colormap used to display the ratio image. Diverging colormaps are a good choice here (default is RdBu_r).
+        The colormap used to display the ratio image. Diverging colormaps are a good 
+        choice here (default is RdBu_r).
     r_min
-        The minimum value for the ratio colormap. If None, uses the `prob` parameter (see its description), and requires `profile_data`.
+        The minimum value for the ratio colormap. If None, uses the `prob` parameter 
+        (see its description), and requires `profile_data`.
     r_max
-        The maximum value for the ratio colormap. If None, uses the `prob` parameter (see its description), and requires `profile_data`.
+        The maximum value for the ratio colormap. If None, uses the `prob` parameter 
+        (see its description), and requires `profile_data`.
     i_min
         The intensity to map to 0 in the value channel
     i_max
         The intensity to map to 1 in the value channel
     clip
-        Whether or not the value channel should be clipped to [0, 1] before converting back to RGB. Leaving this as True is a sane default.
+        Whether or not the value channel should be clipped to [0, 1] before converting 
+        back to RGB. Leaving this as True is a sane default.
     ax
-        If given, the image is plotted on this axis. If ``None``, this function uses the pyplot interface.
+        If given, the image is plotted on this axis. If ``None``, this function uses the
+        pyplot interface.
+    colorbar
+        show the colorbar or not
     imshow_args
         keyword arguments that will be passed along to the ``imshow`` function
     """

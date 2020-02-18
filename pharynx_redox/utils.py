@@ -12,12 +12,13 @@ import xarray as xr
 from scipy import ndimage as ndi
 from skimage.measure import label, regionprops
 
-from . import experiment
-from . import profile_processing as pp
+from pharynx_redox import experiment
+from pharynx_redox import profile_processing as pp
+
 
 def requires_matlab(func):
     pass
-    
+
 
 def cm2inch(*tupl):
     inch = 2.54

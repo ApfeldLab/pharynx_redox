@@ -10,7 +10,7 @@ import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
 
-from . import utils
+from pharynx_redox import utils
 
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
@@ -245,20 +245,14 @@ def load_images(
     ----------
     intercalated_image_stack_path
         the path to the raw image stack
-    imaging_scheme
-        a string denoting the order of the wavelengths used during imaging.
-
-        Transmitted light should be represented as ``TL``. The wavelengths should be
-        separated by ``/``.
-
-        E.g.::
-
-            TL/470/410/470/410
     strain_map
         a list of strain names, corresponding to the strain of each animal. The length
-        must therefore be the same as the number of animals imaged. Overridden by indexer_path. If None, indexer_path must be given.
+        must therefore be the same as the number of animals imaged. Overridden by 
+        indexer_path. If None, indexer_path must be given.
     indexer_path
-        if given, use the indexer to load the strain map instead of passing it explicity. Overrides the strain_map parameter. If None, strain_map must be given.
+        if given, use the indexer to load the strain map instead of passing it 
+        explicity. Overrides the strain_map parameter. If None, strain_map must be 
+        given.
 
     Returns
     -------
@@ -286,6 +280,15 @@ def load_images(
         intercalated_image_stack_path, return_metadata=True
     )
 
+    if (indexer_path is None) and (strain_map is None):
+        raise ValueError(
+            "either `indexer_path` or `strain_map` must be supplied. Neither was."
+        )
+    if (indexer_path is not None) and (strain_map is not None):
+        raise ValueError(
+            "Only one of `indexer_path` or `strain_map` may be given. Both were."
+        )
+
     if indexer_path:
         strain_map = load_strain_map_from_disk(indexer_path)
 
@@ -293,6 +296,8 @@ def load_images(
     df = pd.DataFrame(metadata)
 
     # Round x,y so grouping is robust to small stage movements
+    # we will group on these rounded (x,y) coordinates to associate each frame with
+    # an animal
     df["stage_x_rnd"] = df["stage_x"].apply(utils.custom_round)
     df["stage_y_rnd"] = df["stage_y"].apply(utils.custom_round)
 
@@ -321,7 +326,7 @@ def load_images(
         ("exposure", np.uint8),
     ]
 
-    # Generate Coordinates
+    # Generate xarray Coordinates
     all_coords = {
         k: np.empty((n_animals, n_pairs, n_wvls), dtype=dtype)
         for k, dtype in metadata_keys
@@ -358,11 +363,14 @@ def load_images(
         },
     )
 
-    if movement_path:
+    # Now assign movement if we find a movement file
+    try:
         mvmt = pd.read_csv(movement_path)
+        logging.info(f"Loading movement file from {movement_path}")
         mvmt_metadata = {
             r: np.zeros((da.animal.size, da.pair.size)) for r in mvmt.region.unique()
         }
+        logging.info("Adding movement annotations to image data")
         for animal in mvmt.animal.unique():
             for pair in mvmt.pair.unique():
                 for region in mvmt.region.unique():
@@ -372,13 +380,28 @@ def load_images(
                         & (mvmt["pair"] == pair)
                     ]
                     mvmt_metadata[region][animal, pair] = mvmt.loc[idx]["movement"]
+    except (IOError, ValueError) as e:
+        default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
 
-        mvmt_coords = {
-            f"mvmt-{r}": (("animal", "pair"), mvmt_labels)
-            for r, mvmt_labels in mvmt_metadata.items()
+        if movement_path is None:
+            logging.info(
+                f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
+            )
+        else:
+            logging.warn(
+                f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
+            )
+
+        mvmt_metadata = {
+            r: np.zeros((da.animal.size, da.pair.size)) for r in default_mvmt_regions
         }
 
-        da = da.assign_coords(mvmt_coords)
+    mvmt_coords = {
+        f"mvmt-{r}": (("animal", "pair"), mvmt_labels)
+        for r, mvmt_labels in mvmt_metadata.items()
+    }
+
+    da = da.assign_coords(mvmt_coords)
 
     return da
 
@@ -437,6 +460,7 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
         that index
     """
     strain_map_df = pd.read_csv(strain_map_path)
+    strain_map_df.rename(columns=lambda x: x.strip(), inplace=True)
     return np.concatenate(
         [
             np.repeat(x.strain, x.end_animal - x.start_animal + 1)

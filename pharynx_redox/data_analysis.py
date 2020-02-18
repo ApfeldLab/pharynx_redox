@@ -10,8 +10,8 @@ from functools import reduce
 
 from pandas.core.indexes.base import InvalidIndexError
 
-from . import profile_processing
-from . import pharynx_io as pio
+from pharynx_redox import profile_processing
+from pharynx_redox import pharynx_io as pio
 
 
 def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFrame:
@@ -54,22 +54,31 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
         sub_df = pd.concat(sub_df, sort=False)
         df.append(sub_df)
 
-    df = reduce(
-        lambda left, right: left.merge(
-            right,
-            on=[
-                "animal",
-                "region",
-                "mvmt-posterior",
-                "mvmt-anterior",
-                "mvmt-sides_of_tip",
-                "mvmt-tip",
-                "pair",
-            ],
-            how="inner",
-        ),
-        df,
-    )
+    try:
+        df = reduce(
+            lambda left, right: left.merge(
+                right,
+                on=[
+                    "animal",
+                    "region",
+                    "mvmt-posterior",
+                    "mvmt-anterior",
+                    "mvmt-sides_of_tip",
+                    "mvmt-tip",
+                    "pair",
+                ],
+                how="inner",
+            ),
+            df,
+        )
+    except KeyError:
+        # no movement keys
+        df = reduce(
+            lambda left, right: left.merge(
+                right, on=["animal", "region", "pair",], how="inner",
+            ),
+            map(lambda x: x.reset_index(), df),
+        )
 
     df["R_region"] = df["I410"] / df["I470"]
 
@@ -90,10 +99,13 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
         )
         fold_error_df["pair"] = pair
         fold_df_pairs.append(fold_error_df)
+
     fold_error_df = pd.concat(fold_df_pairs)
     fold_error_df = fold_error_df[
         fold_error_df.columns.drop(list(fold_error_df.filter(regex="^mvmt-")))
     ]
+
+    fold_error_df = fold_error_df.reset_index()
 
     df = df.merge(fold_error_df, on=["animal", "region", "pair"], how="inner")
 
@@ -266,22 +278,6 @@ def load_all_cached_profile_data(meta_dir, glob_pattern):
     )
 
 
-def load_all_summaries(meta_dir: Union[Path, str]) -> pd.DataFrame:
-    if isinstance(meta_dir, str):
-        meta_dir = Path(meta_dir)
-
-    return pd.concat(
-        (pd.read_csv(x) for x in sorted(meta_dir.glob("**/*summary*csv"))), sort=False
-    )
-
-
-def load_all_movement(meta_dir: Union[Path, str]) -> pd.DataFrame:
-    if isinstance(meta_dir, str):
-        meta_dir = Path(meta_dir)
-
-    return pd.concat(pd.read_csv(x) for x in sorted(meta_dir.glob("**/*-mvmt.csv")))
-
-
 def get_resid_rr_pairs(
     pair0, pair1, summarize=False, **summarize_kwargs
 ) -> Union[xr.DataArray, typing.Tuple[xr.DataArray, pd.DataFrame]]:
@@ -386,6 +382,23 @@ def fold_error_pairs(
 
 
 def filter_only_moving_roi(df, pair, roi):
+    """
+    [summary]
+    
+    Parameters
+    ----------
+    df : [type]
+        [description]
+    pair : [type]
+        [description]
+    roi : [type]
+        [description]
+    
+    Returns
+    -------
+    [type]
+        [description]
+    """
     other_pair = (pair - 1) % 2
     return df[
         (df["movement"].loc[:, pair][roi] > 0)
@@ -423,58 +436,30 @@ def mvmt_long_to_wide(mvmt_df):
     )
 
 
-def split_by_movement_types(df, roi, t=0):
-    # TODO: write function that generates the required format for this function
-    """ Return a set of filtered DataFrames, according to the following scheme:
-
-    m_0_0:
-        no movement in the 0th or 1st pair
-    m_0_1:
-        no movement in the 0th pair, movement in the 1st pair
-    m_1_0:
-        movement in the 0th pair, no movement in the 1st pair
-    m_1_1:
-        movement in both pairs
-
-    In each case, movement is classified as such if the movement call *within the given
-    ROI* is greater than the specified threshold (default=0).
-
-    Requires a pandas DataFrame in the following format::
-
-                                    movement                                       
-        region                      anterior      posterior       sides_of_tip    tip   
-        pair                                 0  1         0  1            0  1   0  1
-        experiment             animal                                                
-        2017_02_22-HD233_SAY47 0             0  0         0  0            0  0   1  0
-                               1             0  1         0  1            1  1   0  1
-                               2             0  0         0  0            0  0   0  0
-                               3             0  0         0  0            0  0   0  0
-                               4             0  0         0  0            0  0   0  0
-
-    See Also
-    --------
-    mvmt_long_to_wide
-        for generating the DataFrame with the required format
-
-    returned in the following order::
-
-        (m_0_0, m_0_1, m_1_0, m_1_1)
-    """
-
-    m_0_0 = df[(df["movement"][roi][0] <= t) & (df["movement"][roi][1] <= t)]
-    m_0_1 = df[(df["movement"][roi][0] <= t) & (df["movement"][roi][1] > t)]
-    m_1_0 = df[(df["movement"][roi][0] > t) & (df["movement"][roi][1] <= t)]
-    m_1_1 = df[(df["movement"][roi][0] > t) & (df["movement"][roi][1] > t)]
-    return m_0_0, m_0_1, m_1_0, m_1_1
-
-
-def label_by_movement_types(df, t=0):
-    pass
-
-
 def synthetic_shift(
-    rot_fl: xr.DataArray, midlines: xr.DataArray, shifts: List[float], n_points=300
+    rot_fl: xr.DataArray, midlines: xr.DataArray, shifts: List[float], n_points=200
 ) -> xr.DataArray:
+    """
+    Move the midlines by `shifts` and measure under them, simulating movement in the
+    X- and Y- direction.
+
+    Parameters
+    ----------
+    rot_fl : xr.DataArray
+        the images to measure under
+    midlines : xr.DataArray
+        the midlines to measure with
+    shifts : List[float]
+        the shift magnitudes to use
+    n_points : int, optional
+        the number of points to measure under the midline with, by default 200
+
+    Returns
+    -------
+    xr.DataArray
+        the shifted data, dimensions: 
+            `(animal, pair, wavelength, shift, direction, position)`
+    """
     shift_data = xr.DataArray(
         0.0,
         coords={

@@ -10,11 +10,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from .. import pharynx_io as pio
-from .. import image_processing as ip
-from .. import experiment
-from .. import utils
-from .qt_py_files.experiment_run_log import Ui_Form
+from pharynx_redox import pharynx_io as pio
+from pharynx_redox import image_processing as ip
+from pharynx_redox import experiment
+from pharynx_redox import utils
+from pharynx_redox.qt_py_files.experiment_run_log import Ui_Form
 
 
 class QTextEditLogger(logging.Handler, QtCore.QObject):

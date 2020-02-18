@@ -5,6 +5,7 @@ Run the analysis with a GUI
 import sys
 from pathlib import Path
 
+print("SYS.PATH: ", sys.path)
 import numpy as np
 import xarray as xr
 from matplotlib import cm
@@ -13,11 +14,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from .. import pharynx_io as pio
-from .. import image_processing as ip
-from .. import utils
-from .qt_py_files.load_dialog import Ui_Dialog
-from .run_experiment_log import ExperimentRunWidget
+from pharynx_redox import pharynx_io as pio
+from pharynx_redox import image_processing as ip
+from pharynx_redox import utils
+from pharynx_redox.qt_py_files import load_dialog
+from pharynx_redox.run_experiment_log import ExperimentRunWidget
 
 
 class RunExperimentDialogWidget(QtWidgets.QWidget):
@@ -27,7 +28,7 @@ class RunExperimentDialogWidget(QtWidgets.QWidget):
         self.selected_directory = ""
 
         # Build UI
-        self.ui = Ui_Dialog()
+        self.ui = load_dialog.Ui_Dialog()
         self.ui.setupUi(self)
 
         self.exp_run_widget = ExperimentRunWidget()
