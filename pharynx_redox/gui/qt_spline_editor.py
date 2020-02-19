@@ -217,6 +217,7 @@ class OldSplineROI(pg.GraphicsObject):
         # npts = len(self.data["pos"])
         # self.data["index"] = np.arange(npts)
 
+        self._update()
         self.scatter.setData(**kwds)
         self.spl.set_ctrl_pts(pos=self.data["pos"])
         self.informViewBoundsChanged()
@@ -256,9 +257,6 @@ class OldSplineROI(pg.GraphicsObject):
     def clicked(self, pts):
         print("clicked: %s" % pts)
 
-    def boundingRect(self):
-        return self.scatter.boundingRect()
-
     def generatePicture(self):
         self.picture = QtGui.QPicture()
         if self.pen is None or self.pos is None:
@@ -272,7 +270,7 @@ class OldSplineROI(pg.GraphicsObject):
             if pen == "default":
                 pen = pg.getConfigOption("foreground")
             p.setPen(pg.functions.mkPen(pen))
-            path = pg.functions.arrayToQPath(x=xs, y=ys)
+            path = pg.functions.arrayToQPath(x=xs, y=ys, connect="all")
             p.drawPath(path)
         finally:
             p.end()
@@ -285,7 +283,34 @@ class OldSplineROI(pg.GraphicsObject):
         p.setRenderHint(True)
         self.picture.play(p)
 
+    def boundingRect(self):
+        xmn, xmx = float(np.min(self.spl()[:, 0])), float(np.max(self.spl()[:, 0]))
+        ymn, ymx = float(np.min(self.spl()[:, 1])), float(np.max(self.spl()[:, 1]))
+
+        px = py = 0.0
+        pxPad = self.pixelPadding()
+        if pxPad > 0:
+            # determine length of pixel in local x, y directions
+            px, py = self.pixelVectors()
+            try:
+                px = 0 if px is None else px.length()
+            except OverflowError:
+                px = 0
+            try:
+                py = 0 if py is None else py.length()
+            except OverflowError:
+                py = 0
+
+            # return bounds expanded by pixel size
+            px *= pxPad
+            py *= pxPad
+
+        return QtCore.QRectF(
+            xmn - px, ymn - py, (2 * px) + xmx - xmn, (2 * py) + ymx - ymn
+        )
+
     def dataBounds(self, *args, **kwds):
+        # return pg.PlotCurveItem(pos=self.data["pos"]).dataBounds(*args, **kwds)
         return self.scatter.dataBounds(*args, **kwds)
 
     def pixelPadding(self):
