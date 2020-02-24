@@ -388,7 +388,9 @@ class Experiment:
         logging.info("Trimming intensity data")
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
             profile_processing.trim_profiles(
-                self.untrimmed_profiles, self.trim_threshold, ref_wvl="410"
+                self.untrimmed_profiles,
+                self.trim_threshold,
+                ref_wvl=self.ratio_numerator,
             )
         )
 
@@ -478,10 +480,10 @@ class Experiment:
 
     def save_normed_ratio_images(self, vmin=-5, vmax=5):
         for pair in self.images.pair.values:
-            r = self.images.sel(wavelength="410", pair=pair) / self.images.sel(
-                wavelength="470", pair=pair
-            )
-            seg = self.seg_images.sel(wavelength="410", pair=pair)
+            r = self.images.sel(
+                wavelength=self.ratio_numerator, pair=pair
+            ) / self.images.sel(wavelength=self.ratio_denominator, pair=pair)
+            seg = self.seg_images.sel(wavelength=self.ratio_numerator, pair=pair)
 
             processed_img_dir = self.experiment_dir.joinpath("processed_images")
             processed_img_dir.mkdir(parents=True, exist_ok=True)
@@ -504,20 +506,3 @@ class Experiment:
             strategy=self.strategy,
             experiment_id=self.experiment_id,
         )
-
-
-if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s:%(message)s",
-        level=logging.DEBUG,
-        datefmt="%I:%M:%S",
-    )
-    experiment_path = Path(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_08_23-HD233_4mm_lev"
-    )
-    ex = Experiment(experiment_path, "TL/470/410/470/410", register=False)
-    ex.full_pipeline()
-
-    utils.measure_shifted_midlines(ex, (-2, 2), 5)
