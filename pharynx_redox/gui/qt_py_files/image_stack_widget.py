@@ -89,12 +89,6 @@ class Ui_XArrayDisplayWidget(object):
         self.tabWidget.setObjectName("tabWidget")
         self.tab = QtWidgets.QWidget()
         self.tab.setObjectName("tab")
-        self.gridLayout = QtWidgets.QGridLayout(self.tab)
-        self.gridLayout.setObjectName("gridLayout")
-        self.ImageViewBox = ImageView(self.tab)
-        self.ImageViewBox.setMinimumSize(QtCore.QSize(400, 0))
-        self.ImageViewBox.setObjectName("ImageViewBox")
-        self.gridLayout.addWidget(self.ImageViewBox, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
@@ -103,7 +97,6 @@ class Ui_XArrayDisplayWidget(object):
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
         self.retranslateUi(XArrayDisplayWidget)
-        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(XArrayDisplayWidget)
 
     def retranslateUi(self, XArrayDisplayWidget):
@@ -116,6 +109,6 @@ class Ui_XArrayDisplayWidget(object):
         self.editMaskCheckBox.setText(_translate("XArrayDisplayWidget", "Edit Mask (m)"))
         self.drawToolButton.setText(_translate("XArrayDisplayWidget", "Draw (d)"))
         self.propertiesGroupBox.setTitle(_translate("XArrayDisplayWidget", "Properties"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Segmented"))
-from pyqtgraph import DataTreeWidget, ImageView
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Tab 1"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Tab 2"))
+from pyqtgraph import DataTreeWidget

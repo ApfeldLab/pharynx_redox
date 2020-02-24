@@ -16,9 +16,6 @@ class Ui_Form(object):
         Form.resize(400, 300)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.pushButton = QtWidgets.QPushButton(Form)
-        self.pushButton.setObjectName("pushButton")
-        self.verticalLayout.addWidget(self.pushButton)
         self.canvas = GraphicsLayoutWidget(Form)
         self.canvas.setObjectName("canvas")
         self.verticalLayout.addWidget(self.canvas)
@@ -29,5 +26,4 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.pushButton.setText(_translate("Form", "PushButton"))
 from pyqtgraph import GraphicsLayoutWidget

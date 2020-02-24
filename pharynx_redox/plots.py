@@ -27,6 +27,84 @@ from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
 
 
+def plot_err_with_region_summaries(
+    data,
+    measure_regions,
+    display_regions=None,
+    ax=None,
+    profile_color="black",
+    label=None,
+):
+    """
+    [summary]
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    measure_regions : [type]
+        [description]
+    display_regions : [type], optional
+        [description], by default None
+    ax : [type], optional
+        [description], by default None
+    profile_color : str, optional
+        [description], by default 'black'
+    label : [type], optional
+        [description], by default None
+    """
+    st_color = "k"
+    mv_color = "tab:red"
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if display_regions is None:
+        display_regions = measure_regions
+
+    df = da.fold_v_point_table(data, measure_regions)
+    df_avgs = df.reset_index().groupby("region").agg(["mean", "sem"]).reset_index()
+
+    xs = np.linspace(0, 1, data.position.size)
+
+    plot_profile_avg_with_sem_bounds(
+        100 * da.fold_error(data), xs=xs, ax=ax, color=profile_color, label=label
+    )
+
+    for region, region_err_mean, region_err_sem in zip(
+        df_avgs["region"],
+        df_avgs["fold_error_region"][1]["mean"],
+        df_avgs["fold_error_region"][1]["sem"],
+    ):
+        try:
+            ax.axhline(
+                100 * region_err_mean,
+                *display_regions[region],
+                color=profile_color,
+                alpha=1,
+                lw=2,
+                solid_capstyle="butt",
+            )
+            ax.errorbar(
+                x=np.mean(display_regions[region]),
+                y=100 * region_err_mean,
+                yerr=100 * region_err_sem,
+                color=profile_color,
+                elinewidth=0.5,
+                capsize=1,
+                capthick=0.5,
+            )
+        except:
+            continue
+
+    ax.set_xlim(0, 1)
+
+    add_regions_to_axis(
+        ax, display_regions, alpha=0.3, hide_labels=True, skip=["medial_axis"]
+    )
+    ax.set_xlabel("position along midline")
+
+
 def plot_stage_layout(
     image_data: xr.DataArray, pair: int = 0
 ) -> sns.axisgrid.FacetGrid:

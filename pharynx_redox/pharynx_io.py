@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from skimage.external import tifffile
+from sklearn.cluster import KMeans
 
 from pharynx_redox import utils
 
@@ -298,15 +299,13 @@ def load_images(
     # Round x,y so grouping is robust to small stage movements
     # we will group on these rounded (x,y) coordinates to associate each frame with
     # an animal
-    df["stage_x_rnd"] = df["stage_x"].apply(utils.custom_round)
-    df["stage_y_rnd"] = df["stage_y"].apply(utils.custom_round)
 
-    df["animal"] = df.groupby(["stage_x_rnd", "stage_y_rnd"], sort=False).ngroup(
-        ascending=True
-    )
+    obs = np.asarray(np.asarray([df["stage_x"], df["stage_y"]]).T, dtype=np.float)
+    kmeans = KMeans(n_clusters=len(strain_map)).fit(obs)
+    df["animal"] = np.sort(kmeans.labels_)
     df["pair"] = df.groupby(["animal", "wavelength"]).cumcount()
 
-    n_animals = len(df["animal"].unique())
+    n_animals = len(strain_map)
     n_pairs = len(df["pair"].unique())
     n_wvls = len(df["wavelength"].unique())
 
@@ -346,6 +345,7 @@ def load_images(
                         all_coords[key][animal, pair, wvl_idx] = df.loc[idx][key]
                 except IndexError:
                     # This happens when, for example, TL is only imaged once per pair
+                    # when this happens, that slice is left as it was initialized
                     continue
 
     da = xr.DataArray(

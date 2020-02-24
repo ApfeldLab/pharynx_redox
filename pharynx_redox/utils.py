@@ -40,6 +40,10 @@ def custom_round(x, base=5):
     return int(base * round(float(x) / base))
 
 
+def round_down(num, divisor):
+    return num - (num % divisor)
+
+
 def parse_reg_param_filename(s: Path):
     """
     Extract the parameters used in the registration parameter sweep into a dictionary

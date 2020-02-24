@@ -174,29 +174,14 @@
      </property>
      <item>
       <widget class="QTabWidget" name="tabWidget">
-       <property name="currentIndex">
-        <number>0</number>
-       </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
-         <string>Raw</string>
+         <string>Tab 1</string>
         </attribute>
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0">
-          <widget class="ImageView" name="ImageViewBox">
-           <property name="minimumSize">
-            <size>
-             <width>400</width>
-             <height>0</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-        </layout>
        </widget>
        <widget class="QWidget" name="tab_2">
         <attribute name="title">
-         <string>Segmented</string>
+         <string>Tab 2</string>
         </attribute>
        </widget>
       </widget>
@@ -206,11 +191,6 @@
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>ImageView</class>
-   <extends>QGraphicsView</extends>
-   <header>pyqtgraph</header>
-  </customwidget>
   <customwidget>
    <class>DataTreeWidget</class>
    <extends>QWidget</extends>

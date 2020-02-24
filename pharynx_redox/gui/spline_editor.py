@@ -107,10 +107,10 @@ class SplineROI(pg.GraphicsObject):
             self.sigClicked.emit(self)
 
             click_pos = np.asarray([ev.pos().x(), ev.pos().y()])
-            crv_data = self.spl()
+            crv_data = self.spl(n=1000)
 
             ctrl_pts_passed = 0
-            epsilon = 0.1
+            epsilon = 1
 
             # make a copy so we can mutate it without losing ctrl pts in the app
             _ctrl_pts = self.ctrl_pts.copy()
@@ -122,7 +122,7 @@ class SplineROI(pg.GraphicsObject):
             # all the while, we are interested in how many control points we pass
             for crv_pt in crv_data[:closest_crv_pt_idx, :]:
                 ctrl_pt = _ctrl_pts[0]
-                if epsilon > cdist([crv_pt,], [ctrl_pt])[0]:
+                if cdist([crv_pt,], [ctrl_pt])[0] <= epsilon:
                     # we have reached a control point
                     ctrl_pts_passed += 1
 
@@ -131,7 +131,6 @@ class SplineROI(pg.GraphicsObject):
                     # just passed)
                     _ctrl_pts.pop(0)
 
-            print(f"inserting at {ctrl_pts_passed}")
             self.ctrl_pts.insert(ctrl_pts_passed, tuple(click_pos))
             self.setData(self.ctrl_pts)
 
@@ -165,9 +164,16 @@ class SplineROI(pg.GraphicsObject):
         self.setData(ctrl_pts=self.ctrl_pts)
         ev.accept()
 
+    def remove_point(self, idx):
+        self.ctrl_pts.pop(idx)
+        self.setData(self.ctrl_pts)
+
     def clicked(self, pts):
-        print("clicked: %s" % pts)
-        print(f"index: {self.scatter.pointsAt(pts.pos())[0]._index}")
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ControlModifier:
+            idx_clicked = pts.ptsClicked[0]._index
+            if len(self.ctrl_pts) > 2:
+                self.remove_point(idx_clicked)
 
     def generatePicture(self):
         self.picture = QtGui.QPicture()
@@ -181,7 +187,7 @@ class SplineROI(pg.GraphicsObject):
             pen = self.pen
             if pen == "default":
                 pen = pg.getConfigOption("foreground")
-            p.setPen(pg.functions.mkPen(pen))
+            p.setPen(pg.functions.mkPen(color="w", width=3))
             path = pg.functions.arrayToQPath(x=xs, y=ys, connect="all")
             p.drawPath(path)
         finally:
@@ -229,7 +235,7 @@ class SplineROI(pg.GraphicsObject):
         return self.scatter.pixelPadding()
 
     def getPath(self):
-        crv_data = self.spl()
+        crv_data = self.spl(n=1000)
         x, y = crv_data[:, 0], crv_data[:, 1]
         return pg.functions.arrayToQPath(x, y)
 
@@ -245,17 +251,17 @@ class SplineROI(pg.GraphicsObject):
         stroker = QtGui.QPainterPathStroker()
         path = self.getPath()
         path = self.mapToItem(view, path)
-        stroker.setWidth(20)
+        stroker.setWidth(10)
         mousePath = stroker.createStroke(path)
         self._mouseShape = self.mapFromItem(view, mousePath)
         return self._mouseShape
 
 
-class SplineEditorWidget(QtGui.QWidget):
+class SplineEditorTestWidget(QtGui.QWidget):
     """Draw and edit a spline"""
 
     def __init__(self):
-        super(SplineEditorWidget, self).__init__()
+        super(SplineEditorTestWidget, self).__init__()
 
         self.spl_roi = SplineROI(pos=[(0, 0), (1, 1), (10, 10), (10, 20)])
 
@@ -269,55 +275,11 @@ class SplineEditorWidget(QtGui.QWidget):
         self.ui.setupUi(self)
         self.vb = self.ui.canvas.addViewBox()
         self.vb.addItem(self.spl_roi)
-
-        ################################
-        # Set up State Machine
-        ################################
-        self.state_machine = QtCore.QStateMachine()
-
-        # Add states
-        ############
-        self.adding_ctrl_pts_state = QtCore.QState()
-        self.not_editing_state = QtCore.QState()
-        self.removing_ctrl_pts_state = QtCore.QState()
-
-        # Enter/Exit State functions
-        self.adding_ctrl_pts_state.entered.connect(self.enter_adding_pts_state)
-        self.removing_ctrl_pts_state.entered.connect(self.enter_removing_pts_state)
-        self.not_editing_state.entered.connect(self.enter_default_state)
-
-        # Transitions
-        self.not_editing_state.addTransition(
-            self.ui.pushButton.pressed, self.adding_ctrl_pts_state,
-        )
-
-        self.adding_ctrl_pts_state.addTransition(
-            self.ui.pushButton.pressed, self.removing_ctrl_pts_state
-        )
-        self.removing_ctrl_pts_state.addTransition(
-            self.ui.pushButton.pressed, self.not_editing_state
-        )
-
-        self.state_machine.addState(self.adding_ctrl_pts_state)
-        self.state_machine.addState(self.removing_ctrl_pts_state)
-        self.state_machine.addState(self.not_editing_state)
-
-        self.state_machine.setInitialState(self.not_editing_state)
-
-        self.state_machine.start()
-
-    def enter_adding_pts_state(self):
-        self.ui.pushButton.setText("remove points")
-
-    def enter_removing_pts_state(self):
-        self.ui.pushButton.setText("exit point editor")
-
-    def enter_default_state(self):
-        self.ui.pushButton.setText("add points")
+        self.vb.addItem(pg.GridItem())
 
 
 if __name__ == "__main__":
     qapp = QtWidgets.QApplication(sys.argv)
-    se = SplineEditorWidget()
+    se = SplineEditorTestWidget()
     se.show()
     qapp.exec_()
