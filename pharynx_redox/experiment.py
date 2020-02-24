@@ -61,6 +61,8 @@ class Experiment:
     smooth_unregistered_data: bool = False
     measurement_order: int = 1
     measure_thickness: float = 0.0
+    ratio_numerator: str = "410"
+    ratio_denominator: str = "470"
 
     # Registration Parameters
     register: bool = False
@@ -270,7 +272,8 @@ class Experiment:
             self._summary_table["pointwise"] = False
             # Calculate R, OxD, and E using region summaries
             self._summary_table["r"] = (
-                self._summary_table["410"] / self._summary_table["470"]
+                self._summary_table[self.ratio_numerator]
+                / self._summary_table[self.ratio_denominator]
             )
             self._summary_table["oxd"] = profile_processing.r_to_oxd(
                 self._summary_table["r"],
@@ -393,8 +396,16 @@ class Experiment:
         logging.info("Calculating redox measurements")
 
         # Expand the trimmed_intensity_data to include new wavelengths
-        self.trimmed_profiles = utils.add_derived_wavelengths(self.trimmed_profiles)
-        self.untrimmed_profiles = utils.add_derived_wavelengths(self.untrimmed_profiles)
+        self.trimmed_profiles = utils.add_derived_wavelengths(
+            self.trimmed_profiles,
+            numerator=self.ratio_numerator,
+            denominator=self.ratio_denominator,
+        )
+        self.untrimmed_profiles = utils.add_derived_wavelengths(
+            self.untrimmed_profiles,
+            numerator=self.ratio_numerator,
+            denominator=self.ratio_denominator,
+        )
 
     def flip_at(self, idx):
         np.fliplr(self.rot_fl[:, idx])

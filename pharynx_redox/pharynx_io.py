@@ -72,8 +72,10 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
 
     # Each image has a "description" string (formatted as XML) associated with it
 
-    # The keys here refer to the id property in the XML, each of which has a
+    # The keys (index 0) here refer to the id property in the XML, each of which has a
     # corresponding value property
+
+    # The labels (index 1) refer to the column name that the values will be stored under
 
     # the functions are how we should process the string stored in the "value" property
     # for example, ``lambda x: x`` simply returns the string itself.

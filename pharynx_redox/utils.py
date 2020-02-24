@@ -531,8 +531,26 @@ def expand_dimension(
     return data
 
 
-def add_derived_wavelengths(data):
-    r = data.sel(wavelength="410") / data.sel(wavelength="470")
+def add_derived_wavelengths(data, numerator="410", denominator="470"):
+    """
+    [summary]
+    TODO
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    numerator : str, optional
+        [description], by default "410"
+    denominator : str, optional
+        [description], by default "470"
+    
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    r = data.sel(wavelength=numerator) / data.sel(wavelength=denominator)
     oxd = pp.r_to_oxd(r)
     e = pp.oxd_to_redox_potential(oxd)
 

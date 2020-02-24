@@ -42,7 +42,7 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
     ]:
         sub_df = []
         for pair in [0, 1]:
-            pair_df = pp.summarize_over_regions(
+            pair_df = profile_processing.summarize_over_regions(
                 data.sel(wavelength=wvl, pair=pair),
                 regions,
                 rescale=True,
@@ -54,23 +54,9 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
         sub_df = pd.concat(sub_df, sort=False)
         df.append(sub_df)
 
-    df = reduce(
-        lambda left, right: left.merge(
-            right,
-            on=[
-                "animal",
-                "region",
-                "mvmt-posterior",
-                "mvmt-anterior",
-                "mvmt-sides_of_tip",
-                "mvmt-tip",
-                "pair",
-            ],
-            how="inner",
-        ),
-        df,
-    )
-
+    df[0]["I470"] = df[1]["I470"]
+    df[0]["R_point"] = df[2]["R_point"]
+    df = df[0]
     df["R_region"] = df["I410"] / df["I470"]
 
     ## Now add the fold_errors
@@ -81,8 +67,8 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
 
     fold_df_pairs = []
     for pair in [0, 1]:
-        fold_error_df = pp.summarize_over_regions(
-            da.fold_error(data),
+        fold_error_df = profile_processing.summarize_over_regions(
+            fold_error(data),
             regions=regions,
             rescale=True,
             add_attrs=False,
@@ -95,13 +81,15 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
         fold_error_df.columns.drop(list(fold_error_df.filter(regex="^mvmt-")))
     ]
 
-    df = df.merge(fold_error_df, on=["animal", "region", "pair"], how="inner")
+    df["fold_error_point"] = fold_error_df["fold_error_point"]
+
+    # df = df.merge(fold_error_df, on=["animal", "region", "pair"], how="inner")
 
     ## Now we stack the pair data
 
     df = df.set_index(["region", "pair"], append=True).unstack()
 
-    fold_error_region = da.fold_error_pairs(
+    fold_error_region = fold_error_pairs(
         df["R_region"][0].values, df["R_region"][1].values
     )
     df[("fold_error_region", 0)] = fold_error_region
