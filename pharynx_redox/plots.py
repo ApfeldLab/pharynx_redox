@@ -27,6 +27,82 @@ from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
 
 
+def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+    """
+    For each wavelength and pair in the given data, this function plots a line plot with
+    each color representing a unique strain. The line is the mean value across animals
+    for that strain, and the shaded regions are the 95% confidence intervals
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    """
+    strains = np.unique(data.strain.values)
+    cmap = plt.get_cmap("Set2")
+    colormap = dict(zip(strains, cmap.colors))
+
+    wvls = list(map(lambda x: x.lower(), data.wavelength.values))
+    for wvl in ignored_wvls:
+        wvls.remove(wvl.lower())
+
+    for wvl in wvls:
+        for pair in data.pair.values:
+            fig, ax = plt.subplots()
+            for strain in strains:
+                strain_data = data.where(data["strain"] == strain, drop=True)
+                ax.plot(
+                    strain_data.sel(wavelength=wvl, pair=pair).T,
+                    color=colormap[strain],
+                    alpha=0.5,
+                )
+
+            title = f"wavelength = {wvl} ; pair = {pair}"
+            ax.set_title(title)
+            ax.legend(
+                [
+                    plt.Line2D([0], [0], color=color, lw=4)
+                    for color in cmap.colors[: len(strains)]
+                ],
+                strains,
+            )
+            yield title, fig
+
+
+def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+    """
+    For each wavelength and pair in the given data, this function plots a line plot with
+    each color representing a unique strain. The line is the mean value across animals
+    for that strain, and the shaded regions are the 95% confidence intervals
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    """
+    strains = np.unique(data.strain.values)
+    cmap = plt.get_cmap("Set2")
+    colormap = dict(zip(strains, cmap.colors))
+    wvls = list(map(lambda x: x.lower(), data.wavelength.values))
+    for wvl in ignored_wvls:
+        wvls.remove(wvl.lower())
+    for wvl in wvls:
+        for pair in data.pair.values:
+            fig, ax = plt.subplots()
+            for strain in np.unique(data.strain.values):
+                strain_data = data.where(data["strain"] == strain, drop=True)
+                plot_profile_avg_with_bounds(
+                    strain_data.sel(wavelength=wvl, pair=pair),
+                    label=strain,
+                    ax=ax,
+                    color=colormap[strain],
+                )
+            title = f"wavelength = {wvl} ; pair = {pair}"
+            ax.set_title(title)
+            ax.legend()
+            yield title, fig
+
+
 def plot_err_with_region_summaries(
     data,
     measure_regions,
@@ -250,12 +326,13 @@ def plot_profile_avg_with_bounds(
 
     """
     if ax is None:
-        _, ax = plt.subplots()
+        ax = plt.gca()
 
     if xs is not None:
         ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
     else:
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+
     lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     if xs is None:
         xs = np.arange(len(lower))
@@ -421,7 +498,8 @@ def imshow_ratio_normed(
     im.norm = norm_ratio
 
     if colorbar:
-        add_img_colorbar(ax, **colorbar_kwargs_dict)
+        cbar = add_img_colorbar(ax, **colorbar_kwargs_dict)
+        return im, cbar
 
     return im
 

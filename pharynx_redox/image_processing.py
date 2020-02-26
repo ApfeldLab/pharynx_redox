@@ -12,15 +12,14 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import find_peaks
 from scipy.spatial.distance import cdist
 from scipy.stats import norm
-from skimage import measure, transform
+from skimage import measure, transform, filters, exposure, img_as_float
 from skimage.external import tifffile
 from skimage.transform import AffineTransform, warp
 
 from pharynx_redox import profile_processing
 
-def subtract_medians(
-    imgs: Union[np.ndarray, xr.DataArray]
-) -> Union[np.ndarray, xr.DataArray]:
+
+def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
     """
     Subtract the median from each image.
 
@@ -32,7 +31,9 @@ def subtract_medians(
         the dimensions that the images are stored in the `imgs` array. 
     """
 
-    return imgs - np.median(imgs, axis=(-2, -1), keepdims=True).astype(imgs.dtype)
+    submed = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
+    submed.loc[dict(wavelength="TL")] = imgs.sel(wavelength="TL")
+    return submed
 
 
 def get_lr_bounds(
@@ -125,9 +126,7 @@ def center_and_rotate_pharynxes(
                 )
 
                 try:
-                    props = measure.regionprops(
-                        measure.label(reference_seg)
-                    )[0]
+                    props = measure.regionprops(measure.label(reference_seg))[0]
                 except IndexError:
                     raise ValueError(
                         f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
@@ -193,6 +192,26 @@ def get_area_of_largest_object(S):
         return 0
 
 
+# def segment_pharynx(fl_img: xr.DataArray, min_area=1000, t_step=100):
+#     """
+#     Segment the pharynx.
+
+#     Parameters
+#     ----------
+#     fl_img : xr.DataArray
+#         the fluorescent image (must contain only one pharynx)
+#     min_area : int, optional
+#         the minimum area of the pharynx (in px), by default 500
+#     t_step : int, optional
+#         the amount by which the intensity may change in estimating the threshold,
+#         by default 100
+#     """
+#     I = exposure.rescale_intensity(img_as_float(fl_img))
+#     t = filters.threshold_otsu(I)
+
+#     return I > t
+
+
 def segment_pharynx(fl_img: xr.DataArray):
     seg = fl_img.copy()
 
@@ -214,7 +233,9 @@ def segment_pharynx(fl_img: xr.DataArray):
     area = get_area_of_largest_object(S)
 
     i = 0
-    while (min_area > area) or (area > max_area) or (i >= max_iter):
+    while (min_area > area) or (area > max_area):
+        if i >= max_iter:
+            return S
         area = get_area_of_largest_object(S)
 
         logging.debug(f"Setting p={p}")
@@ -286,6 +307,9 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
                 logging.debug(
                     f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
                 )
+                if fl_stack.wavelength.values[wvl_idx].lower() == "tl":
+                    logging.debug("skipping TL")
+                    continue
                 I = fl_stack.isel(selector)
                 S = segment_pharynx(I)
                 seg[selector] = extract_largest_binary_object(S)
@@ -419,17 +443,21 @@ def calculate_midline(
     Right now this only works for images that this have been centered this and aligned this with their
     anterior-posterior along the horizontal.
     """
-    try:
-        rp = measure.regionprops(measure.label(rot_seg_img))[0]
-        xs, ys = rp.coords[:, 1], rp.coords[:, 0]
-        left_bound, _, _, right_bound = rp.bbox
-        # noinspection PyTypeChecker
-        return Polynomial.fit(
-            xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
-        )
-    except IndexError:
-        # Indicates trying to measure on TL for example
-        return None
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", np.RankWarning)
+        try:
+            rp = measure.regionprops(measure.label(rot_seg_img))[0]
+            xs, ys = rp.coords[:, 1], rp.coords[:, 0]
+            left_bound, _, _, right_bound = rp.bbox
+            # noinspection PyTypeChecker
+            return Polynomial.fit(
+                xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
+            )
+        except IndexError:
+            # Indicates trying to measure on TL for example
+            return None
 
 
 def measure_under_midline(

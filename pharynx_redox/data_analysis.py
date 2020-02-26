@@ -101,6 +101,15 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
     return df
 
 
+def get_mvmt_codes(data: xr.DataArray, regions: typing.Union[str, typing.List[str]]):
+    mvmts = np.repeat(-1, len(data))
+    mv, st = get_moving_idx(data, regions)
+    mvmts[mv] = 1
+    mvmts[st] = 0
+
+    return mvmts
+
+
 def get_moving_idx(
     data: xr.DataArray, regions: typing.Union[str, typing.List[str]]
 ) -> typing.Tuple[xr.DataArray, xr.DataArray]:

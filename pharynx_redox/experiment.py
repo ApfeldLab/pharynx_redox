@@ -9,19 +9,23 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 import os
+import sys
+import traceback
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import xarray as xr
 from cached_property import cached_property
 from numpy.polynomial import Polynomial
+import click
+from tqdm import tqdm
 
 from pharynx_redox import constants
 from pharynx_redox import image_processing as ip
 from pharynx_redox import pharynx_io as pio
-from pharynx_redox import profile_processing, utils
+from pharynx_redox import profile_processing, utils, plots
 
 
 @dataclass
@@ -131,6 +135,8 @@ class Experiment:
         self.seg_imgs_dir = self.processed_images_dir.joinpath("segmented_images")
         self.fl_imgs_dir = self.processed_images_dir.joinpath("fluorescent_images")
         self.analysis_dir = self.get_analysis_dir()
+        self.fig_dir = self.analysis_dir.joinpath("figs")
+
         self.movement_filepath = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
@@ -311,6 +317,7 @@ class Experiment:
         self.trim_data()
         self.calculate_redox()
         self.persist_to_disk(summary_plots=self.save_summary_plots)
+        self.save_plots()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
 
@@ -325,7 +332,9 @@ class Experiment:
                 self.seg_imgs_dir, self.images
             )
             logging.info(f"Loaded masks from {self.seg_imgs_dir}")
-        except:
+        except Exception as e:
+            logging.error(f"Failed to load masks from {self.seg_imgs_dir}")
+            logging.error(traceback.format_exc())
             # First time running the pipeline
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
@@ -335,6 +344,7 @@ class Experiment:
             )
 
     def align_and_center(self):
+        # TODO: parameterize reference wavelength
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
             self.images, self.seg_images, blur_seg_thresh=self.seg_threshold
@@ -351,6 +361,7 @@ class Experiment:
         )
 
     def calculate_midlines(self):
+        # TODO: add reference wavelength
         logging.info("Calculating midlines")
         # noinspection PyTypeChecker
         self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
@@ -423,6 +434,80 @@ class Experiment:
         fig_dir.mkdir(parents=True, exist_ok=True)
         return fig_dir
 
+    def save_plots(self):
+        fig_dir = self.make_fig_dir()
+
+        # first, untrimmed profile data
+        # one animal per profile line
+        for title, fig in plots.generate_wvl_pair_profile_plots(
+            self.untrimmed_profiles
+        ):
+            fig.savefig(
+                fig_dir.joinpath(f"{self.experiment_id}-{title}-individuals.pdf")
+            )
+            plt.close(fig)
+
+        # Avg profiles
+        for title, fig in plots.generate_avg_wvl_pair_profile_plots(
+            self.untrimmed_profiles
+        ):
+            fig.savefig(fig_dir.joinpath(f"{self.experiment_id}-{title}-avgs.pdf"))
+            plt.close(fig)
+
+        u = self.trimmed_profiles.sel(wavelength="r").mean()
+        std = self.trimmed_profiles.sel(wavelength="r").std()
+
+        # Ratio Images
+        for pair in self.rot_fl.pair.values:
+            ratio_img_path = self.fig_dir.joinpath(
+                f"{self.experiment_id}-ratio_images-pair={pair}.pdf"
+            )
+            with PdfPages(ratio_img_path) as pdf:
+                logging.info(f"Saving ratio images to {ratio_img_path}")
+                for i in tqdm(range(self.rot_fl.animal.size)):
+                    R = (
+                        self.rot_fl.sel(wavelength=self.ratio_numerator, pair=pair)
+                        / self.rot_fl.sel(wavelength=self.ratio_denominator, pair=pair)
+                    )[i]
+                    I = self.rot_fl.sel(wavelength=self.ratio_numerator, pair=pair)[i]
+                    fig, ax = plt.subplots(dpi=300)
+                    im, cbar = plots.imshow_ratio_normed(
+                        R,
+                        I,
+                        r_min=u - (std * 1.96),
+                        r_max=u + (std * 1.96),
+                        colorbar=True,
+                        i_max=5000,
+                        i_min=1000,
+                        ax=ax,
+                    )
+                    ax.plot(
+                        *self.midlines.sel(wavelength=self.ratio_numerator, pair=pair)[
+                            i
+                        ]
+                        .values[()]
+                        .linspace(),
+                        color="green",
+                        alpha=0.3,
+                    )
+                    strain = self.rot_fl.strain.values[i]
+                    ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
+                    cax = cbar.ax
+                    for j in range(len(self.trimmed_profiles)):
+                        cax.axhline(
+                            self.trimmed_profiles.sel(wavelength="r", pair=pair)[
+                                j
+                            ].mean(),
+                            color="k",
+                            alpha=0.1,
+                        )
+                    cax.axhline(
+                        self.trimmed_profiles.sel(wavelength="r", pair=pair)[i].mean(),
+                        color="k",
+                    )
+                    pdf.savefig()
+                    plt.close("all")
+
     def persist_profile_data(self):
         logging.info(
             f"Saving untrimmed profile data to {self.untrimmed_profile_data_filepath}"
@@ -436,9 +521,10 @@ class Experiment:
         )
         pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_filepath)
 
-        logging.info(f"Saving warp data to {self.warp_data_filepath}")
-        with open(self.warp_data_filepath, "wb") as f:
-            np.save(f, self.warps)
+        if self.register:
+            logging.info(f"Saving warp data to {self.warp_data_filepath}")
+            with open(self.warp_data_filepath, "wb") as f:
+                np.save(f, self.warps)
 
     def load_profile_data(self):
         logging.info(
@@ -463,12 +549,6 @@ class Experiment:
         logging.info(f"Saving region means to {summary_table_filename}")
         self.summary_table.to_csv(summary_table_filename, index=False)
 
-    def save_profile_summary_plots(self, prof_data: xr.DataArray):
-        pass
-
-    def save_cat_plots(self):
-        pass
-
     def persist_to_disk(self, summary_plots=False):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
 
@@ -477,20 +557,6 @@ class Experiment:
 
         if self.should_save_profile_data:
             self.persist_profile_data()
-
-    def save_normed_ratio_images(self, vmin=-5, vmax=5):
-        for pair in self.images.pair.values:
-            r = self.images.sel(
-                wavelength=self.ratio_numerator, pair=pair
-            ) / self.images.sel(wavelength=self.ratio_denominator, pair=pair)
-            seg = self.seg_images.sel(wavelength=self.ratio_numerator, pair=pair)
-
-            processed_img_dir = self.experiment_dir.joinpath("processed_images")
-            processed_img_dir.mkdir(parents=True, exist_ok=True)
-            output_fname = processed_img_dir.joinpath(
-                f"{self.experiment_id}_normed-ratio_pair={pair}.tif"
-            )
-            ip.create_normed_rgb_ratio_stack(r, seg, output_filename=output_fname)
 
     ####################################################################################################################
     # MISC / HELPER
@@ -506,3 +572,26 @@ class Experiment:
             strategy=self.strategy,
             experiment_id=self.experiment_id,
         )
+
+
+@click.command()
+@click.argument("experiment_dir")
+@click.option("--log-level", default=1, help="0=NONE ; 1=INFO ; 2=DEBUG")
+def run_experiment(experiment_dir, log_level):
+    """
+    Analyze a stack of ratiometric pharynx images
+    """
+    log_map = {1: logging.INFO, 2: logging.DEBUG}
+    if log_level > 0:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s:%(message)s",
+            level=log_map[log_level],
+            datefmt="%I:%M:%S",
+        )
+    e = Experiment(Path(experiment_dir)).full_pipeline()
+
+
+if __name__ == "__main__":
+
+    # e = Experiment(Path(sys.argv[1])).full_pipeline()
+    run_experiment()

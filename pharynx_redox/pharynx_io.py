@@ -199,12 +199,18 @@ def load_and_restack_img_set(
     new_array = template_img_stack.copy()
 
     for fn in os.listdir(dir_path):
-        fn = dir_path.joinpath(fn)
-        wvl = re.search("wvl=(.+)_pair", str(fn)).group(1)
-        pair = int(re.search("pair=(\d+)_?", str(fn)).group(1))
+        try:
+            fn = dir_path.joinpath(fn)
+            wvl = re.search("wvl=(.+)_pair", str(fn)).group(1)
+            pair = int(re.search("pair=(\d+)_?", str(fn)).group(1))
 
-        img = load_tiff_from_disk(fn)
-        new_array.loc[dict(wavelength=wvl, pair=pair)] = img
+            img = load_tiff_from_disk(fn)
+            new_array.loc[dict(wavelength=wvl, pair=pair)] = img
+        except AttributeError:
+            logging.warn(
+                f"Encountered non-standard file in segmentation directory: {fn}"
+            )
+            continue
 
     return new_array
 
@@ -314,7 +320,7 @@ def load_images(
     imgdata_reshaped = np.full(
         (n_animals, n_pairs, n_wvls, imgdata.shape[-2], imgdata.shape[-1]),
         np.nan,
-        dtype=np.int16,
+        dtype=np.uint16,
     )
 
     metadata_keys = [

@@ -352,8 +352,6 @@ def trim_profiles(
 
     l, r = get_trim_boundaries(intensity_data, ref_wvl=ref_wvl, thresh=threshold)
 
-    # trimmed_intensity_data.to_netcdf("/Users/sean/Desktop/test_trimming-untrimmed.nc")
-
     for i, img_idx in enumerate(intensity_data.animal):
         for wvl_idx in range(intensity_data.wavelength.size):
             wvl = intensity_data.wavelength.data[wvl_idx]
@@ -361,12 +359,20 @@ def trim_profiles(
                 for pair in range(intensity_data.pair.size):
                     selector = dict(wavelength=wvl, pair=pair, animal=img_idx)
                     data = intensity_data.sel(selector).data
-                    trimmed = data[l[i, pair] : r[i, pair]]
-                    new_xs = np.linspace(0, len(trimmed), intensity_data.position.size)
-                    old_xs = np.arange(0, len(trimmed))
-                    resized = np.interp(new_xs, old_xs, trimmed)
+                    l_i, r_i = l[i, pair], r[i, pair]
+                    try:
+                        trimmed = data[l_i:r_i]
+                        new_xs = np.linspace(
+                            0, len(trimmed), intensity_data.position.size
+                        )
+                        old_xs = np.arange(0, len(trimmed))
+                        resized = np.interp(new_xs, old_xs, trimmed)
 
-                    trimmed_intensity_data.loc[selector] = resized
+                        trimmed_intensity_data.loc[selector] = resized
+                    except ValueError:
+                        logging.warn(
+                            f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
+                        )
 
     return trimmed_intensity_data
 
