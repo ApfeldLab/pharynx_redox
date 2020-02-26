@@ -89,7 +89,7 @@ class Experiment:
     trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
     untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
     pointwise_summaries: bool = False
-    save_summary_plots: bool = False
+    should_save_plots: bool = True
     should_save_profile_data: bool = True
     should_save_summary_data: bool = True
 
@@ -435,6 +435,9 @@ class Experiment:
         return fig_dir
 
     def save_plots(self):
+        if not self.should_save_plots:
+            return
+
         fig_dir = self.make_fig_dir()
 
         # first, untrimmed profile data
