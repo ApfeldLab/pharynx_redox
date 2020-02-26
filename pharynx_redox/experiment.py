@@ -60,16 +60,17 @@ class Experiment:
     trimmed_profile_length: int = 200
     untrimmed_profile_length: int = 200
     seg_threshold: int = 2000
-    trim_threshold: int = 3000
     frame_specific_midlines: bool = False
-    smooth_unregistered_data: bool = False
     measurement_order: int = 1
     measure_thickness: float = 0.0
+    reference_wavelength: str = "410"
     ratio_numerator: str = "410"
     ratio_denominator: str = "470"
 
     # Registration Parameters
     register: bool = False
+
+    n_deriv: float = 0.0
 
     warp_n_basis: float = 20.0
     warp_order: float = 4.0
@@ -83,12 +84,16 @@ class Experiment:
     rough_n_breaks: float = 200.0
     rough_order = 4.0
 
-    n_deriv: float = 0.0
-
+    ####################################################################################
     # Summarization parameters
+    ####################################################################################
+    pointwise_summaries: bool = False
     trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
     untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
-    pointwise_summaries: bool = False
+
+    ####################################################################################
+    # Persistence / IO flags
+    ####################################################################################
     should_save_plots: bool = True
     should_save_profile_data: bool = True
     should_save_summary_data: bool = True
@@ -96,16 +101,7 @@ class Experiment:
     ###################################################################################
     # COMPUTED PROPERTY PLACEHOLDERS
     ###################################################################################
-
-    _scaled_regions: dict = None
-    _movement: pd.DataFrame = None
-    _strains: np.ndarray = None
-    _raw_image_data: xr.DataArray = None
-    _image_data: xr.DataArray = None
-    _summary_table: pd.DataFrame = None
-
     seg_images: xr.DataArray = None
-
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
 
@@ -116,7 +112,7 @@ class Experiment:
 
     warps: List = field(default_factory=list)
 
-    _parameter_dict: dict = None
+    _summary_table: pd.DataFrame = None
 
     ####################################################################################
     # COMPUTED PROPERTIES
@@ -172,16 +168,6 @@ class Experiment:
         # load movement
         self.movement = self._load_movement()
 
-    @cached_property
-    def images(self):
-        """
-        This returns the median-subtracted images
-        """
-        # TODO: allow '.tiff' as well
-        # self._image_data = ip.subtract_medians(self.raw_images).astype(np.uint16)
-        self._image_data = self.raw_images
-        return self._image_data
-
     def _load_raw_images(self):
         """
         This returns the raw (non-median-subtracted) images
@@ -220,8 +206,7 @@ class Experiment:
                 index="animal", columns=["region", "pair"], values="movement"
             )
             df = df.stack("pair")
-            _movement = df
-            return _movement
+            return df
         except FileNotFoundError:
             logging.warning(f"Tried to access {movement_filepath}; file was not found")
             return None
@@ -316,7 +301,7 @@ class Experiment:
             self.register_profiles()
         self.trim_data()
         self.calculate_redox()
-        self.persist_to_disk(summary_plots=self.save_summary_plots)
+        self.persist_to_disk()
         self.save_plots()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
@@ -380,10 +365,6 @@ class Experiment:
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
             self.untrimmed_profiles
         )
-        if (self.register == False) and (self.smooth_unregistered_data):
-            self.untrimmed_profiles = profile_processing.smooth_profile_data(
-                self.untrimmed_profiles
-            )
 
     def register_profiles(self):
         logging.info("Registering profiles")
@@ -400,7 +381,7 @@ class Experiment:
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
             profile_processing.trim_profiles(
                 self.untrimmed_profiles,
-                self.trim_threshold,
+                self.seg_threshold,
                 ref_wvl=self.ratio_numerator,
             )
         )
@@ -426,18 +407,15 @@ class Experiment:
         np.fliplr(self.untrimmed_profiles[:, idx])
         np.fliplr(self.trimmed_profiles[:, idx])
 
-    ####################################################################################################################
+    ####################################################################################
     # PERSISTENCE / IO
-    ####################################################################################################################
+    ####################################################################################
     def make_fig_dir(self):
         fig_dir = self.analysis_dir.joinpath("figs")
         fig_dir.mkdir(parents=True, exist_ok=True)
         return fig_dir
 
     def save_plots(self):
-        if not self.should_save_plots:
-            return
-
         fig_dir = self.make_fig_dir()
 
         # first, untrimmed profile data
@@ -552,7 +530,7 @@ class Experiment:
         logging.info(f"Saving region means to {summary_table_filename}")
         self.summary_table.to_csv(summary_table_filename, index=False)
 
-    def persist_to_disk(self, summary_plots=False):
+    def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
 
         if self.should_save_summary_data:
@@ -561,9 +539,12 @@ class Experiment:
         if self.should_save_profile_data:
             self.persist_profile_data()
 
-    ####################################################################################################################
+        if self.should_save_plots:
+            self.save_plots()
+
+    ####################################################################################
     # MISC / HELPER
-    ####################################################################################################################
+    ####################################################################################
     def add_experiment_metadata_to_data_array(self, data_array):
         return data_array.assign_attrs(
             r_min=self.r_min,
