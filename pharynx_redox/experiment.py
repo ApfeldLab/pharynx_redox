@@ -11,6 +11,7 @@ from typing import Dict, List
 import os
 import sys
 import traceback
+import yaml
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -120,6 +121,8 @@ class Experiment:
 
     def __post_init__(self):
         self.experiment_id = self.experiment_dir.stem
+        self.settings_filepath = self.experiment_dir.joinpath("settings.yaml")
+        self.try_to_load_from_config_file()
 
         # compute the filenames/paths for this experiment
         self.raw_img_stack_filepath = self.experiment_dir.joinpath(
@@ -167,6 +170,30 @@ class Experiment:
 
         # load movement
         self.movement = self._load_movement()
+
+    def try_to_load_from_config_file(self):
+        try:
+            with open(self.settings_filepath, "r") as f:
+                config_dict = yaml.safe_load(f)
+                try:
+                    pipeline_params = config_dict["pipeline"]
+                except KeyError as e:
+                    logging.error(
+                        f"Incorrect settings file format. There must be `pipeline` at the root. See example config file on Github repo."
+                    )
+                    raise e
+
+                logging.info(
+                    f"Loading configuration file from {self.settings_filepath}"
+                )
+                for key, val in pipeline_params.items():
+                    try:
+                        getattr(self, key)
+                        setattr(self, key, val)
+                    except AttributeError:
+                        logging.warning(f"Parameter not recognized({key}={val})")
+        except FileNotFoundError:
+            logging.info("No configuration file found. Using defaults.")
 
     def _load_raw_images(self):
         """
@@ -267,13 +294,13 @@ class Experiment:
                 / self._summary_table[self.ratio_denominator]
             )
             self._summary_table["oxd"] = profile_processing.r_to_oxd(
-                self._summary_table["r"],
+                self._summary_table["r"].values,
                 r_min=self.r_min,
                 r_max=self.r_max,
                 instrument_factor=self.instrument_factor,
             )
             self._summary_table["e"] = profile_processing.oxd_to_redox_potential(
-                self._summary_table["oxd"],
+                self._summary_table["oxd"].values,
                 midpoint_potential=self.midpoint_potential,
                 z=self.z,
                 temperature=self.temperature,
@@ -302,7 +329,6 @@ class Experiment:
         self.trim_data()
         self.calculate_redox()
         self.persist_to_disk()
-        self.save_plots()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
 
@@ -332,7 +358,10 @@ class Experiment:
         # TODO: parameterize reference wavelength
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
-            self.images, self.seg_images, blur_seg_thresh=self.seg_threshold
+            self.images,
+            self.seg_images,
+            blur_seg_thresh=self.seg_threshold,
+            reference_wavelength=self.reference_wavelength,
         )
 
         logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
@@ -346,7 +375,6 @@ class Experiment:
         )
 
     def calculate_midlines(self):
-        # TODO: add reference wavelength
         logging.info("Calculating midlines")
         # noinspection PyTypeChecker
         self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
@@ -418,27 +446,41 @@ class Experiment:
     def save_plots(self):
         fig_dir = self.make_fig_dir()
 
-        # first, untrimmed profile data
-        # one animal per profile line
-        for title, fig in plots.generate_wvl_pair_profile_plots(
-            self.untrimmed_profiles
-        ):
-            fig.savefig(
-                fig_dir.joinpath(f"{self.experiment_id}-{title}-individuals.pdf")
-            )
-            plt.close(fig)
+        # First, save profile data plots
+        profile_fig_dir = fig_dir.joinpath("profile_data")
 
-        # Avg profiles
-        for title, fig in plots.generate_avg_wvl_pair_profile_plots(
-            self.untrimmed_profiles
+        # need both trimmed and untrimmed data
+        for prefix, data in zip(
+            ("un", ""), (self.untrimmed_profiles, self.trimmed_profiles)
         ):
-            fig.savefig(fig_dir.joinpath(f"{self.experiment_id}-{title}-avgs.pdf"))
-            plt.close(fig)
+            profile_data_fig_dir = profile_fig_dir.joinpath(prefix + "trimmed_profiles")
 
+            # individual data
+            individual_data_fig_dir = profile_data_fig_dir.joinpath("individual")
+            individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
+            for title, fig in plots.generate_wvl_pair_profile_plots(data):
+                title = title.replace(" ", "")
+                fig.savefig(
+                    individual_data_fig_dir.joinpath(
+                        f"{self.experiment_id}-{title}-individuals.pdf"
+                    )
+                )
+                plt.close(fig)
+
+            # avg. data
+            avgs_data_fig_dir = profile_data_fig_dir.joinpath("avgs")
+            avgs_data_fig_dir.mkdir(exist_ok=True, parents=True)
+            for title, fig in plots.generate_avg_wvl_pair_profile_plots(data):
+                title = title.replace(" ", "")
+                fig.savefig(
+                    avgs_data_fig_dir.joinpath(f"{self.experiment_id}-{title}-avgs.pdf")
+                )
+                plt.close(fig)
+
+        # Ratio Images
         u = self.trimmed_profiles.sel(wavelength="r").mean()
         std = self.trimmed_profiles.sel(wavelength="r").std()
 
-        # Ratio Images
         for pair in self.rot_fl.pair.values:
             ratio_img_path = self.fig_dir.joinpath(
                 f"{self.experiment_id}-ratio_images-pair={pair}.pdf"
@@ -567,6 +609,7 @@ def run_experiment(experiment_dir, log_level):
     """
     log_map = {1: logging.INFO, 2: logging.DEBUG}
     if log_level > 0:
+        # TODO: fix logging so debug messages don't come from matplotlib
         logging.basicConfig(
             format="%(asctime)s %(levelname)s:%(message)s",
             level=log_map[log_level],
