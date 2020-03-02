@@ -9,8 +9,6 @@ import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
-from scipy.signal import find_peaks
-from scipy.spatial.distance import cdist
 from scipy.stats import norm
 from skimage import measure, transform, filters, exposure, img_as_float
 from skimage.external import tifffile
@@ -631,94 +629,6 @@ def measure_under_midlines(
     # )
 
     return measurements
-
-
-def align_pa(
-    intensity_data: xr.DataArray,
-    reference_wavelength: str = "410",
-    reference_pair: int = 0,
-) -> xr.DataArray:
-    """
-    Given intensity profile data, flip each animal along their anterior-posterior axis
-    if necessary, so that all face the same direction
-
-    Parameters
-    ----------
-    intensity_data
-        the data to align
-    reference_pair: optional
-        the pair to calculate the alignment for
-    reference_wavelength: optional
-        the wavelength to calculate the alignment for
-
-    Returns
-    -------
-    aligned_intensity_data
-        the PA-aligned intensity data
-
-    Notes
-    -----
-    The alignments are calculated for a single wavelength and pair for each animal, then
-    applied to all wavelengths and pairs for that animal.
-
-    The algorithm works as follows:
-
-        - take the derivative of the (trimmed) intensity profiles (this accounts for
-          differences in absolute intensity between animals)
-        - use the first animal in the stack as the reference profile
-        - for all animals:
-
-           - compare a forward and reverse profile to the reference profile (using the
-             cosine-similarity metric)
-           - keep either the forward or reverse profile accordingly
-
-        - finally, determine the location of the peaks in the *average* profile
-
-            - reverse all profiles if necessary (this will be necessary if the first
-              animal happens to be reversed)
-
-    """
-    data = intensity_data
-
-    ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
-    ref_profile = ref_data.isel(animal=0).data
-
-    ref_vecs = np.tile(ref_profile, (data.animal.size, 1))
-    unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
-    flipped = np.fliplr(unflipped)
-
-    # do the actual cosine-similarity measurements
-    should_flip = (
-        cdist(ref_vecs, unflipped, "cosine")[0, :]
-        > cdist(ref_vecs, flipped, "cosine")[0, :]
-    )
-
-    # position needs to be reindexed, otherwise xarray freaks out
-    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3).reindex(
-        position=np.arange(intensity_data.position.size)
-    )
-
-    mean_intensity = profile_processing.trim_profile(
-        np.mean(
-            intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair),
-            axis=0,
-        ).data,
-        threshold=2000,
-        new_length=100,
-    )
-
-    # parameters found experimentally
-    peaks, _ = find_peaks(
-        mean_intensity, distance=0.2 * len(mean_intensity), prominence=200, wlen=10
-    )
-
-    if len(peaks) < 2:
-        return intensity_data
-
-    if peaks[0] < len(mean_intensity) - peaks[1]:
-        intensity_data = np.flip(intensity_data, axis=3)
-
-    return intensity_data
 
 
 def center_of_mass_midline(rot_fl: xr.DataArray, s: float, ext: str):

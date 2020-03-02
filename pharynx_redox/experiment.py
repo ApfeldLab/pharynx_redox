@@ -102,6 +102,7 @@ class Experiment:
     ###################################################################################
     # COMPUTED PROPERTY PLACEHOLDERS
     ###################################################################################
+    curation_dict: dict = field(default_factory=dict)
     seg_images: xr.DataArray = None
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
@@ -186,6 +187,13 @@ class Experiment:
                 logging.info(
                     f"Loading configuration file from {self.settings_filepath}"
                 )
+
+                try:
+                    self.curation_dict = config_dict["curation"]
+                    logging.info("Setting curation information")
+                except KeyError as e:
+                    logging.info("No curation information specified in settings file")
+
                 for key, val in pipeline_params.items():
                     try:
                         getattr(self, key)
@@ -328,6 +336,7 @@ class Experiment:
             self.register_profiles()
         self.trim_data()
         self.calculate_redox()
+        self.do_manual_AP_flips()
         self.persist_to_disk()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
@@ -355,7 +364,6 @@ class Experiment:
             )
 
     def align_and_center(self):
-        # TODO: parameterize reference wavelength
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
             self.images,
@@ -389,7 +397,7 @@ class Experiment:
             order=self.measurement_order,
             thickness=self.measure_thickness,
         )
-        self.untrimmed_profiles = ip.align_pa(self.untrimmed_profiles)
+        self.untrimmed_profiles = profile_processing.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
             self.untrimmed_profiles
         )
@@ -429,7 +437,32 @@ class Experiment:
             denominator=self.ratio_denominator,
         )
 
+    def do_manual_AP_flips(self):
+        try:
+            to_flip = self.curation_dict["flip"]
+            logging.info(f"Flipping animals {to_flip}")
+            for idx in to_flip:
+                self.flip_at(idx)
+
+            # need to re-save all images after flipping
+            logging.info("Re-Saving processed images after flipping")
+            logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
+            pio.save_images_xarray_to_disk(
+                self.rot_fl, self.rot_fl_dir, prefix=self.experiment_id
+            )
+
+            logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
+            pio.save_images_xarray_to_disk(
+                self.rot_seg, self.rot_seg_dir, prefix=self.experiment_id
+            )
+
+        except KeyError:
+            logging.info(
+                "No manual flips specified in settings file. Skipping AP flips."
+            )
+
     def flip_at(self, idx):
+        logging.debug(f"manually flipping animal {idx}")
         np.fliplr(self.rot_fl[:, idx])
         np.fliplr(self.rot_seg[:, idx])
         np.fliplr(self.untrimmed_profiles[:, idx])

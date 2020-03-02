@@ -13,7 +13,6 @@ from pharynx_redox import pharynx_io as pio
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget
 
 import logging
-from autologging import traced, TRACE
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -73,12 +72,64 @@ class NDImageStackWidget(QtWidgets.QWidget):
         self.set_tabs()
         self.update_wvl_box()
 
+        # Threshold line
+        threshold_line = pg.InfiniteLine(angle=0, movable=True, pen="g")
+        self.ui.tabWidget.currentWidget().getHistogramWidget().vb.addItem(
+            threshold_line
+        )
+        threshold_line.setValue(1000)
+        threshold_line.setZValue(1000)
+
+        # Editing State Machine
+        self.state_machine = QtCore.QStateMachine()
+
+        # initialize states
+        base_state = QtCore.QState()
+        mask_editing_state = QtCore.QState()
+        midline_editing_state = QtCore.QState()
+
+        # connect state transitions
+        # base_state.addTransition(base_state, self.ui.maskCheckBox.)
+
         # Connect signals
         self.ui.tabWidget.currentChanged.connect(self.handle_tab_switch)
         self.ui.wvlBox.currentIndexChanged.connect(self.set_wavelength)
+        self.ui.flipButton.clicked.connect(self.handle_flip_clicked)
+        self.ui.excludeButton.clicked.connect(self.handle_exclude_clicked)
+        self.ui.paintButton.clicked.connect(self.handle_paint_clicked)
+        self.ui.maskCheckBox.stateChanged.connect(
+            self.handle_mask_checkbox_state_changed
+        )
+        self.ui.midlineCheckBox.stateChanged.connect(
+            self.handle_midline_checkbox_state_changed
+        )
         # for i in range(self.ui.tabWidget.count()):
         # img_view = self.ui.tabWidget.widget(i)
         # img_view.sigTimeChanged.connect(self.handle_frame_slider_changed)
+
+    def enter_base_state(self):
+        print("entering base state")
+
+    def enter_mask_editing_state(self):
+        print("entering mask editing state")
+
+    def enter_midline_editing_state(self):
+        print("entering midline editing state")
+
+    def handle_midline_checkbox_state_changed(self):
+        print(f"midline checkbox is {self.ui.midlineCheckBox.isChecked()}")
+
+    def handle_mask_checkbox_state_changed(self):
+        print(f"mask checkbox is {self.ui.maskCheckBox.isChecked()}")
+
+    def handle_exclude_clicked(self):
+        print("exclude clicked")
+
+    def handle_paint_clicked(self):
+        print("paint clicked")
+
+    def handle_flip_clicked(self):
+        print("flip clicked")
 
     def set_wavelength(self, new_wvl_idx: int, stack_name: str = None):
         """
@@ -105,7 +156,6 @@ class NDImageStackWidget(QtWidgets.QWidget):
         """
         This function is called whenever the frame slider is changed
         """
-        # print(f"Frame slider changed. ind={ind}, time={time}")
         pass
 
     def handle_tab_switch(self, idx):
@@ -139,13 +189,6 @@ class NDImageStackWidget(QtWidgets.QWidget):
             img_view.getImageItem().setBorder(dict(color="FF0", width=1))
             img_view.setCurrentIndex(stack_state.frame)
 
-        if link_views:
-            view_0 = self.ui.tabWidget.widget(0).getView()
-            for i in range(1, self.ui.tabWidget.count()):
-                view_i = self.ui.tabWidget.widget(i).getView()
-                view_0.linkView(pg.ViewBox.XAxis, view_i)
-                view_0.linkView(pg.ViewBox.YAxis, view_i)
-
     def update_wvl_box(self):
         """
         Get the wavelengths from the current tab's image data and set the wavelength
@@ -153,7 +196,6 @@ class NDImageStackWidget(QtWidgets.QWidget):
         """
         stack_name = self.get_current_stack_name()
         print(f"updating wvl box to reflect {stack_name}")
-        print(self.img_stack_state)
 
         img_data = self.get_current_img_hyperstack()
         wvls = img_data.wavelength.values
@@ -199,12 +241,12 @@ if __name__ == "__main__":
 
     pg.setConfigOptions(imageAxisOrder="row-major")
 
-    # imgs = pio.load_images(
-    # "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
-    # indexer_path="/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
-    # )
-    # imgs[:10].to_netcdf("~/Desktop/testing_img.nc")
-    imgs = xr.load_dataarray("~/Desktop/testing_img.nc")
+    imgs = pio.load_images(
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
+        indexer_path="/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
+    )
+    imgs[:10].to_netcdf("~/Desktop/testing_img.nc")
+    # imgs = xr.load_dataarray("~/Desktop/testing_img.nc")
 
     qapp = QtWidgets.QApplication(sys.argv)
 

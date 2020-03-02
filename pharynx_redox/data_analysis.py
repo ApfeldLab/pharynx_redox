@@ -14,7 +14,9 @@ from pharynx_redox import profile_processing
 from pharynx_redox import pharynx_io as pio
 
 
-def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFrame:
+def fold_v_point_table(
+    data: xr.DataArray, regions: dict, moving_regions: typing.List[str] = None, **kwargs
+) -> pd.DataFrame:
     """
     summarize the given data with errors using both the point-wise and region-wise
     formulations.
@@ -83,8 +85,6 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
 
     df["fold_error_point"] = fold_error_df["fold_error_point"]
 
-    # df = df.merge(fold_error_df, on=["animal", "region", "pair"], how="inner")
-
     ## Now we stack the pair data
 
     df = df.set_index(["region", "pair"], append=True).unstack()
@@ -97,6 +97,21 @@ def fold_v_point_table(data: xr.DataArray, regions: dict, **kwargs) -> pd.DataFr
 
     for k, v in kwargs.items():
         df[k] = v
+
+    if moving_regions is not None:
+        mvmt_cols = [f"mvmt-{region}" for region in moving_regions]
+        pair_0_mvmt = (df[mvmt_cols].xs(0, level=1, axis=1).sum(axis=1) > 0).values
+        pair_1_mvmt = (df[mvmt_cols].xs(1, level=1, axis=1).sum(axis=1) > 0).values
+
+        st_bools = (pair_0_mvmt == False) & (pair_1_mvmt == False)
+        mv_bools = ((pair_0_mvmt == False) & (pair_1_mvmt == True)) | (
+            (pair_0_mvmt == True) & (pair_1_mvmt == False)
+        )
+        neither_bools = pair_0_mvmt & pair_1_mvmt
+
+        df["moving-AP"] = 0
+        df.loc[mv_bools, "moving-AP"] = 1
+        df.loc[neither_bools, "moving-AP"] = -1
 
     return df
 

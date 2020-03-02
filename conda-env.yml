@@ -22,6 +22,8 @@ dependencies:
   - pyqt
   - pyqtgraph
   - tqdm
+  - pyimagej
+  - openjdk=8
 
   # Testing
   - pytest
@@ -43,5 +45,3 @@ dependencies:
   # Code tools
   - pylint
   - black
-
-# prefix: /Users/sean/opt/anaconda3/envs/pharedox
