@@ -467,8 +467,15 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
         an array of strings where the index corresponds to the strain of the worm at
         that index
     """
+
     strain_map_df = pd.read_csv(strain_map_path)
     strain_map_df.rename(columns=lambda x: x.strip(), inplace=True)
+
+    # Check that all numbers are unique
+    idx = strain_map_df[["start_animal", "end_animal"]].values.ravel()
+    if len(idx) != len(np.unique(idx)):
+        raise AttributeError("All indices in the indexer must be unique.")
+
     return np.concatenate(
         [
             np.repeat(x.strain, x.end_animal - x.start_animal + 1)
@@ -499,3 +506,10 @@ def load_all_rot_seg() -> xr.DataArray:
 
     """
     return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")
+
+
+if __name__ == "__main__":
+    load_strain_map_from_disk(
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv"
+    )
+
