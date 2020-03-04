@@ -270,11 +270,15 @@ def register_profiles_pairs(
 
     reg_profile_data = profile_data.copy()
 
+    warp_data = []
     for pair in profile_data.pair:
-        reg_pair = register_profiles(profile_data.sel(pair=pair), eng=eng, **reg_params)
+        reg_pair, warp_pair = register_profiles(
+            profile_data.sel(pair=pair), eng=eng, **reg_params
+        )
         reg_profile_data.loc[dict(pair=pair)] = reg_pair
+        warp_data.append(warp_pair)
 
-    return reg_profile_data
+    return reg_profile_data, warp_data
 
 
 def register_profiles(
@@ -319,7 +323,7 @@ def register_profiles(
     resample_resolution = float(profile_data.position.size)
 
     # Call the MATLAB subroutine
-    r410, r470, _ = eng.channel_register(
+    r410, r470, warp_data = eng.channel_register(
         i410,
         i470,
         resample_resolution,
@@ -339,9 +343,9 @@ def register_profiles(
 
     reg_profile_data.loc[dict(wavelength="410")] = r410
     reg_profile_data.loc[dict(wavelength="470")] = r470
-    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
+    # reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
 
-    return reg_profile_data
+    return reg_profile_data, warp_data
 
 
 def trim_profile(

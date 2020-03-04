@@ -3,6 +3,10 @@ This module contains the Experiment class. This class is the object that orchest
 the analysis pipeline for redox imaging experiments.
 """
 
+import sys
+
+sys.path.append("/Users/sean/code/pharynx_redox/")
+
 import datetime
 import logging
 from dataclasses import dataclass, field
@@ -69,7 +73,7 @@ class Experiment:
     ratio_denominator: str = "470"
 
     # Registration Parameters
-    register: bool = False
+    register: bool = True
 
     n_deriv: float = 0.0
 
@@ -332,11 +336,12 @@ class Experiment:
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
+        print(self.register)
         if self.register:
             self.register_profiles()
         self.trim_data()
         self.calculate_redox()
-        self.do_manual_AP_flips()
+        # self.do_manual_AP_flips()
         self.persist_to_disk()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
@@ -405,12 +410,15 @@ class Experiment:
     def register_profiles(self):
         logging.info("Registering profiles")
 
-        self.untrimmed_profiles = profile_processing.register_profiles_pairs(
+        (
+            self.untrimmed_profiles,
+            self.warps,
+        ) = profile_processing.register_profiles_pairs(
             self.untrimmed_profiles,
             n_deriv=self.n_deriv,
             rough_lambda=self.rough_lambda,
             smooth_lambda=self.smooth_lambda,
-        )[0]
+        )
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -633,10 +641,10 @@ class Experiment:
         )
 
 
-@click.command()
-@click.argument("experiment_dir")
-@click.option("--log-level", default=1, help="0=NONE ; 1=INFO ; 2=DEBUG")
-def run_experiment(experiment_dir, log_level):
+# @click.command()
+# @click.argument("experiment_dir")
+# @click.option("--log-level", default=1, help="0=NONE ; 1=INFO ; 2=DEBUG")
+def run_analysis(experiment_dir, log_level):
     """
     Analyze a stack of ratiometric pharynx images
     """
@@ -652,6 +660,6 @@ def run_experiment(experiment_dir, log_level):
 
 
 if __name__ == "__main__":
-
-    # e = Experiment(Path(sys.argv[1])).full_pipeline()
-    run_experiment()
+    run_analysis(
+        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47", 1
+    )

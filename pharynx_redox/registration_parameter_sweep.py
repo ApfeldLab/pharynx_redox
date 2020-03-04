@@ -14,7 +14,7 @@ import sys
 
 
 LOG_FILE = "/Users/sean/Desktop/registration_log.log"
-META_DIR = "/Users/sean/code/pharynx_redox/data/paired_ratio"
+META_DIR = "/Users/sean/code/pharynx_redox/data/paired_ratio/"
 OUTPUT_FOLDER = "~/Desktop/reg_sweep/"
 
 logging.basicConfig(
@@ -36,32 +36,31 @@ prof_raw = xr.concat(
 # n_derivs = [1.0, 2.0]
 # smooth_lambdas = [float(x) for x in np.power(10, np.linspace(0, 2, 15))]
 warp_lambdas = [1.0, 10.0, 100.0, 1000.0, 10000.0]
+warp_n_basis = np.linspace(10, 50, 15)
+smooth_lambda = np.linspace(0.01, 1, 10)
 
-all_params = []
-for wl in warp_lambdas:
-    all_params.append(
-        {
-            "n_deriv": 1.0,
-            "rough_lambda": 1e-2,
-            "rough_n_breaks": 200.0,
-            "rough_order": 4.0,
-            "smooth_lambda": 0.01,
-            "smooth_n_breaks": 50.0,
-            "smooth_order": 4.0,
-            "warp_lambda": wl,
-            "warp_n_basis": 50.0,
-            "warp_order": 4.0,
-        }
-    )
+
+all_params = list(ParameterGrid({
+    "n_deriv": [1.0,],
+    "rough_lambda": [1e-2,],
+    "rough_n_breaks": [200.0,],
+    "rough_order": [4.0,],
+    "smooth_lambda": smooth_lambda,
+    "smooth_n_breaks": [50.0,],
+    "smooth_order": [4.0,],
+    "warp_lambda": warp_lambdas, 10.0, 100.0, 1000.0, 10000.0],
+    "warp_n_basis": warp_n_basis,
+    "warp_order": [4.0,],
+}))
+
 eng = engine.connect_matlab()
 i = 0
 for reg_params in all_params:
     param_string = "-".join([f"{k}={v}" for k, v in reg_params.items()])
     logging.info(f"Starting Registration ({i}/{len(all_params)})")
     try:
-        reg_data = pp.register_profiles_pairs(prof_raw, eng=eng, **reg_params)
+        reg_data, _ = pp.register_profiles_pairs(prof_raw, eng=eng, **reg_params)
         pio.save_profile_data(reg_data, OUTPUT_FOLDER + param_string + ".nc")
-        # logging.info(f"Registered {param_string}")
     except Exception as e:
         logging.error(f"Failed to register {param_string}")
         logging.error(str(e))

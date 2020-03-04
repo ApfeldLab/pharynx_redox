@@ -285,6 +285,7 @@ def load_images(
             >> only_tl.data.shape
             (60, 130, 174)
     """
+    # TODO: handle image stacks with no metadata
     imgdata, metadata = load_tiff_from_disk(
         intercalated_image_stack_path, return_metadata=True
     )

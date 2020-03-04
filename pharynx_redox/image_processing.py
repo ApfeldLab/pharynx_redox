@@ -483,7 +483,7 @@ def measure_under_midline(
     
     Notes
     -----
-    Using thickness is 5-8 times slower, depending on the amount of thickness 
+    Using thickness is slower, depending on the amount of thickness 
 
     On my machine (2GHz Intel Core i5), as of 12/4/19:
         0-thickness:
@@ -496,7 +496,8 @@ def measure_under_midline(
     Returns
     -------
     zs: np.ndarray
-        The intensity profile of the image measured under the midline at the given x-coordinates.
+        The intensity profile of the image measured under the midline at the given 
+        x-coordinates.
 
     """
     try:
