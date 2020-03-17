@@ -95,7 +95,6 @@ class Experiment:
     ####################################################################################
     # Summarization parameters
     ####################################################################################
-    pointwise_summaries: bool = False
     trimmed_regions: dict = field(
         default_factory=lambda: constants.trimmed_regions_with_medial
     )
@@ -124,8 +123,6 @@ class Experiment:
     trimmed_profiles: xr.DataArray = None
 
     warps: List = field(default_factory=list)
-
-    _summary_table: pd.DataFrame = None
 
     ####################################################################################
     # COMPUTED PROPERTIES
@@ -395,10 +392,7 @@ class Experiment:
     def register_profiles(self):
         logging.info("Registering profiles")
 
-        (
-            self.untrimmed_profiles,
-            self.warps,
-        ) = profile_processing.register_profiles_pairs(
+        (self.untrimmed_profiles, self.warps,) = profile_processing.channel_register(
             self.untrimmed_profiles,
             n_deriv=self.n_deriv,
             rough_lambda=self.rough_lambda,
@@ -508,10 +502,10 @@ class Experiment:
         std = self.trimmed_profiles.sel(wavelength="r").std()
 
         for pair in self.rot_fl.pair.values:
-            ratio_img_path = self.fig_dir.joinpath(
-                f"{self.experiment_id}-ratio_images-pair={pair}.pdf"
-            )
             for tp in self.rot_fl.timepoint.values:
+                ratio_img_path = self.fig_dir.joinpath(
+                    f"{self.experiment_id}-ratio_images-pair={pair};timepoint={tp}.pdf"
+                )
                 with PdfPages(ratio_img_path) as pdf:
                     logging.info(f"Saving ratio images to {ratio_img_path}")
                     for i in tqdm(range(self.rot_fl.animal.size)):
