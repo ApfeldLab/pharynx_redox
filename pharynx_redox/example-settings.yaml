@@ -28,7 +28,6 @@ pipeline:
     trimmed_profile_length: 200
     untrimmed_profile_length: 200
     seg_threshold: 2000
-    frame_specific_midlines: 0
     measurement_order: 1
     measure_thickness: 0.0
     reference_wavelength: "410"
