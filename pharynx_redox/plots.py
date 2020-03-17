@@ -48,25 +48,26 @@ def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
 
     for wvl in wvls:
         for pair in data.pair.values:
-            fig, ax = plt.subplots()
-            for strain in strains:
-                strain_data = data.where(data["strain"] == strain, drop=True)
-                ax.plot(
-                    strain_data.sel(wavelength=wvl, pair=pair).T,
-                    color=colormap[strain],
-                    alpha=0.5,
-                )
+            for tp in data.timepoint.values:
+                fig, ax = plt.subplots()
+                for strain in strains:
+                    strain_data = data.where(data["strain"] == strain, drop=True)
+                    ax.plot(
+                        strain_data.sel(wavelength=wvl, pair=pair, timepoint=tp).T,
+                        color=colormap[strain],
+                        alpha=0.5,
+                    )
 
-            title = f"wavelength = {wvl} ; pair = {pair}"
-            ax.set_title(title)
-            ax.legend(
-                [
-                    plt.Line2D([0], [0], color=color, lw=4)
-                    for color in cmap.colors[: len(strains)]
-                ],
-                strains,
-            )
-            yield title, fig
+                title = f"wavelength = {wvl} ; pair = {pair} ; timepoint = {tp}"
+                ax.set_title(title)
+                ax.legend(
+                    [
+                        plt.Line2D([0], [0], color=color, lw=4)
+                        for color in cmap.colors[: len(strains)]
+                    ],
+                    strains,
+                )
+                yield title, fig
 
 
 def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
@@ -88,47 +89,30 @@ def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"])
         wvls.remove(wvl.lower())
     for wvl in wvls:
         for pair in data.pair.values:
-            fig, ax = plt.subplots()
-            for strain in np.unique(data.strain.values):
-                strain_data = data.where(data["strain"] == strain, drop=True)
-                plot_profile_avg_with_bounds(
-                    strain_data.sel(wavelength=wvl, pair=pair),
-                    label=strain,
-                    ax=ax,
-                    color=colormap[strain],
-                )
-            title = f"wavelength = {wvl} ; pair = {pair}"
-            ax.set_title(title)
-            ax.legend()
-            yield title, fig
+            for tp in data.timepoint.values:
+                fig, ax = plt.subplots()
+                for strain in np.unique(data.strain.values):
+                    strain_data = data.where(data["strain"] == strain, drop=True)
+                    plot_profile_avg_with_bounds(
+                        strain_data.sel(wavelength=wvl, pair=pair, timepoint=tp),
+                        label=strain,
+                        ax=ax,
+                        color=colormap[strain],
+                    )
+                title = f"wavelength = {wvl} ; pair = {pair} ; timepoint = {tp}"
+                ax.set_title(title)
+                ax.legend()
+                yield title, fig
 
 
 def plot_err_with_region_summaries(
-    data,
-    measure_regions,
+    data: xr.DataArray,
+    measure_regions: Dict,
     display_regions=None,
     ax=None,
     profile_color="black",
     label=None,
 ):
-    """
-    [summary]
-    
-    Parameters
-    ----------
-    data : [type]
-        [description]
-    measure_regions : [type]
-        [description]
-    display_regions : [type], optional
-        [description], by default None
-    ax : [type], optional
-        [description], by default None
-    profile_color : str, optional
-        [description], by default 'black'
-    label : [type], optional
-        [description], by default None
-    """
     st_color = "k"
     mv_color = "tab:red"
 

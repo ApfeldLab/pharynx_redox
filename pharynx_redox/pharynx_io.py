@@ -17,7 +17,8 @@ from pharynx_redox import utils
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
     logging.info("Loading data from %s" % path)
 
-    data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
+    # data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
+    data = xr.load_dataarray(path)
 
     return data
 
@@ -26,7 +27,10 @@ def save_profile_data(
     profile_data: xr.DataArray, path: Union[Path, str]
 ) -> xr.DataArray:
     logging.info("Saving data to %s" % path)
-    profile_data.reset_index("animal").to_netcdf(path)
+    try:
+        profile_data.reset_index("animal").to_netcdf(path)
+    except KeyError:
+        profile_data.to_netcdf(path)
 
 
 def _parse_illum_setting(ilum_setting: str) -> str:
@@ -241,6 +245,147 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
+    img_stack_path: Path,
+    channel_order: [str],
+    strain_map: [str] = None,
+    indexer_path: Path = None,
+    movement_path: Path = None,
+    dtype=np.uint16,
+) -> xr.DataArray:
+    # Check Arguments
+    if (indexer_path is None) and (strain_map is None):
+        raise ValueError(
+            "either `indexer_path` or `strain_map` must be supplied. Neither was."
+        )
+    if (indexer_path is not None) and (strain_map is not None):
+        raise ValueError(
+            "Only one of `indexer_path` or `strain_map` may be given. Both were."
+        )
+
+    if indexer_path:
+        strain_map = load_strain_map_from_disk(indexer_path)
+
+    # Load Data
+    metadata = None
+    try:
+        imgs, metadata = load_tiff_from_disk(img_stack_path, return_metadata=True)
+    except:
+        imgs = load_tiff_from_disk(img_stack_path, return_metadata=False)
+
+    # Calculate dimensions of hyperstack
+    wvls, pairs = zip(*utils.create_occurrence_count_tuples(channel_order))
+    n_frames = imgs.shape[0]
+    n_frames_per_animal = len(channel_order)
+    n_wvls = len(np.unique(channel_order))
+    n_animals = len(strain_map)
+    n_pairs = np.max(pairs) + 1
+    n_timepoints = int(n_frames / (n_frames_per_animal * n_animals))
+
+    # Set up empty hyperstack
+    img_hyperstack = np.full(
+        (n_animals, n_timepoints, n_pairs, n_wvls, imgs.shape[-2], imgs.shape[-1]),
+        np.nan,
+        dtype=dtype,
+    )
+
+    da = xr.DataArray(
+        img_hyperstack,
+        dims=["animal", "timepoint", "pair", "wavelength", "y", "x"],
+        coords={
+            "wavelength": np.unique(channel_order),
+            "strain": ("animal", strain_map),
+        },
+    )
+
+    # Organize Metadata
+    if metadata:
+        metadata_keys = [
+            ("stage_x", np.int16),
+            ("stage_y", np.int16),
+            ("stage_z", np.int16),
+            ("time", "datetime64[us]"),
+            ("bin_x", np.uint8),
+            ("bin_y", np.uint8),
+            ("exposure", np.uint8),
+        ]
+        metadata_df = pd.DataFrame(metadata)
+        all_coords = {
+            k: np.empty((n_animals, n_timepoints, n_pairs, n_wvls), dtype=dtype)
+            for k, dtype in metadata_keys
+        }
+
+    # fill in the hyperstack
+    frame = 0
+    for timepoint in range(n_timepoints):
+        for animal in range(n_animals):
+            for wvl, pair in utils.create_occurrence_count_tuples(channel_order):
+                # Assign image data from current frame to correct index
+                da.loc[
+                    dict(animal=animal, timepoint=timepoint, pair=pair, wavelength=wvl)
+                ] = imgs[frame]
+
+                if metadata:
+                    # build the metadata coords for current frame using metadata DF
+                    wvl_idx = np.where(np.unique(channel_order) == wvl)[0][0]
+                    for key, _ in metadata_keys:
+                        all_coords[key][
+                            animal, timepoint, pair, wvl_idx
+                        ] = metadata_df.loc[frame][key]
+
+                frame += 1
+    if metadata:
+        da = da.assign_coords(
+            {
+                k: (("animal", "timepoint", "pair", "wavelength"), v)
+                for k, v in all_coords.items()
+            }
+        )
+        logging.info(f"Assigned coordinates to image data ({list(all_coords.keys())})")
+
+    # Now, assign movement annotations to coordinates if possible
+    try:
+        mvmt = pd.read_csv(movement_path)
+        logging.info(f"Loading movement file from {movement_path}")
+        mvmt_metadata = {
+            r: np.zeros((da.animal.size, da.pair.size)) for r in mvmt.region.unique()
+        }
+        logging.info("Adding movement annotations to image data")
+        for animal in mvmt.animal.unique():
+            for pair in mvmt.pair.unique():
+                for region in mvmt.region.unique():
+                    idx = mvmt.index[
+                        (mvmt["animal"] == animal)
+                        & (mvmt["region"] == region)
+                        & (mvmt["pair"] == pair)
+                    ]
+                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx]["movement"]
+    except (IOError, ValueError) as e:
+        default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
+
+        if movement_path is None:
+            logging.info(
+                f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
+            )
+        else:
+            logging.warn(
+                f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
+            )
+
+        mvmt_metadata = {
+            r: np.zeros((da.animal.size, da.pair.size)) for r in default_mvmt_regions
+        }
+
+    mvmt_coords = {
+        f"mvmt-{r}": (("animal", "pair"), mvmt_labels)
+        for r, mvmt_labels in mvmt_metadata.items()
+    }
+
+    da = da.assign_coords(mvmt_coords)
+
+    return da
+
+
+def load_images_old(
     intercalated_image_stack_path: Path,
     strain_map: [str] = None,
     indexer_path=None,

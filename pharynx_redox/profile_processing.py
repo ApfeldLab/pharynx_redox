@@ -1,6 +1,6 @@
 import collections
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Dict
 import logging
 
 import scipy
@@ -9,6 +9,7 @@ import xarray as xr
 import pandas as pd
 from scipy import spatial, signal
 from sklearn.preprocessing import scale
+from tqdm.auto import tqdm
 
 from pharynx_redox import utils
 from pharynx_redox import constants
@@ -16,10 +17,33 @@ from pharynx_redox import constants
 from numba import vectorize, int64
 
 
+def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
+    """
+    Replacement for `xr.DataArray.to_dataframe` that adds the attrs for the given
+    DataArray into the resultant DataFrame.
+    
+    Parameters
+    ----------
+    data : xr.DataArray
+        the data to convert to DataFrame
+    
+    Returns
+    -------
+    pd.DataFrame
+        a pandas DataFrame containing the data in the given DataArray, including the
+        global attributes
+    """
+    df = data.to_dataframe(*args, **kwargs)
+    for k, v in data.attrs.items():
+        df[k] = v
+    return df
+
+
 def align_pa(
     intensity_data: xr.DataArray,
     reference_wavelength: str = "410",
     reference_pair: int = 0,
+    reference_timepoint: int = 0,
 ) -> xr.DataArray:
     """
     Given intensity profile data, flip each animal along their anterior-posterior axis
@@ -63,11 +87,19 @@ def align_pa(
     """
     data = intensity_data
 
-    ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
+    ref_data = data.sel(
+        wavelength=reference_wavelength,
+        pair=reference_pair,
+        timepoint=reference_timepoint,
+    )
     ref_profile = ref_data.isel(animal=0).data
 
     ref_vecs = np.tile(ref_profile, (data.animal.size, 1))
-    unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
+    unflipped = data.sel(
+        wavelength=reference_wavelength,
+        pair=reference_pair,
+        timepoint=reference_timepoint,
+    ).data
     flipped = np.fliplr(unflipped)
 
     # do the actual cosine-similarity measurements
@@ -77,13 +109,18 @@ def align_pa(
     )
 
     # position needs to be reindexed, otherwise xarray freaks out
-    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3).reindex(
+    # Axis=4 because that is the index of `position`
+    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=4).reindex(
         position=np.arange(intensity_data.position.size)
     )
 
     mean_intensity = trim_profile(
         np.mean(
-            intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair),
+            intensity_data.sel(
+                wavelength=reference_wavelength,
+                pair=reference_pair,
+                timepoint=reference_timepoint,
+            ),
             axis=0,
         ).data,
         threshold=2000,
@@ -114,15 +151,16 @@ def get_mvmt(a, b):
         return np.nan
 
 
-def summarize_over_regions(
-    data: Union[np.ndarray, xr.DataArray],
+def summarize_over_regions_old(
+    data: xr.DataArray,
     regions: dict,
     value_name: str = None,
     rescale: bool = False,
     add_attrs: bool = True,
 ):
     """
-    Summarize the profile data over region boundaries, storing the resultant data in a pandas DataFrame.
+    Summarize the profile data over region boundaries, storing the resultant data in a 
+    pandas DataFrame.
 
     The functional observations stored as profile data is difficult to analyze with
     traditional statistical methods. To make it easier, we can average the values within
@@ -133,8 +171,6 @@ def summarize_over_regions(
     areas, and the value assigned to the label of that shaded region.
 
     .. image:: _static/ex_i410.png
-
-
 
     Parameters
     ----------
@@ -172,16 +208,11 @@ def summarize_over_regions(
         ====  =======  ========  ========
 
     """
+
     if rescale:
         regions = utils.scale_region_boundaries(regions, data.shape[-1])
     if value_name is None:
         value_name = "value"
-
-    if type(data) == np.ndarray:
-        try:
-            data = xr.DataArray(data, dims=("observations", "position"))
-        except ValueError:
-            data = xr.DataArray(data, dims=("position",))
 
     dfs = []
     for region, bounds in regions.items():
@@ -195,6 +226,17 @@ def summarize_over_regions(
 
         reg_df["region"] = region
         reg_df.rename({0: value_name}, inplace=True, axis="columns")
+        reg_df = reg_df.reset_index()
+
+        try:
+            reg_df["strain"] = data.strain.values
+        except AttributeError:
+            logging.warning("No strain info in data, not adding to summarization table")
+
+        try:
+            reg_df["time"] = data.time.values
+        except AttributeError:
+            logging.warning("No timestamp in data, not adding to summarization table")
 
         if add_attrs:
             for attr, val in data.attrs.items():
@@ -208,6 +250,70 @@ def summarize_over_regions(
 
         dfs.append(reg_df)
     return pd.concat(dfs)
+
+
+def summarize_over_regions(
+    data: xr.DataArray,
+    regions: Dict,
+    rescale: bool = True,
+    value_name: str = "value",
+    pointwise: Union[bool, str] = False,
+    ratio_numerator: str = "410",
+    ratio_denominator: str = "470",
+):
+    if pointwise == "both":
+        # recursively call this function for pointwise=T/F and concat the results
+        return pd.concat(
+            [
+                summarize_over_regions(
+                    data, regions, rescale, value_name, pointwise=False
+                ),
+                summarize_over_regions(
+                    data, regions, rescale, value_name, pointwise=True
+                ),
+            ]
+        )
+
+    if rescale:
+        regions = utils.scale_region_boundaries(regions, data.shape[-1])
+
+    # Ensure that derived wavelengths are present
+    data = utils.add_derived_wavelengths(
+        data, numerator=ratio_numerator, denominator=ratio_denominator
+    )
+
+    region_data = xr.concat(
+        [
+            data[dict(position=range(bounds[0], bounds[1]))].mean(
+                dim="position", skipna=True
+            )
+            for _, bounds in regions.items()
+        ],
+        pd.Index(regions.keys(), name="region"),
+    )
+    region_data = region_data.assign_attrs(**data.attrs)
+
+    if not pointwise:
+        region_data.loc[dict(wavelength="r")] = region_data.sel(
+            wavelength=ratio_numerator
+        ) / region_data.sel(wavelength=ratio_denominator)
+        region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
+            region_data.sel(wavelength="r"),
+            r_min=data.r_min,
+            r_max=data.r_max,
+            instrument_factor=data.instrument_factor,
+        )
+        region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
+            region_data.sel(wavelength="oxd"),
+            midpoint_potential=data.midpoint_potential,
+            z=data.z,
+            temperature=data.temperature,
+        )
+
+    df = to_dataframe(region_data, value_name)
+    df["pointwise"] = pointwise
+
+    return df
 
 
 def smooth_profile_data(
@@ -255,7 +361,97 @@ def smooth_profile_data(
     return smooth_profile_data
 
 
-def register_profiles_pairs(
+def _register_profiles_pop(
+    profile_data: xr.DataArray,
+    eng=None,
+    n_deriv: float = 2.0,
+    rough_lambda: float = 0.01,
+    rough_n_breaks: float = 300.0,
+    rough_order: float = 4.0,
+    smooth_lambda: float = 10.0 ** 2,
+    smooth_n_breaks: float = 100.0,
+    smooth_order: float = 4.0,
+    warp_lambda: float = 5.0e3,
+    warp_n_basis: float = 30.0,
+    warp_order: float = 4.0,
+    ratio_numerator: str = "410",
+    ratio_denominator: str = "470",
+) -> xr.DataArray:
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Skipping registration.")
+        return profile_data
+
+    if eng is None:
+        eng = matlab.engine.start_matlab()
+
+    reg_profile_data = profile_data.copy()
+    warp_data = []
+
+    i410 = matlab.double(profile_data.sel(wavelength="410").values.tolist())
+    i470 = matlab.double(profile_data.sel(wavelength="470").values.tolist())
+
+    resample_resolution = float(profile_data.position.size)
+
+    r410, r470, warp_data = eng.pop_register(
+        i410,
+        i470,
+        resample_resolution,
+        warp_n_basis,
+        warp_order,
+        warp_lambda,
+        smooth_lambda,
+        smooth_n_breaks,
+        smooth_order,
+        rough_lambda,
+        rough_n_breaks,
+        rough_order,
+        n_deriv,
+        nargout=3,
+    )
+
+    r410, r470 = np.array(r410).T, np.array(r470).T
+
+    reg_profile_data.loc[dict(wavelength="410")] = r410
+    reg_profile_data.loc[dict(wavelength="470")] = r470
+
+    reg_profile_data = utils.add_derived_wavelengths(
+        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
+    )
+
+    return reg_profile_data, warp_data
+
+
+def register_profiles_pop(
+    profile_data: xr.DataArray, eng=None, progress_bar=False, **reg_kwargs
+) -> xr.DataArray:
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Skipping registration.")
+        return profile_data
+
+    if eng is None:
+        eng = matlab.engine.start_matlab()
+
+    reg_profile_data = profile_data.copy()
+    # warp_data = []
+    disable_progress = not progress_bar
+    for tp in tqdm(profile_data.timepoint, disable=disable_progress, desc="timepoint"):
+        for pair in tqdm(profile_data.pair, disable=disable_progress, desc="pair"):
+            selector = dict(timepoint=tp, pair=pair)
+
+            data = reg_profile_data.sel(**selector)
+            reg_data, warp_data = _register_profiles_pop(
+                profile_data=data, eng=eng, **reg_kwargs
+            )
+            reg_profile_data.loc[selector] = reg_data
+    reg_profile_data = reg_profile_data.assign_attrs(**reg_kwargs)
+    return reg_profile_data
+
+
+def channel_register(
     profile_data: xr.DataArray, eng=None, **reg_params
 ) -> xr.DataArray:
 
@@ -270,22 +466,22 @@ def register_profiles_pairs(
 
     reg_profile_data = profile_data.copy()
 
-    warp_data = []
     for pair in profile_data.pair:
-        reg_pair, warp_pair = register_profiles(
-            profile_data.sel(pair=pair), eng=eng, **reg_params
-        )
-        reg_profile_data.loc[dict(pair=pair)] = reg_pair
-        warp_data.append(warp_pair)
+        for timepoint in profile_data.timepoint:
+            reg, warp_ = _channel_register(
+                profile_data.sel(pair=pair, timepoint=timepoint), eng=eng, **reg_params
+            )
+            reg_profile_data.loc[dict(pair=pair, timepoint=timepoint)] = reg
+            # TODO keep track of warp data
 
-    return reg_profile_data, warp_data
+    return reg_profile_data
 
 
-def register_profiles(
+def _channel_register(
     profile_data: xr.DataArray,
     eng=None,
     n_deriv: float = 2.0,
-    rough_lambda: float = 10.0 ** 0.05,
+    rough_lambda: float = 0.01,
     rough_n_breaks: float = 300.0,
     rough_order: float = 4.0,
     smooth_lambda: float = 10.0 ** 2,
@@ -343,7 +539,7 @@ def register_profiles(
 
     reg_profile_data.loc[dict(wavelength="410")] = r410
     reg_profile_data.loc[dict(wavelength="470")] = r470
-    # reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
+    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
 
     return reg_profile_data, warp_data
 
@@ -410,11 +606,12 @@ def get_trim_boundaries(
 
     """
     prof_len = data.position.size
-    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=2).data - 1
+    # axis=3 b/c that is where `position` is after selecting wavelength
+    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=3).data - 1
     r_bound = (
         prof_len
         - np.argmax(
-            np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=2
+            np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=3
         ).data
     )
     return l_bound, r_bound
@@ -450,22 +647,25 @@ def trim_profiles(
             wvl = intensity_data.wavelength.data[wvl_idx]
             if "tl" not in wvl.lower():
                 for pair in range(intensity_data.pair.size):
-                    selector = dict(wavelength=wvl, pair=pair, animal=img_idx)
-                    data = intensity_data.sel(selector).data
-                    l_i, r_i = l[i, pair], r[i, pair]
-                    try:
-                        trimmed = data[l_i:r_i]
-                        new_xs = np.linspace(
-                            0, len(trimmed), intensity_data.position.size
+                    for tp in intensity_data.timepoint.values:
+                        selector = dict(
+                            wavelength=wvl, pair=pair, animal=img_idx, timepoint=tp
                         )
-                        old_xs = np.arange(0, len(trimmed))
-                        resized = np.interp(new_xs, old_xs, trimmed)
+                        data = intensity_data.sel(selector).data
+                        l_i, r_i = l[i, tp, pair], r[i, tp, pair]
+                        try:
+                            trimmed = data[l_i:r_i]
+                            new_xs = np.linspace(
+                                0, len(trimmed), intensity_data.position.size
+                            )
+                            old_xs = np.arange(0, len(trimmed))
+                            resized = np.interp(new_xs, old_xs, trimmed)
 
-                        trimmed_intensity_data.loc[selector] = resized
-                    except ValueError:
-                        logging.warn(
-                            f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
-                        )
+                            trimmed_intensity_data.loc[selector] = resized
+                        except ValueError:
+                            logging.warn(
+                                f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
+                            )
 
     return trimmed_intensity_data
 

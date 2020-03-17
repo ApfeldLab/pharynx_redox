@@ -106,55 +106,61 @@ def center_and_rotate_pharynxes(
     seg_rotated_stack = seg_images.copy()
 
     blurred_seg = fl_images.copy()
-    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
+    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 0, 6, 6))
     blurred_seg_data = blurred_seg_data > blur_seg_thresh
     blurred_seg.data = blurred_seg_data
 
+    # STACK_ITERATION
     for img_idx in range(fl_images.animal.size):
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
-                # Optimization potential here...
-                # this recalculates all region properties for the reference each time
-                reference_seg = seg_images.isel(animal=img_idx).sel(
-                    wavelength=reference_wavelength, pair=pair
-                )
-                img = fl_images.isel(animal=img_idx).sel(wavelength=wvl, pair=pair)
-                seg = seg_rotated_stack.isel(animal=img_idx).sel(
-                    wavelength=wvl, pair=pair
-                )
-
-                try:
-                    props = measure.regionprops(measure.label(reference_seg))[0]
-                except IndexError:
-                    raise ValueError(
-                        f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
+                for tp in fl_images.timepoint.values:
+                    # Optimization potential here...
+                    # this recalculates all region properties for the reference each time
+                    reference_seg = seg_images.isel(animal=img_idx).sel(
+                        wavelength=reference_wavelength, pair=pair, timepoint=tp
+                    )
+                    img = fl_images.isel(animal=img_idx).sel(
+                        wavelength=wvl, pair=pair, timepoint=tp
+                    )
+                    seg = seg_rotated_stack.isel(animal=img_idx).sel(
+                        wavelength=wvl, pair=pair, timepoint=tp
                     )
 
-                # pharynx_center_y, pharynx_center_x = props.centroid
-                pharynx_center_y, pharynx_center_x = np.mean(
-                    np.nonzero(reference_seg), axis=1
-                )
-                pharynx_orientation = props.orientation
+                    try:
+                        props = measure.regionprops(measure.label(reference_seg))[0]
+                    except IndexError:
+                        raise ValueError(
+                            f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
+                        )
 
-                translation_matrix = transform.EuclideanTransform(
-                    translation=(
-                        -(img_center_x - pharynx_center_x),
-                        -(img_center_y - pharynx_center_y),
+                    # pharynx_center_y, pharynx_center_x = props.centroid
+                    pharynx_center_y, pharynx_center_x = np.mean(
+                        np.nonzero(reference_seg), axis=1
                     )
-                )
+                    pharynx_orientation = props.orientation
 
-                rotated_img = rotate(img.data, translation_matrix, pharynx_orientation)
-                rotated_seg = rotate(
-                    seg.data, translation_matrix, pharynx_orientation, order=0
-                )
+                    translation_matrix = transform.EuclideanTransform(
+                        translation=(
+                            -(img_center_x - pharynx_center_x),
+                            -(img_center_y - pharynx_center_y),
+                        )
+                    )
 
-                fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][
-                    img_idx
-                ] = rotated_img
+                    rotated_img = rotate(
+                        img.data, translation_matrix, pharynx_orientation
+                    )
+                    rotated_seg = rotate(
+                        seg.data, translation_matrix, pharynx_orientation, order=0
+                    )
 
-                seg_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][
-                    img_idx
-                ] = rotated_seg
+                    fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair, timepoint=tp)][
+                        img_idx
+                    ] = rotated_img
+
+                    seg_rotated_stack.loc[
+                        dict(wavelength=wvl, pair=pair, timepoint=tp)
+                    ][img_idx] = rotated_seg
 
     return fl_rotated_stack.astype(fl_images.dtype), seg_rotated_stack
 
@@ -298,20 +304,24 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
 
     seg = fl_stack.copy()
     i = 0
+    # STACK_ITERATION
     for img_idx in range(fl_stack.animal.size):
         for wvl_idx in range(fl_stack.wavelength.size):
             for pair in range(fl_stack.pair.size):
-                selector = dict(animal=img_idx, wavelength=wvl_idx, pair=pair)
-                logging.debug(
-                    f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
-                )
-                if fl_stack.wavelength.values[wvl_idx].lower() == "tl":
-                    logging.debug("skipping TL")
-                    continue
-                I = fl_stack.isel(selector)
-                S = segment_pharynx(I)
-                seg[selector] = extract_largest_binary_object(S)
-                i = i + 1
+                for tp in fl_stack.timepoint.values:
+                    selector = dict(
+                        animal=img_idx, wavelength=wvl_idx, pair=pair, timepoint=tp
+                    )
+                    logging.debug(
+                        f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
+                    )
+                    if fl_stack.wavelength.values[wvl_idx].lower() == "tl":
+                        logging.debug("skipping TL")
+                        continue
+                    I = fl_stack.isel(selector)
+                    S = segment_pharynx(I)
+                    seg[selector] = extract_largest_binary_object(S)
+                    i = i + 1
     return seg
 
 
@@ -410,7 +420,11 @@ def calculate_midlines(
     calculate_midline
     """
     return xr.apply_ufunc(
-        calculate_midline, rot_seg_stack, input_core_dims=[["y", "x"]], vectorize=True
+        calculate_midline,
+        rot_seg_stack,
+        input_core_dims=[["y", "x"]],
+        vectorize=True,
+        keep_attrs=True,
     )
 
 

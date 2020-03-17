@@ -472,48 +472,6 @@ def measure_shifted_midlines(
     return measurements, all_shifts, orig_idx
 
 
-def run_all_analyses(meta_dir: str, **kwargs):
-    """
-    Run all experiment analyeses in the given parent directory
-
-    Parameters
-    ----------
-    meta_dir
-        the parent directory containing all experiment directories
-    imaging_scheme
-        the imaging scheme (see experiment)
-    **kwargs
-        keyword arguments to be passed to the experiment constructor
-    """
-
-    meta_dir = Path(meta_dir)
-
-    for exp_dir in list(filter(lambda x: x.is_dir(), meta_dir.iterdir())):
-        experiment.Experiment(
-            experiment_dir=exp_dir,
-            strategy="_".join(f"{k}={v}" for k, v in kwargs.items()),
-        ).full_pipeline()
-
-
-def cli_run_all_analyses():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "meta_dir",
-        metavar="D",
-        type=str,
-        help="the directory containing all experiment directories",
-    )
-    parser.add_argument(
-        "imaging_scheme",
-        metavar="S",
-        type=str,
-        help="the imaging scheme (e.g. TL/470/410/470/410)",
-    )
-
-    args = parser.parse_args()
-    run_all_analyses(meta_dir=args.meta_dir, imaging_scheme=args.imaging_scheme)
-
-
 def expand_dimension(
     data: xr.DataArray,
     dim: str,
@@ -533,8 +491,8 @@ def expand_dimension(
 
 def add_derived_wavelengths(data, numerator="410", denominator="470"):
     """
-    [summary]
-    TODO
+    Add "derived" wavelengths to the given DataArray. These derived wavelengths are
+    the ratio (`r`), the fraction oxidized (`oxd`), and the reduction potential (`e`).
     
     Parameters
     ----------
@@ -554,20 +512,19 @@ def add_derived_wavelengths(data, numerator="410", denominator="470"):
     oxd = pp.r_to_oxd(r)
     e = pp.oxd_to_redox_potential(oxd)
 
-    if "r" in data.wavelength.values:
-        data.loc[dict(wavelength="r")] = r
-    else:
-        data = expand_dimension(data, "wavelength", {"r": r})
+    # Need to add time coordinates to these dimensions
+    # time comes from avg(time(410), time(470))
+    t1 = data.sel(wavelength=numerator).time
+    t2 = data.sel(wavelength=denominator).time
+    time = t1 + ((t1 - t2) / 2)
 
-    if "oxd" in data.wavelength.values:
-        data.loc[dict(wavelength="oxd")] = oxd
-    else:
-        data = expand_dimension(data, "wavelength", {"oxd": oxd})
+    for wvl, wvl_data in zip(["r", "oxd", "e"], [r, oxd, e]):
+        if wvl in data.wavelength.values:
+            data.loc[dict(wavelength=wvl)] = wvl_data
+        else:
+            data = expand_dimension(data, "wavelength", {wvl: wvl_data})
 
-    if "e" in data.wavelength.values:
-        data.loc[dict(wavelength="e")] = e
-    else:
-        data = expand_dimension(data, "wavelength", {"e": e})
+        data.time.loc[dict(wavelength=wvl)] = time
 
     return data
 
@@ -605,15 +562,3 @@ def git_version() -> str:
         GIT_REVISION = "Unknown"
 
     return GIT_REVISION
-
-
-def get_last2d(data):
-    if data.ndim <= 2:
-        return data
-    slc = [0] * (data.ndim - 2)
-    slc += [slice(None), slice(None)]
-    return data[slc]
-
-
-if __name__ == "__main__":
-    cli_run_all_analyses()

@@ -47,9 +47,15 @@ class Experiment:
     ###################################################################################
     # PIPELINE PARAMETERS
     ###################################################################################
-    strategy: str = ""
 
-    register: bool = False
+    channel_order: List[str] = None
+    strategy: str = ""
+    reference_wavelength: str = "410"
+
+    # R Parameters
+    fl_wvls = ["410", "470"]
+    ratio_numerator: str = "410"
+    ratio_denominator: str = "470"
 
     # R -> OxD parameters
     r_min: float = 0.852
@@ -65,15 +71,12 @@ class Experiment:
     trimmed_profile_length: int = 200
     untrimmed_profile_length: int = 200
     seg_threshold: int = 2000
-    frame_specific_midlines: bool = False
     measurement_order: int = 1
     measure_thickness: float = 0.0
-    reference_wavelength: str = "410"
-    ratio_numerator: str = "410"
-    ratio_denominator: str = "470"
 
     # Registration Parameters
-    register: bool = True
+    channel_register: int = 0
+    population_register: int = 0
 
     n_deriv: float = 0.0
 
@@ -93,8 +96,12 @@ class Experiment:
     # Summarization parameters
     ####################################################################################
     pointwise_summaries: bool = False
-    trimmed_regions: dict = field(default_factory=lambda: constants.trimmed_regions)
-    untrimmed_regions: dict = field(default_factory=lambda: constants.untrimmed_regions)
+    trimmed_regions: dict = field(
+        default_factory=lambda: constants.trimmed_regions_with_medial
+    )
+    untrimmed_regions: dict = field(
+        default_factory=lambda: constants.untrimmed_regions_with_medial
+    )
 
     ####################################################################################
     # Persistence / IO flags
@@ -129,6 +136,9 @@ class Experiment:
         self.settings_filepath = self.experiment_dir.joinpath("settings.yaml")
         self.try_to_load_from_config_file()
 
+        if self.channel_order is None:
+            raise (AttributeError("channel_order not specified"))
+
         # compute the filenames/paths for this experiment
         self.raw_img_stack_filepath = self.experiment_dir.joinpath(
             self.experiment_id + ".tif"
@@ -157,6 +167,22 @@ class Experiment:
             self.experiment_id + "-warp_data.npy"
         )
 
+        self.untrimmed_profile_data_csv_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-untrimmed_profile_data.csv"
+        )
+
+        self.trimmed_profile_data_csv_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-trimmed_profile_data.csv"
+        )
+
+        self.untrimmed_region_data_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-untrimmed_region_data.csv"
+        )
+
+        self.trimmed_region_data_filepath = self.analysis_dir.joinpath(
+            self.experiment_id + "-trimmed_region_data.csv"
+        )
+
         # Other computed properties
         self.strains = pio.load_strain_map_from_disk(self.indexer_filepath)
 
@@ -171,7 +197,8 @@ class Experiment:
         }
 
         # load images
-        self.images = self._load_raw_images()
+        self.raw_images = self._load_raw_images()
+        self.images = ip.subtract_medians(self.raw_images)
 
         # load movement
         self.movement = self._load_movement()
@@ -213,9 +240,10 @@ class Experiment:
         """
         logging.info(f"Loading image data from {self.raw_img_stack_filepath}")
         raw_image_data = pio.load_images(
-            self.raw_img_stack_filepath,
-            self.strains,
+            img_stack_path=self.raw_img_stack_filepath,
+            strain_map=self.strains,
             movement_path=self.movement_filepath,
+            channel_order=self.channel_order,
         )
 
         raw_image_data = raw_image_data.assign_coords(
@@ -227,11 +255,11 @@ class Experiment:
             }
         )
 
-        raw_image_data = raw_image_data.reindex(
-            animal=pd.MultiIndex.from_arrays(
-                [raw_image_data.get_index("animal"), raw_image_data["experiment_id"],]
-            )
-        )
+        # # raw_image_data = raw_image_data.reindex(
+        # #     animal=pd.MultiIndex.from_arrays(
+        # #         [raw_image_data.get_index("animal"), raw_image_data["experiment_id"],]
+        # #     )
+        # )
 
         return raw_image_data
 
@@ -259,66 +287,24 @@ class Experiment:
         return analysis_dir_
 
     @property
-    def summary_table(self):
-        dfs = []
-        for region, bounds in self.scaled_regions_trimmed.items():
-            region_dfs = []
-            for wvl in self.trimmed_profiles.wavelength.data:
-                sub_df = (
-                    self.trimmed_profiles[dict(position=range(bounds[0], bounds[1]))]
-                    .mean(dim="position")
-                    .sel(wavelength=wvl)
-                    .to_pandas()
-                ).reset_index()
-                sub_df["animal"] = range(len(sub_df))
-                sub_df["region"] = region
-                sub_df["experiment"] = self.experiment_id
-                sub_df["strategy"] = self.strategy
-                sub_df["strain"] = self.strains
+    def trimmed_summary_table(self):
+        df = profile_processing.summarize_over_regions(
+            self.trimmed_profiles,
+            regions=self.trimmed_regions,
+            ratio_numerator=self.ratio_numerator,
+            ratio_denominator=self.ratio_denominator,
+        )
+        return df
 
-                sub_df = sub_df.melt(
-                    value_vars=self.trimmed_profiles.pair.data,
-                    var_name="pair",
-                    id_vars=["animal", "strain", "region", "experiment", "strategy"],
-                    value_name=wvl,
-                )
-                region_dfs.append(sub_df)
-            df_tmp = pd.concat(region_dfs, axis=1)
-            df_tmp = df_tmp.loc[:, ~df_tmp.columns.duplicated()]
-            dfs.append(df_tmp)
-        df = pd.concat(dfs, sort=False)
-        df.reset_index(drop=True, inplace=True)
-
-        self._summary_table = pd.concat(dfs)
-
-        if self.movement is not None:
-            self._summary_table = self._summary_table.join(
-                self.movement, on=["animal", "pair"]
-            )
-
-        if self.pointwise_summaries:
-            self._summary_table["pointwise"] = True
-        else:
-            self._summary_table["pointwise"] = False
-            # Calculate R, OxD, and E using region summaries
-            self._summary_table["r"] = (
-                self._summary_table[self.ratio_numerator]
-                / self._summary_table[self.ratio_denominator]
-            )
-            self._summary_table["oxd"] = profile_processing.r_to_oxd(
-                self._summary_table["r"].values,
-                r_min=self.r_min,
-                r_max=self.r_max,
-                instrument_factor=self.instrument_factor,
-            )
-            self._summary_table["e"] = profile_processing.oxd_to_redox_potential(
-                self._summary_table["oxd"].values,
-                midpoint_potential=self.midpoint_potential,
-                z=self.z,
-                temperature=self.temperature,
-            )
-
-        return self._summary_table
+    @property
+    def untrimmed_summary_table(self):
+        df = profile_processing.summarize_over_regions(
+            self.untrimmed_profiles,
+            regions=self.untrimmed_regions,
+            ratio_numerator=self.ratio_numerator,
+            ratio_denominator=self.ratio_denominator,
+        )
+        return df
 
     ####################################################################################
     # PIPELINE
@@ -329,15 +315,14 @@ class Experiment:
 
         logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
         pio.save_images_xarray_to_disk(
-            self.images, self.fl_imgs_dir, prefix=self.experiment_id
+            self.raw_images, self.fl_imgs_dir, prefix=self.experiment_id
         )
 
         self.segment_pharynxes()
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
-        print(self.register)
-        if self.register:
+        if self.channel_register:
             self.register_profiles()
         self.trim_data()
         self.calculate_redox()
@@ -354,7 +339,7 @@ class Experiment:
     def segment_pharynxes(self):
         try:
             self.seg_images = pio.load_and_restack_img_set(
-                self.seg_imgs_dir, self.images
+                self.seg_imgs_dir, self.raw_images
             )
             logging.info(f"Loaded masks from {self.seg_imgs_dir}")
         except Exception as e:
@@ -398,7 +383,7 @@ class Experiment:
             self.rot_fl,
             self.midlines,
             n_points=self.untrimmed_profile_length,
-            frame_specific=self.frame_specific_midlines,
+            frame_specific=True,
             order=self.measurement_order,
             thickness=self.measure_thickness,
         )
@@ -526,53 +511,65 @@ class Experiment:
             ratio_img_path = self.fig_dir.joinpath(
                 f"{self.experiment_id}-ratio_images-pair={pair}.pdf"
             )
-            with PdfPages(ratio_img_path) as pdf:
-                logging.info(f"Saving ratio images to {ratio_img_path}")
-                for i in tqdm(range(self.rot_fl.animal.size)):
-                    R = (
-                        self.rot_fl.sel(wavelength=self.ratio_numerator, pair=pair)
-                        / self.rot_fl.sel(wavelength=self.ratio_denominator, pair=pair)
-                    )[i]
-                    I = self.rot_fl.sel(wavelength=self.ratio_numerator, pair=pair)[i]
-                    fig, ax = plt.subplots(dpi=300)
-                    im, cbar = plots.imshow_ratio_normed(
-                        R,
-                        I,
-                        r_min=u - (std * 1.96),
-                        r_max=u + (std * 1.96),
-                        colorbar=True,
-                        i_max=5000,
-                        i_min=1000,
-                        ax=ax,
-                    )
-                    ax.plot(
-                        *self.midlines.sel(wavelength=self.ratio_numerator, pair=pair)[
-                            i
-                        ]
-                        .values[()]
-                        .linspace(),
-                        color="green",
-                        alpha=0.3,
-                    )
-                    strain = self.rot_fl.strain.values[i]
-                    ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
-                    cax = cbar.ax
-                    for j in range(len(self.trimmed_profiles)):
-                        cax.axhline(
-                            self.trimmed_profiles.sel(wavelength="r", pair=pair)[
-                                j
-                            ].mean(),
-                            color="k",
-                            alpha=0.1,
+            for tp in self.rot_fl.timepoint.values:
+                with PdfPages(ratio_img_path) as pdf:
+                    logging.info(f"Saving ratio images to {ratio_img_path}")
+                    for i in tqdm(range(self.rot_fl.animal.size)):
+                        R = (
+                            self.rot_fl.sel(
+                                wavelength=self.ratio_numerator, pair=pair, timepoint=tp
+                            )
+                            / self.rot_fl.sel(
+                                wavelength=self.ratio_denominator,
+                                pair=pair,
+                                timepoint=tp,
+                            )
+                        )[i]
+                        I = self.rot_fl.sel(
+                            wavelength=self.ratio_numerator, pair=pair, timepoint=tp
+                        )[i]
+                        fig, ax = plt.subplots(dpi=300)
+                        im, cbar = plots.imshow_ratio_normed(
+                            R,
+                            I,
+                            r_min=u - (std * 1.96),
+                            r_max=u + (std * 1.96),
+                            colorbar=True,
+                            i_max=5000,
+                            i_min=1000,
+                            ax=ax,
                         )
-                    cax.axhline(
-                        self.trimmed_profiles.sel(wavelength="r", pair=pair)[i].mean(),
-                        color="k",
-                    )
-                    pdf.savefig()
-                    plt.close("all")
+                        ax.plot(
+                            *self.midlines.sel(
+                                wavelength=self.ratio_numerator, pair=pair, timepoint=tp
+                            )[i]
+                            .values[()]
+                            .linspace(),
+                            color="green",
+                            alpha=0.3,
+                        )
+                        strain = self.rot_fl.strain.values[i]
+                        ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
+                        cax = cbar.ax
+                        for j in range(len(self.trimmed_profiles)):
+                            cax.axhline(
+                                self.trimmed_profiles.sel(
+                                    wavelength="r", pair=pair, timepoint=tp
+                                )[j].mean(),
+                                color="k",
+                                alpha=0.1,
+                            )
+                        cax.axhline(
+                            self.trimmed_profiles.sel(
+                                wavelength="r", pair=pair, timepoint=tp
+                            )[i].mean(),
+                            color="k",
+                        )
+                        pdf.savefig()
+                        plt.close("all")
 
     def persist_profile_data(self):
+        # First, the netCDF4 format
         logging.info(
             f"Saving untrimmed profile data to {self.untrimmed_profile_data_filepath}"
         )
@@ -585,33 +582,30 @@ class Experiment:
         )
         pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_filepath)
 
-        if self.register:
+        # Warps, if necessary
+        if self.channel_register:
             logging.info(f"Saving warp data to {self.warp_data_filepath}")
             with open(self.warp_data_filepath, "wb") as f:
                 np.save(f, self.warps)
 
-    def load_profile_data(self):
-        logging.info(
-            f"Loading trimmed profile data from {self.trimmed_profile_data_filepath}"
+        # Now, save the profile data in "tidy" format as CSV
+        profile_processing.to_dataframe(self.trimmed_profiles, "value").to_csv(
+            self.trimmed_profile_data_csv_filepath
         )
-        self.trimmed_profiles = pio.load_profile_data(
-            self.trimmed_profile_data_filepath
-        )
-
-        logging.info(
-            f"Loading untrimmed profile data from {self.untrimmed_profile_data_filepath}"
-        )
-        self.untrimmed_profiles = pio.load_profile_data(
-            self.untrimmed_profile_data_filepath
+        profile_processing.to_dataframe(self.untrimmed_profiles, "value").to_csv(
+            self.untrimmed_profile_data_csv_filepath
         )
 
     def save_summary_data(self):
         # Persist the region means
-        summary_table_filename = self.analysis_dir.joinpath(
-            self.experiment_id + "-summary_table.csv"
+        logging.info(
+            f"Saving untrimmed region means to {self.untrimmed_region_data_filepath}"
         )
-        logging.info(f"Saving region means to {summary_table_filename}")
-        self.summary_table.to_csv(summary_table_filename, index=False)
+        self.untrimmed_summary_table.to_csv(self.untrimmed_region_data_filepath)
+        logging.info(
+            f"Saving trimmed region means to {self.trimmed_region_data_filepath}"
+        )
+        self.trimmed_summary_table.to_csv(self.trimmed_region_data_filepath)
 
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
@@ -628,22 +622,39 @@ class Experiment:
     ####################################################################################
     # MISC / HELPER
     ####################################################################################
-    def add_experiment_metadata_to_data_array(self, data_array):
-        return data_array.assign_attrs(
-            r_min=self.r_min,
-            r_max=self.r_max,
-            instrument_factor=self.instrument_factor,
-            midpoint_potential=self.midpoint_potential,
-            z=self.z,
-            temperature=self.temperature,
-            strategy=self.strategy,
-            experiment_id=self.experiment_id,
-        )
+    def add_experiment_metadata_to_data_array(self, data_array: xr.DataArray):
+        metadata_keys = [
+            "strategy",
+            "reference_wavelength",
+            "r_min",
+            "r_max",
+            "ratio_numerator",
+            "ratio_denominator",
+            "instrument_factor",
+            "midpoint_potential",
+            "z",
+            "temperature",
+            "measurement_order",
+            "measure_thickness",
+            "channel_register",
+            "population_register",
+            "n_deriv",
+            "warp_n_basis",
+            "warp_order",
+            "warp_lambda",
+            "smooth_lambda",
+            "smooth_n_breaks",
+            "smooth_order",
+            "rough_lambda",
+            "rough_n_breaks",
+            "rough_order",
+        ]
+
+        metadata_dict = {k: getattr(self, k) for k in metadata_keys}
+
+        return data_array.assign_attrs(**metadata_dict)
 
 
-# @click.command()
-# @click.argument("experiment_dir")
-# @click.option("--log-level", default=1, help="0=NONE ; 1=INFO ; 2=DEBUG")
 def run_analysis(experiment_dir, log_level):
     """
     Analyze a stack of ratiometric pharynx images
@@ -660,6 +671,4 @@ def run_analysis(experiment_dir, log_level):
 
 
 if __name__ == "__main__":
-    run_analysis(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47", 1
-    )
+    run_analysis(sys.argv[1], 1)
