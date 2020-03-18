@@ -392,12 +392,42 @@ class Experiment:
     def register_profiles(self):
         logging.info("Registering profiles")
 
-        (self.untrimmed_profiles, self.warps,) = profile_processing.channel_register(
-            self.untrimmed_profiles,
-            n_deriv=self.n_deriv,
-            rough_lambda=self.rough_lambda,
-            smooth_lambda=self.smooth_lambda,
-        )
+        reg_params = [
+            "n_deriv",
+            "warp_n_basis",
+            "warp_order",
+            "warp_lambda",
+            "smooth_lambda",
+            "smooth_n_breaks",
+            "smooth_order",
+            "rough_lambda",
+            "rough_n_breaks",
+            "rough_order",
+        ]
+
+        reg_param_dict = {k: getattr(self, k) for k in reg_params}
+
+        if self.population_register:
+            (
+                self.untrimmed_profiles,
+                self.warps,
+            ) = profile_processing.register_profiles_pop(
+                self.untrimmed_profiles,
+                ratio_numerator=self.ratio_numerator,
+                ratio_denominator=self.ratio_denominator,
+                **reg_param_dict,
+            )
+
+        if self.channel_register:
+            (
+                self.untrimmed_profiles,
+                self.warps,
+            ) = profile_processing.channel_register(
+                self.untrimmed_profiles,
+                ratio_numerator=self.ratio_numerator,
+                ratio_denominator=self.ratio_denominator,
+                **reg_param_dict,
+            )
 
     def trim_data(self):
         logging.info("Trimming intensity data")
@@ -411,6 +441,18 @@ class Experiment:
 
     def calculate_redox(self):
         logging.info("Calculating redox measurements")
+
+        # Images
+        self.images = utils.add_derived_wavelengths(
+            self.images,
+            numerator=self.ratio_denominator,
+            denominator=self.ratio_denominator,
+        )
+        self.rot_fl = utils.add_derived_wavelengths(
+            self.rot_fl,
+            numerator=self.ratio_denominator,
+            denominator=self.ratio_denominator,
+        )
 
         # Expand the trimmed_intensity_data to include new wavelengths
         self.trimmed_profiles = utils.add_derived_wavelengths(

@@ -416,15 +416,16 @@ def _register_profiles_pop(
     reg_profile_data.loc[dict(wavelength="410")] = r410
     reg_profile_data.loc[dict(wavelength="470")] = r470
 
-    reg_profile_data = utils.add_derived_wavelengths(
-        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
-    )
-
     return reg_profile_data, warp_data
 
 
 def register_profiles_pop(
-    profile_data: xr.DataArray, eng=None, progress_bar=False, **reg_kwargs
+    profile_data: xr.DataArray,
+    eng=None,
+    progress_bar=False,
+    ratio_numerator="410",
+    ratio_denominator="470",
+    **reg_kwargs,
 ) -> xr.DataArray:
     try:
         import matlab.engine
@@ -436,7 +437,7 @@ def register_profiles_pop(
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
-    # warp_data = []
+    warp_data = []
     disable_progress = not progress_bar
     for tp in tqdm(profile_data.timepoint, disable=disable_progress, desc="timepoint"):
         for pair in tqdm(profile_data.pair, disable=disable_progress, desc="pair"):
@@ -448,11 +449,18 @@ def register_profiles_pop(
             )
             reg_profile_data.loc[selector] = reg_data
     reg_profile_data = reg_profile_data.assign_attrs(**reg_kwargs)
-    return reg_profile_data
+    reg_profile_data = utils.add_derived_wavelengths(
+        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
+    )
+    return reg_profile_data, warp_data
 
 
 def channel_register(
-    profile_data: xr.DataArray, eng=None, **reg_params
+    profile_data: xr.DataArray,
+    eng=None,
+    ratio_numerator="410",
+    ratio_denominator="470",
+    **reg_params,
 ) -> xr.DataArray:
 
     try:
@@ -465,6 +473,7 @@ def channel_register(
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
+    warp_data = []
 
     for pair in profile_data.pair:
         for timepoint in profile_data.timepoint:
@@ -474,7 +483,10 @@ def channel_register(
             reg_profile_data.loc[dict(pair=pair, timepoint=timepoint)] = reg
             # TODO keep track of warp data
 
-    return reg_profile_data
+    reg_profile_data = utils.add_derived_wavelengths(
+        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
+    )
+    return reg_profile_data, warp_data
 
 
 def _channel_register(
@@ -539,7 +551,6 @@ def _channel_register(
 
     reg_profile_data.loc[dict(wavelength="410")] = r410
     reg_profile_data.loc[dict(wavelength="470")] = r470
-    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data)
 
     return reg_profile_data, warp_data
 
@@ -716,9 +727,12 @@ def oxd_to_redox_potential(
     -------
 
     """
-    return midpoint_potential - (
-        8314.462 * (273.15 + temperature) / (z * 96485.3415)
-    ) * np.log((1 - oxd) / oxd)
+    # We can get NaN ratios because of background subtraction, this is expected
+    # so we suppress the warnings here
+    with np.errstate(invalid="ignore"):
+        return midpoint_potential - (
+            8314.462 * (273.15 + temperature) / (z * 96485.3415)
+        ) * np.log((1 - oxd) / oxd)
 
 
 def find_optimal_regions(initial_regions, err_data, min_width=10, rescale_regions=True):

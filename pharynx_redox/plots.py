@@ -317,7 +317,8 @@ def plot_profile_avg_with_bounds(
     else:
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
 
-    lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
+    with np.errstate(invalid="ignore"):
+        lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     if xs is None:
         xs = np.arange(len(lower))
 
@@ -353,9 +354,10 @@ def plot_profile_avg_with_sem_bounds(data, ax=None, label=None, xs=None, **kwarg
     else:
         ax.plot(mean, label=label, **kwargs)
 
-    sem = stats.sem(data)
+    with np.errstate(invalid="ignore"):
+        sem = stats.sem(data)
 
-    lower, upper = mean - sem, mean + sem
+        lower, upper = mean - sem, mean + sem
     if xs is None:
         xs = np.arange(len(lower))
 
@@ -439,53 +441,56 @@ def imshow_ratio_normed(
         keyword arguments that will be passed along to the ``imshow`` function
     """
 
-    # Convert ratio to RGB
-    if profile_data is None:
-        if (r_min is None) or (r_max is None):
-            raise ValueError("r_min and r_max must be set if profile_data is not given")
-    else:
-        r_mean = np.mean(profile_data)
-        r_std = np.std(profile_data)
-        Z = stats.norm.ppf(
-            prob
-        )  # this converts probability -> "Z" value (e.g. 0.95 -> 1.96)
-        window = r_std * Z
-        r_min_ = r_mean - window
-        r_max_ = r_mean + window
-    if r_min is None:
-        r_min = r_min_
-    if r_max is None:
-        r_max = r_max_
+    with np.errstate(invalid="ignore"):
+        # Convert ratio to RGB
+        if profile_data is None:
+            if (r_min is None) or (r_max is None):
+                raise ValueError(
+                    "r_min and r_max must be set if profile_data is not given"
+                )
+        else:
+            r_mean = np.mean(profile_data)
+            r_std = np.std(profile_data)
+            Z = stats.norm.ppf(
+                prob
+            )  # this converts probability -> "Z" value (e.g. 0.95 -> 1.96)
+            window = r_std * Z
+            r_min_ = r_mean - window
+            r_max_ = r_mean + window
+        if r_min is None:
+            r_min = r_min_
+        if r_max is None:
+            r_max = r_max_
 
-    norm_ratio = colors.Normalize(vmin=r_min, vmax=r_max)
+        norm_ratio = colors.Normalize(vmin=r_min, vmax=r_max)
 
-    cmap = cm.get_cmap(cmap)
+        cmap = cm.get_cmap(cmap)
 
-    img_rgba = cmap(norm_ratio(ratio_img))
+        img_rgba = cmap(norm_ratio(ratio_img))
 
-    # Now convert RGB to HSV, using intensity image as the "V" (value)
-    if i_max is None:
-        i_max = np.max(fl_img)
+        # Now convert RGB to HSV, using intensity image as the "V" (value)
+        if i_max is None:
+            i_max = np.max(fl_img)
 
-    norm_fl = colors.Normalize(vmin=i_min, vmax=i_max, clip=clip)
-    hsv_img = colors.rgb_to_hsv(img_rgba[:, :, :3])  # ignore the "alpha" channel
-    hsv_img[:, :, -1] = norm_fl(fl_img)
+        norm_fl = colors.Normalize(vmin=i_min, vmax=i_max, clip=clip)
+        hsv_img = colors.rgb_to_hsv(img_rgba[:, :, :3])  # ignore the "alpha" channel
+        hsv_img[:, :, -1] = norm_fl(fl_img)
 
-    if ax is None:
-        ax = plt.gca()
+        if ax is None:
+            ax = plt.gca()
 
-    # Convert HSV back to RGB and plot
-    img_rgba = colors.hsv_to_rgb(hsv_img)
+        # Convert HSV back to RGB and plot
+        img_rgba = colors.hsv_to_rgb(hsv_img)
 
-    im = ax.imshow(img_rgba, **imshow_kwargs)
-    im.cmap = cmap
-    im.norm = norm_ratio
+        im = ax.imshow(img_rgba, **imshow_kwargs)
+        im.cmap = cmap
+        im.norm = norm_ratio
 
-    if colorbar:
-        cbar = add_img_colorbar(ax, **colorbar_kwargs_dict)
-        return im, cbar
+        if colorbar:
+            cbar = add_img_colorbar(ax, **colorbar_kwargs_dict)
+            return im, cbar
 
-    return im
+        return im
 
 
 def add_img_colorbar(ax, position="right", size="5%", pad=0.05, **colorbar_kwargs):
