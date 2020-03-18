@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from pharynx_redox import pharynx_io as pio
+from pharynx_redox import io as pio
 from pharynx_redox import image_processing as ip
 from pharynx_redox import experiment
 from pharynx_redox import utils

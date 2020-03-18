@@ -2,7 +2,7 @@ import os
 import numpy as np
 from pathlib import Path
 
-from pharynx_redox import pharynx_io as pio
+from pharynx_redox import io as pio
 
 test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 

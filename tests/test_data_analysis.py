@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pharynx_redox import image_processing as ip, pharynx_io as pio, data_analysis as da
+from pharynx_redox import image_processing as ip, io as pio, data_analysis as da
 
 test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 

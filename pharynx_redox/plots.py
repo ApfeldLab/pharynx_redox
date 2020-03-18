@@ -190,7 +190,7 @@ def plot_stage_layout(
     
     See Also
     --------
-    pharynx_io.load_images
+    io.load_images
     seaborn.lmplot
     """
     df = pd.DataFrame(

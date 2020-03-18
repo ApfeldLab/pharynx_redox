@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 from dataclasses import dataclass
 
-from pharynx_redox import pharynx_io as pio
+from pharynx_redox import io as pio
 
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget
 

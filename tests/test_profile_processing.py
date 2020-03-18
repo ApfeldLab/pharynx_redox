@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import numpy as np
 
-from pharynx_redox import profile_processing as pp, pharynx_io as pio
+from pharynx_redox import profile_processing as pp, io as pio
 
 test_data_path = Path(__file__).resolve().parent.joinpath("test_data")
 

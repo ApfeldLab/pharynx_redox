@@ -1,5 +1,5 @@
 from pharynx_redox import (
-    pharynx_io as pio,
+    io as pio,
     image_processing as ip,
     experiment,
     plots,

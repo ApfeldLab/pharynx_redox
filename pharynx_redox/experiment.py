@@ -29,7 +29,7 @@ from tqdm import tqdm
 
 from pharynx_redox import constants
 from pharynx_redox import image_processing as ip
-from pharynx_redox import pharynx_io as pio
+from pharynx_redox import io as pio
 from pharynx_redox import profile_processing, utils, plots
 
 

@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from .. import pharynx_io as pio
+from .. import io as pio
 from .. import image_processing as ip
 from .. import utils
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget

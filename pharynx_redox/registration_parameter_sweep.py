@@ -1,4 +1,4 @@
-from . import pharynx_io as pio
+from . import io as pio
 from . import image_processing as ip
 from . import experiment
 from . import plots
