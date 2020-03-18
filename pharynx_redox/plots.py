@@ -5,6 +5,8 @@ Miscellaneous and sundry plotting functions for to please your visual cortex
 import logging
 from pprint import pformat
 from typing import Dict, Tuple, Union
+from pathlib import Path
+import warnings
 
 from tqdm.auto import tqdm
 
@@ -25,6 +27,51 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
+
+
+def imshow_r_stack(
+    imgs: xr.DataArray,
+    profile_data: xr.DataArray,
+    output_dir: Union[str, Path],
+    per_animal_cmap: bool = True,
+    fl_wvl: str = "410",
+    cmap: str = "coolwarm",
+    width: int = 80,
+    height: int = 30,
+    progress_bar: bool = True,
+    colorbar=True,
+):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    center = (np.array(imgs.shape[-2:]) / 2).astype(np.int)
+    wpad = int(width / 2)
+    hpad = int(height / 2)
+    for tp in tqdm(imgs.timepoint.values, leave=False, desc="timepoint"):
+        for pair in tqdm(imgs.pair.values, leave=False, desc="pair"):
+            filepath = output_dir.joinpath(f"timepoint={tp}_pair={pair}.pdf")
+            with PdfPages(filepath) as pdf:
+                i = 0
+                for animal in tqdm(imgs.animal.values, desc="animal", leave=False):
+                    fig, ax = plt.subplots()
+                    selector = dict(animal=animal, timepoint=tp, pair=pair)
+                    im, cbar = imshow_ratio_normed(
+                        imgs.sel(wavelength="r", **selector),
+                        imgs.sel(wavelength=fl_wvl, **selector),
+                        profile_data=profile_data.sel(wavelength="r", **selector),
+                        prob=0.999,
+                        colorbar=colorbar,
+                        i_min=0,
+                        i_max=3000,
+                        cmap=cmap,
+                        ax=ax,
+                    )
+                    ax.set_xlim(center[1] - wpad, center[1] + wpad)
+                    ax.set_ylim(center[0] - hpad, center[0] + hpad)
+                    ax.set_title(str(selector))
+                    pdf.savefig()
+                    if (i % 20) == 0:
+                        plt.close("all")
+                    i += 1
 
 
 def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
@@ -312,12 +359,13 @@ def plot_profile_avg_with_bounds(
     if ax is None:
         ax = plt.gca()
 
-    if xs is not None:
-        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
-    else:
-        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if xs is not None:
+            ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+        else:
+            ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
 
-    with np.errstate(invalid="ignore"):
         lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
     if xs is None:
         xs = np.arange(len(lower))
@@ -441,7 +489,8 @@ def imshow_ratio_normed(
         keyword arguments that will be passed along to the ``imshow`` function
     """
 
-    with np.errstate(invalid="ignore"):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         # Convert ratio to RGB
         if profile_data is None:
             if (r_min is None) or (r_max is None):
@@ -489,8 +538,8 @@ def imshow_ratio_normed(
         if colorbar:
             cbar = add_img_colorbar(ax, **colorbar_kwargs_dict)
             return im, cbar
-
-        return im
+        else:
+            return im
 
 
 def add_img_colorbar(ax, position="right", size="5%", pad=0.05, **colorbar_kwargs):

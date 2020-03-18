@@ -367,7 +367,7 @@ def fold_error_pairs(pair0: xr.DataArray, pair1: xr.DataArray):
             pass
     except AttributeError:
         # this is if the pairs are numpy arrays not dataarrays
-        continue
+        return prof_data
 
     return prof_data
 

@@ -2,6 +2,7 @@ import collections
 from dataclasses import dataclass
 from typing import Union, Dict
 import logging
+import warnings
 
 import scipy
 import numpy as np
@@ -282,15 +283,17 @@ def summarize_over_regions(
         data, numerator=ratio_numerator, denominator=ratio_denominator
     )
 
-    region_data = xr.concat(
-        [
-            data[dict(position=range(bounds[0], bounds[1]))].mean(
-                dim="position", skipna=True
-            )
-            for _, bounds in regions.items()
-        ],
-        pd.Index(regions.keys(), name="region"),
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        region_data = xr.concat(
+            [
+                data[dict(position=range(bounds[0], bounds[1]))].mean(
+                    dim="position", skipna=True
+                )
+                for _, bounds in regions.items()
+            ],
+            pd.Index(regions.keys(), name="region"),
+        )
     region_data = region_data.assign_attrs(**data.attrs)
 
     if not pointwise:

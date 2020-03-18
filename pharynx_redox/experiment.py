@@ -16,6 +16,7 @@ import os
 import sys
 import traceback
 import yaml
+import warnings
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -506,103 +507,115 @@ class Experiment:
         return fig_dir
 
     def save_plots(self):
-        fig_dir = self.make_fig_dir()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fig_dir = self.make_fig_dir()
 
-        # First, save profile data plots
-        profile_fig_dir = fig_dir.joinpath("profile_data")
+            # First, save profile data plots
+            profile_fig_dir = fig_dir.joinpath("profile_data")
 
-        # need both trimmed and untrimmed data
-        for prefix, data in zip(
-            ("un", ""), (self.untrimmed_profiles, self.trimmed_profiles)
-        ):
-            profile_data_fig_dir = profile_fig_dir.joinpath(prefix + "trimmed_profiles")
-
-            # individual data
-            individual_data_fig_dir = profile_data_fig_dir.joinpath("individual")
-            individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
-            for title, fig in plots.generate_wvl_pair_profile_plots(data):
-                title = title.replace(" ", "")
-                fig.savefig(
-                    individual_data_fig_dir.joinpath(
-                        f"{self.experiment_id}-{title}-individuals.pdf"
-                    )
+            # need both trimmed and untrimmed data
+            for prefix, data in zip(
+                ("un", ""), (self.untrimmed_profiles, self.trimmed_profiles)
+            ):
+                profile_data_fig_dir = profile_fig_dir.joinpath(
+                    prefix + "trimmed_profiles"
                 )
-                plt.close(fig)
 
-            # avg. data
-            avgs_data_fig_dir = profile_data_fig_dir.joinpath("avgs")
-            avgs_data_fig_dir.mkdir(exist_ok=True, parents=True)
-            for title, fig in plots.generate_avg_wvl_pair_profile_plots(data):
-                title = title.replace(" ", "")
-                fig.savefig(
-                    avgs_data_fig_dir.joinpath(f"{self.experiment_id}-{title}-avgs.pdf")
-                )
-                plt.close(fig)
-
-        # Ratio Images
-        u = self.trimmed_profiles.sel(wavelength="r").mean()
-        std = self.trimmed_profiles.sel(wavelength="r").std()
-
-        for pair in self.rot_fl.pair.values:
-            for tp in self.rot_fl.timepoint.values:
-                ratio_img_path = self.fig_dir.joinpath(
-                    f"{self.experiment_id}-ratio_images-pair={pair};timepoint={tp}.pdf"
-                )
-                with PdfPages(ratio_img_path) as pdf:
-                    logging.info(f"Saving ratio images to {ratio_img_path}")
-                    for i in tqdm(range(self.rot_fl.animal.size)):
-                        R = (
-                            self.rot_fl.sel(
-                                wavelength=self.ratio_numerator, pair=pair, timepoint=tp
-                            )
-                            / self.rot_fl.sel(
-                                wavelength=self.ratio_denominator,
-                                pair=pair,
-                                timepoint=tp,
-                            )
-                        )[i]
-                        I = self.rot_fl.sel(
-                            wavelength=self.ratio_numerator, pair=pair, timepoint=tp
-                        )[i]
-                        fig, ax = plt.subplots(dpi=300)
-                        im, cbar = plots.imshow_ratio_normed(
-                            R,
-                            I,
-                            r_min=u - (std * 1.96),
-                            r_max=u + (std * 1.96),
-                            colorbar=True,
-                            i_max=5000,
-                            i_min=1000,
-                            ax=ax,
+                # individual data
+                individual_data_fig_dir = profile_data_fig_dir.joinpath("individual")
+                individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
+                for title, fig in plots.generate_wvl_pair_profile_plots(data):
+                    title = title.replace(" ", "")
+                    fig.savefig(
+                        individual_data_fig_dir.joinpath(
+                            f"{self.experiment_id}-{title}-individuals.pdf"
                         )
-                        ax.plot(
-                            *self.midlines.sel(
+                    )
+                    plt.close(fig)
+
+                # avg. data
+                avgs_data_fig_dir = profile_data_fig_dir.joinpath("avgs")
+                avgs_data_fig_dir.mkdir(exist_ok=True, parents=True)
+                for title, fig in plots.generate_avg_wvl_pair_profile_plots(data):
+                    title = title.replace(" ", "")
+                    fig.savefig(
+                        avgs_data_fig_dir.joinpath(
+                            f"{self.experiment_id}-{title}-avgs.pdf"
+                        )
+                    )
+                    plt.close(fig)
+
+            # Ratio Images
+            u = self.trimmed_profiles.sel(wavelength="r").mean()
+            std = self.trimmed_profiles.sel(wavelength="r").std()
+
+            for pair in self.rot_fl.pair.values:
+                for tp in self.rot_fl.timepoint.values:
+                    ratio_img_path = self.fig_dir.joinpath(
+                        f"{self.experiment_id}-ratio_images-pair={pair};timepoint={tp}.pdf"
+                    )
+                    with PdfPages(ratio_img_path) as pdf:
+                        logging.info(f"Saving ratio images to {ratio_img_path}")
+                        for i in tqdm(range(self.rot_fl.animal.size)):
+                            fig, ax = plt.subplots(dpi=300)
+                            R = (
+                                self.rot_fl.sel(
+                                    wavelength=self.ratio_numerator,
+                                    pair=pair,
+                                    timepoint=tp,
+                                )
+                                / self.rot_fl.sel(
+                                    wavelength=self.ratio_denominator,
+                                    pair=pair,
+                                    timepoint=tp,
+                                )
+                            )[i]
+                            I = self.rot_fl.sel(
                                 wavelength=self.ratio_numerator, pair=pair, timepoint=tp
                             )[i]
-                            .values[()]
-                            .linspace(),
-                            color="green",
-                            alpha=0.3,
-                        )
-                        strain = self.rot_fl.strain.values[i]
-                        ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
-                        cax = cbar.ax
-                        for j in range(len(self.trimmed_profiles)):
+                            # u-std sometimes has NaN
+                            im, cbar = plots.imshow_ratio_normed(
+                                R,
+                                I,
+                                r_min=u - (std * 1.96),
+                                r_max=u + (std * 1.96),
+                                colorbar=True,
+                                i_max=5000,
+                                i_min=1000,
+                                ax=ax,
+                            )
+                            ax.plot(
+                                *self.midlines.sel(
+                                    wavelength=self.ratio_numerator,
+                                    pair=pair,
+                                    timepoint=tp,
+                                )[i]
+                                .values[()]
+                                .linspace(),
+                                color="green",
+                                alpha=0.3,
+                            )
+                            strain = self.rot_fl.strain.values[i]
+                            ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
+                            cax = cbar.ax
+                            for j in range(len(self.trimmed_profiles)):
+                                cax.axhline(
+                                    self.trimmed_profiles.sel(
+                                        wavelength="r", pair=pair, timepoint=tp
+                                    )[j].mean(),
+                                    color="k",
+                                    alpha=0.1,
+                                )
                             cax.axhline(
                                 self.trimmed_profiles.sel(
                                     wavelength="r", pair=pair, timepoint=tp
-                                )[j].mean(),
+                                )[i].mean(),
                                 color="k",
-                                alpha=0.1,
                             )
-                        cax.axhline(
-                            self.trimmed_profiles.sel(
-                                wavelength="r", pair=pair, timepoint=tp
-                            )[i].mean(),
-                            color="k",
-                        )
-                        pdf.savefig()
-                        plt.close("all")
+                            pdf.savefig()
+                            if (i % 20) == 0:
+                                plt.close("all")
 
     def persist_profile_data(self):
         # First, the netCDF4 format

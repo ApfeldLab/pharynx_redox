@@ -458,7 +458,7 @@ def calculate_midline(
     import warnings
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", np.RankWarning)
+        warnings.simplefilter("ignore")
         try:
             rp = measure.regionprops(measure.label(rot_seg_img))[0]
             xs, ys = rp.coords[:, 1], rp.coords[:, 0]
