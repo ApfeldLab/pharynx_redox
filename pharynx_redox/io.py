@@ -345,20 +345,29 @@ def load_images(
     # Now, assign movement annotations to coordinates if possible
     try:
         mvmt = pd.read_csv(movement_path)
+
+        regions = mvmt.columns.drop(["experiment", "animal", "pair", "timepoint"])
+        try:
+            regions = mvmt.columns.drop(["notes"])
+        except KeyError:
+            logging.info("no notes in movement file")
+
         logging.info(f"Loading movement file from {movement_path}")
         mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size)) for r in mvmt.region.unique()
+            r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size))
+            for r in regions
         }
+
         logging.info("Adding movement annotations to image data")
         for animal in mvmt.animal.unique():
             for pair in mvmt.pair.unique():
-                for region in mvmt.region.unique():
+                for region in regions:
                     idx = mvmt.index[
-                        (mvmt["animal"] == animal)
-                        & (mvmt["region"] == region)
-                        & (mvmt["pair"] == pair)
+                        (mvmt["animal"] == animal) & (mvmt["pair"] == pair)
                     ]
-                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx]["movement"]
+                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx][region].values[
+                        0
+                    ]
     except (IOError, ValueError) as e:
         default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
 
@@ -372,15 +381,17 @@ def load_images(
             )
 
         mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size)) for r in default_mvmt_regions
+            r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size))
+            for r in default_mvmt_regions
         }
 
     mvmt_coords = {
-        f"mvmt-{r}": (("animal", "pair"), mvmt_labels)
+        f"mvmt-{r}": (("animal", "pair", "timepoint"), mvmt_labels)
         for r, mvmt_labels in mvmt_metadata.items()
     }
 
     da = da.assign_coords(mvmt_coords)
+    da = da.assign_coords({"animal": np.arange(da.animal.size)})
 
     return da
 
@@ -658,4 +669,3 @@ if __name__ == "__main__":
     load_strain_map_from_disk(
         "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv"
     )
-

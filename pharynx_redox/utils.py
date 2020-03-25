@@ -5,6 +5,7 @@ import subprocess
 import typing
 from collections import Counter
 from pathlib import Path
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -508,9 +509,11 @@ def add_derived_wavelengths(data, numerator="410", denominator="470"):
     [type]
         [description]
     """
-    r = data.sel(wavelength=numerator) / data.sel(wavelength=denominator)
-    oxd = pp.r_to_oxd(r)
-    e = pp.oxd_to_redox_potential(oxd)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = data.sel(wavelength=numerator) / data.sel(wavelength=denominator)
+        oxd = pp.r_to_oxd(r)
+        e = pp.oxd_to_redox_potential(oxd)
 
     # Need to add time coordinates to these dimensions
     # time comes from avg(time(410), time(470))

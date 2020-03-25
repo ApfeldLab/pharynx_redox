@@ -322,6 +322,7 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
                     S = segment_pharynx(I)
                     seg[selector] = extract_largest_binary_object(S)
                     i = i + 1
+    seg = seg.astype(np.uint8)
     return seg
 
 

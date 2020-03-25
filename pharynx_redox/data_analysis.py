@@ -45,11 +45,7 @@ def fold_v_point_table(
         sub_df = []
         for pair in [0, 1]:
             pair_df = profile_processing.summarize_over_regions(
-                data.sel(wavelength=wvl, pair=pair),
-                regions,
-                rescale=True,
-                add_attrs=False,
-                value_name=val_name,
+                data.sel(wavelength=wvl, pair=pair), regions, value_name=val_name,
             )
             pair_df["pair"] = pair
             sub_df.append(pair_df)
@@ -126,7 +122,9 @@ def get_mvmt_codes(data: xr.DataArray, regions: typing.Union[str, typing.List[st
 
 
 def get_moving_idx(
-    data: xr.DataArray, regions: typing.Union[str, typing.List[str]]
+    data: xr.DataArray,
+    regions: typing.Union[str, typing.List[str]],
+    mvmt_thresh: int = 2,
 ) -> typing.Tuple[xr.DataArray, xr.DataArray]:
     """
     Returns a boolean indexing array to select the moving animals from the data array.
@@ -156,34 +154,38 @@ def get_moving_idx(
     if type(regions) == str:
         regions = [regions]
 
-    st_idx = np.logical_and.reduce(
-        [
-            (data.sel(pair=0)[f"mvmt-{region}"] == 0)
-            & (data.sel(pair=1)[f"mvmt-{region}"] == 0)
-            for region in regions
-        ]
+    re_str = f"mvmt-({'|'.join(regions)})$"
+    mvmt_df = (
+        data.coords.to_dataset()
+        .to_dataframe()
+        .filter(regex=re_str, axis=1)
+        .groupby(["animal", "timepoint", "pair"])
+        .max()
+        .applymap(lambda x: x >= 2)
     )
-    st_pair_0_idx = np.logical_and.reduce(
-        [data.sel(pair=0)[f"mvmt-{region}"] == 0 for region in regions]
+    mvmt_df = mvmt_df.any("columns").unstack("pair")
+
+    mv_df = np.logical_xor(mvmt_df[0], mvmt_df[1])
+    mv_idx = {
+        k: np.unique(v)
+        for k, v in mv_df[mv_df].index.to_frame().to_dict(orient="list").items()
+    }
+
+    st_df = (
+        data.coords.to_dataset()
+        .to_dataframe()
+        .filter(regex=re_str, axis=1)
+        .groupby(["animal", "timepoint", "pair"])
+        .max()
+        .applymap(lambda x: x == 0)
+        .all("columns")
+        .unstack("pair")
+        .all("columns")
     )
-    mv_pair_1_idx = np.logical_or.reduce(
-        [data.sel(pair=1)[f"mvmt-{region}"] != 0 for region in regions]
-    )
-    mv_idx = np.logical_and(st_pair_0_idx, mv_pair_1_idx)
-    # mv_both_idx = np.logical_or.reduce(
-    #     [
-    #         (data.sel(pair=0)[f"mvmt-{region}"] != 0)
-    #         & (data.sel(pair=1)[f"mvmt-{region}"] != 0)
-    #         for region in regions
-    #     ]
-    # )
-    # mv_first_idx = np.logical_or.reduce(
-    #     [
-    #         (data.sel(pair=0)[f"mvmt-{region}"] != 0)
-    #         & (data.sel(pair=1)[f"mvmt-{region}"] == 0)
-    #         for region in regions
-    #     ]
-    # )
+    st_idx = {
+        k: np.unique(v)
+        for k, v in st_df[st_df].index.to_frame().to_dict(orient="list").items()
+    }
 
     return mv_idx, st_idx  # , mv_both_idx, mv_first_idx
 

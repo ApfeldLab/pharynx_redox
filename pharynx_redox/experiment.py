@@ -198,9 +198,6 @@ class Experiment:
         self.raw_images = self._load_raw_images()
         self.images = ip.subtract_medians(self.raw_images)
 
-        # load movement
-        self.movement = self._load_movement()
-
     def try_to_load_from_config_file(self):
         try:
             with open(self.settings_filepath, "r") as f:
@@ -362,12 +359,12 @@ class Experiment:
 
         logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
         pio.save_images_xarray_to_disk(
-            self.rot_fl, self.rot_fl_dir, prefix=self.experiment_id
+            self.rot_fl.astype(np.uint32), self.rot_fl_dir, prefix=self.experiment_id
         )
 
         logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
         pio.save_images_xarray_to_disk(
-            self.rot_seg, self.rot_seg_dir, prefix=self.experiment_id
+            self.rot_seg.astype(np.uint8), self.rot_seg_dir, prefix=self.experiment_id
         )
 
     def calculate_midlines(self):
@@ -381,7 +378,7 @@ class Experiment:
             self.rot_fl,
             self.midlines,
             n_points=self.untrimmed_profile_length,
-            frame_specific=True,
+            frame_specific=False,
             order=self.measurement_order,
             thickness=self.measure_thickness,
         )
@@ -574,7 +571,6 @@ class Experiment:
                             I = self.rot_fl.sel(
                                 wavelength=self.ratio_numerator, pair=pair, timepoint=tp
                             )[i]
-                            # u-std sometimes has NaN
                             im, cbar = plots.imshow_ratio_normed(
                                 R,
                                 I,
