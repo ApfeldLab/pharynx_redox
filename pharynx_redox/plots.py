@@ -27,6 +27,7 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
+from skimage.measure import label, regionprops
 
 
 def imshow_r_stack(
@@ -745,4 +746,94 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
 
     plt.tight_layout()
 
+    return fig
+
+
+def plot_pharynx_R_imgs(
+    img: xr.DataArray,
+    mask: xr.DataArray,
+    crop: bool = True,
+    crop_pad: int = 10,
+    cmap_normalization: str = "frame",
+    cmap: str = "coolwarm",
+    fig_kwargs=None,
+):
+    """
+    Generate a figure which has ratio images broken up by timepoint and pair
+    
+    Parameters
+    ----------
+    img : xr.DataArray
+        The image to display. Should contain a single animal, and the `r` and `410`
+        wavelengths.
+    mask : xr.DataArray
+        The mask with which a ROI will be used for calculated the average R value of
+        the pharynx
+    crop : bool, optional
+        Whether the image should be cropped, by default True
+    crop_pad : int, optional
+        The padding for the crop, as number of pixels on each side of
+        the bounding box surrounding the pharynx, by default 10
+    cmap_normalization : str, optional
+        How the colormap should be normalized, by default "frame". "frame" means each
+        timepoint and pair will be normalized separately
+    cmap : str, optional
+        The colormap to use, by default "coolwarm"
+    fig_kwargs : [type], optional
+        Keyword arguments to be passed to `matplotlib.pyplot.figure`, by default None
+    
+    Raises
+    ------
+    ValueError
+        [description]
+    ValueError
+        [description]
+    NotImplementedError
+        [description]
+    """
+    if "animal" in img.dims:
+        raise ValueError(
+            f"Image must contain single animal. Given stack contains {img.animal.size} animals"
+        )
+
+    valid_cmap_normalizations = ["frame", "animal"]
+    if cmap_normalization not in valid_cmap_normalizations:
+        raise ValueError(
+            f"`cmap_normaliztion` must be one of {valid_cmap_normalizations} (given <{cmap_normalization}>)"
+        )
+
+    fig = plt.figure(constrained_layout=True)
+    gs = gridspec.GridSpec(ncols=img.pair.size, nrows=img.timepoint.size, figure=fig)
+
+    for i, tp in enumerate(img.timepoint.values):
+        for j, pair in enumerate(img.pair.values):
+            ax = fig.add_subplot(gs[i, j])
+            ax.set_title(f"timepoint = {tp} | Pair={pair}")
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            R = img.sel(wavelength="r", timepoint=tp, pair=pair).values
+            I = img.sel(wavelength="410", timepoint=tp, pair=pair).values
+            M = mask.sel(wavelength="410", timepoint=tp, pair=pair).astype(bool).values
+
+            P_r = R[M]
+
+            if cmap_normalization == "frame":
+                r_min = np.mean(P_r) - 1.96 * np.std(P_r)
+                r_max = np.mean(P_r) + 1.96 * np.std(P_r)
+                print(r_min, r_max)
+
+                i_max = 0.30 * regionprops(label(M), intensity_image=I)[0].max_intensity
+            if cmap_normalization == "animal":
+                raise NotImplementedError
+
+            if crop:
+                rp = regionprops(label(M), intensity_image=R)[0]
+                (min_row, min_col, max_row, max_col) = rp.bbox
+                ax.set_ylim(max_row + crop_pad, min_row - crop_pad)
+                ax.set_xlim(min_col - crop_pad, max_col + crop_pad)
+
+            plots.imshow_ratio_normed(
+                R, I, cmap=cmap, i_min=0, i_max=i_max, r_min=r_min, r_max=r_max, ax=ax
+            )
     return fig
