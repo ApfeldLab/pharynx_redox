@@ -821,7 +821,6 @@ def plot_pharynx_R_imgs(
             if cmap_normalization == "frame":
                 r_min = np.mean(P_r) - 1.96 * np.std(P_r)
                 r_max = np.mean(P_r) + 1.96 * np.std(P_r)
-                print(r_min, r_max)
 
                 i_max = 0.30 * regionprops(label(M), intensity_image=I)[0].max_intensity
             if cmap_normalization == "animal":
@@ -833,7 +832,7 @@ def plot_pharynx_R_imgs(
                 ax.set_ylim(max_row + crop_pad, min_row - crop_pad)
                 ax.set_xlim(min_col - crop_pad, max_col + crop_pad)
 
-            plots.imshow_ratio_normed(
+            imshow_ratio_normed(
                 R, I, cmap=cmap, i_min=0, i_max=i_max, r_min=r_min, r_max=r_max, ax=ax
             )
     return fig

@@ -348,7 +348,7 @@ def fold_error(data):
 
 def fold_error_pairs(pair0: xr.DataArray, pair1: xr.DataArray):
     with np.errstate(divide="ignore"):
-        prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
+        prof_data = 100 * (np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1)
 
     try:
         prof_data = prof_data.assign_attrs(pair0.attrs).assign_attrs(pair1.attrs)

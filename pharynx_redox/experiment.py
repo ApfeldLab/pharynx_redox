@@ -345,7 +345,9 @@ class Experiment:
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
             logging.info(f"writing masks to {self.seg_imgs_dir}")
             pio.save_images_xarray_to_disk(
-                self.seg_images, self.seg_imgs_dir, prefix=self.experiment_id
+                self.seg_images.astype(np.uint8),
+                self.seg_imgs_dir,
+                prefix=self.experiment_id,
             )
 
     def align_and_center(self):
@@ -359,7 +361,7 @@ class Experiment:
 
         logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
         pio.save_images_xarray_to_disk(
-            self.rot_fl.astype(np.uint32), self.rot_fl_dir, prefix=self.experiment_id
+            self.rot_fl.astype(np.uint16), self.rot_fl_dir, prefix=self.experiment_id
         )
 
         logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
@@ -543,7 +545,20 @@ class Experiment:
                     )
                     plt.close(fig)
 
-            # Ratio Images
+            # frame-normed Ratio Images
+            mvmt_annotation_img_path = self.fig_dir.joinpath(
+                f"{self.experiment_id}-movement_annotation_imgs.pdf"
+            )
+            imgs = utils.add_derived_wavelengths(self.images)
+            with PdfPages(mvmt_annotation_img_path) as pdf:
+                for i in tqdm(range(self.raw_images.animal.size)):
+                    fig = plots.plot_pharynx_R_imgs(imgs[i], mask=self.seg_images[i])
+                    fig.suptitle(f"animal = {i}")
+                    pdf.savefig(fig)
+                    if (i % 20) == 0:
+                        plt.close("all")
+
+            # Pop-normed ratio images
             u = self.trimmed_profiles.sel(wavelength="r").mean()
             std = self.trimmed_profiles.sel(wavelength="r").std()
 
