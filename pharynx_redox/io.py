@@ -20,6 +20,11 @@ def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
     # data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
     data = xr.load_dataarray(path)
 
+    try:
+        data = data.rename({"animal_": "animal"})
+    except ValueError:
+        pass
+
     return data
 
 

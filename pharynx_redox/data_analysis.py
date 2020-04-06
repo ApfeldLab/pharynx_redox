@@ -156,7 +156,8 @@ def get_moving_idx(
 
     re_str = f"mvmt-({'|'.join(regions)})$"
     mvmt_df = (
-        data.coords.to_dataset()
+        data.reset_index("animal")
+        .coords.to_dataset()
         .to_dataframe()
         .filter(regex=re_str, axis=1)
         .groupby(["animal", "timepoint", "pair"])
@@ -172,7 +173,8 @@ def get_moving_idx(
     }
 
     st_df = (
-        data.coords.to_dataset()
+        data.reset_index("animal")
+        .coords.to_dataset()
         .to_dataframe()
         .filter(regex=re_str, axis=1)
         .groupby(["animal", "timepoint", "pair"])

@@ -76,8 +76,8 @@ class Experiment:
     measure_thickness: float = 0.0
 
     # Registration Parameters
-    channel_register: int = 0
-    population_register: int = 0
+    channel_register: int = 1
+    population_register: int = 1
 
     n_deriv: float = 0.0
 
@@ -106,7 +106,7 @@ class Experiment:
     ####################################################################################
     # Persistence / IO flags
     ####################################################################################
-    should_save_plots: bool = True
+    should_save_plots: bool = False
     should_save_profile_data: bool = True
     should_save_summary_data: bool = True
 
@@ -317,8 +317,7 @@ class Experiment:
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
-        if self.channel_register:
-            self.register_profiles()
+        self.register_profiles()
         self.trim_data()
         self.calculate_redox()
         # self.do_manual_AP_flips()
@@ -390,8 +389,6 @@ class Experiment:
         )
 
     def register_profiles(self):
-        logging.info("Registering profiles")
-
         reg_params = [
             "n_deriv",
             "warp_n_basis",
@@ -408,6 +405,7 @@ class Experiment:
         reg_param_dict = {k: getattr(self, k) for k in reg_params}
 
         if self.population_register:
+            logging.info("Standardizing profiles")
             (
                 self.untrimmed_profiles,
                 self.warps,
@@ -419,6 +417,7 @@ class Experiment:
             )
 
         if self.channel_register:
+            logging.info("Channel-Registering profiles")
             (
                 self.untrimmed_profiles,
                 self.warps,

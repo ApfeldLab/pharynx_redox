@@ -279,9 +279,12 @@ def summarize_over_regions(
         regions = utils.scale_region_boundaries(regions, data.shape[-1])
 
     # Ensure that derived wavelengths are present
-    data = utils.add_derived_wavelengths(
-        data, numerator=ratio_numerator, denominator=ratio_denominator
-    )
+    try:
+        data = utils.add_derived_wavelengths(
+            data, numerator=ratio_numerator, denominator=ratio_denominator
+        )
+    except ValueError:
+        pass
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -297,24 +300,32 @@ def summarize_over_regions(
     region_data = region_data.assign_attrs(**data.attrs)
 
     if not pointwise:
-        region_data.loc[dict(wavelength="r")] = region_data.sel(
-            wavelength=ratio_numerator
-        ) / region_data.sel(wavelength=ratio_denominator)
-        region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
-            region_data.sel(wavelength="r"),
-            r_min=data.r_min,
-            r_max=data.r_max,
-            instrument_factor=data.instrument_factor,
-        )
-        region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
-            region_data.sel(wavelength="oxd"),
-            midpoint_potential=data.midpoint_potential,
-            z=data.z,
-            temperature=data.temperature,
-        )
+        try:
+            region_data.loc[dict(wavelength="r")] = region_data.sel(
+                wavelength=ratio_numerator
+            ) / region_data.sel(wavelength=ratio_denominator)
+            region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
+                region_data.sel(wavelength="r"),
+                r_min=data.r_min,
+                r_max=data.r_max,
+                instrument_factor=data.instrument_factor,
+            )
+            region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
+                region_data.sel(wavelength="oxd"),
+                midpoint_potential=data.midpoint_potential,
+                z=data.z,
+                temperature=data.temperature,
+            )
+        except ValueError:
+            pass
 
     df = to_dataframe(region_data, value_name)
     df["pointwise"] = pointwise
+
+    try:
+        df.set_index(["experiment_id",], append=True, inplace=True)
+    except ValueError:
+        pass
 
     return df
 

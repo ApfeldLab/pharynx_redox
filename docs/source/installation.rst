@@ -72,20 +72,3 @@ output of the above command)::
     $ cd <matlabroot>/extern/engines/python
     $ conda activate pharedox
     $ python setup.py install
-
-Test Installation
------------------
-
-You should now have a complete installation! To make sure that everything works, run
-the automated test suite. Open a system prompt, change directory to the source code, and
-execute the following command::
-
-    $ pytest
-
-If everything is working, there should be no errors (warnings are ok). The final output
-line should look something like::
-
-    ========= 15 passed, 2 skipped, 2 warnings in 65.97s (0:01:05) =========
-
-.. _PhaRedox source code directory: https://github.com/half-adder/pharynx_redox 
-.. _Anaconda download page: https://www.anaconda.com/distribution/
