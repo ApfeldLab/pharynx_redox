@@ -147,3 +147,6 @@ venv.bak/
 
 # VSCODE
 .vscode/
+
+# Keras Models
+*.h5
