@@ -1,3 +1,7 @@
+"""
+A Basic GUI based on napari
+"""
+import sys
 import numpy as np
 import napari
 from skimage.measure import label
@@ -11,8 +15,6 @@ from PyQt5.QtCore import pyqtSignal
 from qtpy.QtWidgets import QApplication, QSplashScreen
 from pharynx_redox.gui.qt_py_files.pipeline_buttons import Ui_Form
 from pharynx_redox import experiment, utils
-
-from pluggy import HookimplMarker
 
 import logging
 
@@ -212,11 +214,8 @@ if __name__ == "__main__":
         datefmt="%I:%M:%S",
     )
 
-    exp = experiment.Experiment(
-        Path(
-            "/Volumes/MediaDrive/Research/data/paired_ratio/new_data/2019_12_18_daf1daf3"
-        )
-    )
+    exp_dir = sys.argv[1]
+    exp = experiment.Experiment(Path(exp_dir))
 
     app = App(experiment=exp)
     app.run()

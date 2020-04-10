@@ -14,6 +14,8 @@ import pandas as pd
 import xarray as xr
 from scipy import ndimage as ndi
 from skimage.measure import label, regionprops
+import logging
+
 
 from pharynx_redox import experiment
 from pharynx_redox import profile_processing as pp

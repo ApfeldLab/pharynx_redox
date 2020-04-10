@@ -725,7 +725,7 @@ def run_analysis(experiment_dir, log_level):
             level=log_map[log_level],
             datefmt="%I:%M:%S",
         )
-    e = Experiment(Path(experiment_dir)).full_pipeline()
+    Experiment(Path(experiment_dir)).full_pipeline()
 
 
 if __name__ == "__main__":
