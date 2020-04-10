@@ -29,7 +29,6 @@ setup(
     packages=["pharynx_redox"],
     python_requires="~=3.7",
     install_requires=[
-        "cached-property",
         "jupyter",
         "matplotlib",
         "numpy",

@@ -23,7 +23,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
 import xarray as xr
-from cached_property import cached_property
 from numpy.polynomial import Polynomial
 import click
 from tqdm import tqdm

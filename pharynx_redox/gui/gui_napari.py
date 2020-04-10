@@ -1,0 +1,200 @@
+import numpy as np
+import napari
+from skimage.measure import label
+from skimage import morphology
+import xarray as xr
+
+from pathlib import Path
+from pharynx_redox import io, image_processing as ip
+from qtpy.QtWidgets import QWidget
+from PyQt5.QtCore import pyqtSignal
+from qtpy.QtWidgets import QApplication, QSplashScreen
+from pharynx_redox.gui.qt_py_files.pipeline_buttons import Ui_Form
+
+from pluggy import HookimplMarker
+
+
+def segment_pharynxes(imgs, t, skip_wvl=["TL"], ref_wvl="410"):
+    segs = imgs > t
+    for wvl in skip_wvl:
+        try:
+            segs.loc[dict(wavelength=wvl)] = False
+        except:
+            continue
+
+    segs = xr.apply_ufunc(
+        lambda x: label(x),
+        segs,
+        vectorize=True,
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["y", "x"]],
+    )
+    return segs.sel(wavelength=ref_wvl)
+
+
+def remove_small_objects(label_data, min_obj_size=5):
+    return xr.apply_ufunc(
+        lambda x: morphology.remove_small_objects(x, min_obj_size),
+        label_data,
+        vectorize=True,
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["y", "x"]],
+    )
+
+
+napari_hook_implementation = HookimplMarker("napari")
+readable_extensions = tuple(set(x for f in formats for x in f.extensions))
+
+
+@napari_hook_implementation
+def napari_get_reader(path):
+    """A basic implementation of the napari_get_reader hook specification."""
+    # if we know we cannot read the file, we immediately return None.
+    if not path.endswith(readable_extensions):
+        return None
+    # otherwise we return the *function* that can read ``path``.
+    return reader_function
+
+
+def reader_function(path):
+    """Take a path and returns a list of LayerData tuples."""
+    data = imread(path)
+    # Readers are expected to return data as a list of tuples, where each tuple
+    # is (data, [meta_dict, [layer_type]])
+    return [(data,)]
+
+
+class PipelineButtonsWidget(QWidget):
+
+    segment_sig = pyqtSignal()
+    t_slider_changed = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super(PipelineButtonsWidget, self).__init__(*args, **kwargs)
+
+        self.ui = Ui_Form()
+        self.ui.setupUi(self)
+
+        self.ui.thresholdSlider.setMinimum(np.iinfo(np.uint16).min)
+        self.ui.thresholdSlider.setMaximum(np.iinfo(np.uint16).max)
+
+        self.ui.segmentButton.pressed.connect(self.segment_sig.emit)
+
+        self.ui.thresholdSlider.valueChanged.connect(self.handle_t_slider_changed)
+        self.ui.thresholdSpinBox.valueChanged.connect(
+            self.handle_thresholdSpinBox_changed
+        )
+
+    def handle_t_slider_changed(self):
+        self.ui.thresholdSpinBox.setValue(self.ui.thresholdSlider.value())
+        self.t_slider_changed.emit()
+
+    def handle_thresholdSpinBox_changed(self):
+        self.ui.thresholdSlider.setValue(self.ui.thresholdSpinBox.value())
+
+
+class App:
+
+    viewer = None
+    masks = None
+    imgs = None
+
+    log_transform = False
+
+    buttons = None
+
+    def __init__(self, imgs=None):
+        self.imgs = imgs
+
+    def set_up_viewer(self):
+        self.viewer = napari.Viewer()
+        self.buttons = PipelineButtonsWidget()
+        self.viewer.window.add_dock_widget(self.buttons, name="pipeline", area="left")
+
+        # connect signals/slots
+        self.buttons.segment_sig.connect(self.handle_segment_pressed)
+        self.buttons.t_slider_changed.connect(self.handle_t_slider_changed)
+        self.buttons.ui.removeObjectsButton.pressed.connect(
+            self.handle_remove_objects_pressed
+        )
+        self.buttons.ui.runNeuronsButton.pressed.connect(self.run_neuron_analysis)
+        self.viewer.layers.events.changed.connect(self.on_layers_change)
+
+    def run_neuron_analysis(self):
+        if self.masks is not None:
+            df = ip.measure_under_labels(self.imgs, self.masks)
+
+            df.to_csv("~/Desktop/neurons_gui.csv")
+
+    def on_layers_change(self, event):
+        if self.get_layer("masks") is None:
+            self.masks = None
+        print(self.masks)
+
+    def get_layer(self, name):
+        for layer in self.viewer.layers:
+            if layer.name == name:
+                return layer
+        return None
+
+    def handle_remove_objects_pressed(self):
+        if self.masks is None:
+            return
+
+        layer = self.get_layer("masks")
+
+        min_obj_size = self.buttons.ui.smallObjectSizeSpinBox.value()
+        self.masks = remove_small_objects(self.masks, min_obj_size)
+
+        layer.data = self.masks.values
+        layer.refresh()
+
+    def handle_segment_pressed(self):
+        t = self.buttons.ui.thresholdSpinBox.value()
+        masks = segment_pharynxes(imgs, t)
+
+        if self.masks is None:
+            self.masks = masks
+            l = self.viewer.add_labels(self.masks, name="masks")
+        else:
+            self.update_threshold(t)
+
+    def handle_run_analysis(self):
+        print("running analysis")
+
+    def handle_t_slider_changed(self):
+        t = self.buttons.ui.thresholdSlider.value()
+        self.update_threshold(t)
+
+    def update_threshold(self, t):
+        masks = segment_pharynxes(imgs, t)
+        if self.masks is None:
+            return
+        else:
+            self.masks = masks
+            self.get_layer("masks").data = masks
+            self.get_layer("masks").refresh()
+
+    def run(self):
+        with napari.gui_qt():
+            self.set_up_viewer()
+
+            if self.imgs is not None:
+                for wvl in self.imgs.wavelength.values:
+                    self.viewer.add_image(self.imgs.sel(wavelength=wvl), name=wvl)
+
+
+if __name__ == "__main__":
+
+    imgs = io.load_images(
+        Path(
+            "/Users/sean/Desktop/neurons/2020_03_12_Pmec-4_day2/2020_03_12_Pmec-4_day2.tif"
+        ),
+        channel_order=["470", "410", "470", "410", "TL"],
+        indexer_path=Path(
+            "/Users/sean/Desktop/neurons/2020_03_12_Pmec-4_day2/2017_02_27-HD233_HD236-indexer.csv"
+        ),
+    )
+
+    app = App(imgs=imgs)
+    app.run()

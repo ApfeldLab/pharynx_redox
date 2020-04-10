@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import xarray as xr
+import pandas as pd
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
@@ -15,6 +16,68 @@ from skimage.external import tifffile
 from skimage.transform import AffineTransform, warp
 
 from pharynx_redox import profile_processing
+
+
+def measure_under_labels(
+    I: xr.DataArray,
+    S: xr.DataArray,
+    ref_wvl: str = "410",
+    ratio_numerator="410",
+    ratio_denominator="470",
+    measurements: List[str] = ["label", "mean_intensity", "area"],
+):
+    """Measure the intensities of each channel under the label image"""
+    df = []
+    I = I.where(I.wavelength != "TL", drop=True)
+
+    for a in I.animal.values:
+        for tp in I.timepoint.values:
+            for p in I.pair.values:
+                for wvl in I.wavelength.values:
+                    img_selector = dict(animal=a, timepoint=tp, pair=p, wavelength=wvl)
+                    seg_selector = dict(
+                        animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
+                    )
+
+                    if "wavelength" in S.dims:
+                        seg_frame = S.sel(
+                            animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
+                        )
+                    else:
+                        # single wavelength was passed
+                        seg_frame = S.sel(animal=a, timepoint=tp, pair=p)
+
+                    L = measure.label(seg_frame)
+
+                    sub_df = pd.DataFrame(
+                        measure.regionprops_table(
+                            L,
+                            intensity_image=I.sel(**img_selector).values,
+                            properties=measurements,
+                        )
+                    )
+
+                    sub_df["animal"] = a
+                    sub_df["timepoint"] = tp
+                    sub_df["pair"] = p
+                    sub_df["wavelength"] = wvl
+                    sub_df["strain"] = I.sel(**img_selector).strain.values
+
+                    df.append(sub_df)
+
+    df = pd.concat(df)
+    df = df.set_index(["animal", "timepoint", "pair", "wavelength", "label"]).unstack(
+        "wavelength"
+    )
+    df[("mean_intensity", "r")] = (
+        df["mean_intensity"][ratio_numerator] / df["mean_intensity"][ratio_denominator]
+    )
+    df[("area", "r")] = df[("area", ratio_numerator)]
+    df[("strain", "r")] = df[("area", ratio_numerator)]
+
+    df = df.stack("wavelength").unstack("wavelength")
+
+    return df
 
 
 def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
@@ -322,7 +385,9 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
                     S = segment_pharynx(I)
                     seg[selector] = extract_largest_binary_object(S)
                     i = i + 1
-    seg = 255 * seg.astype(np.uint8)
+    # seg = 255 * seg.astype(np.uint8)
+    seg = seg.astype(np.uint8)
+    seg.loc[dict(wavelength="TL")] = 0
     return seg
 
 

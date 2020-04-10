@@ -330,6 +330,17 @@ def summarize_over_regions(
     return df
 
 
+def summarize_over_pts(
+    data: xr.DataArray,
+    regions: Dict,
+    rescale: bool = True,
+    value_name: str = "value",
+    ratio_numerator: str = "410",
+    ratio_denominator: str = "470",
+):
+    pass
+
+
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
     l: float = 1.12,
