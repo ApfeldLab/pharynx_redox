@@ -73,9 +73,9 @@ def measure_under_labels(
         df["mean_intensity"][ratio_numerator] / df["mean_intensity"][ratio_denominator]
     )
     df[("area", "r")] = df[("area", ratio_numerator)]
-    df[("strain", "r")] = df[("area", ratio_numerator)]
+    df[("strain", "r")] = df[("strain", ratio_numerator)]
 
-    df = df.stack("wavelength").unstack("wavelength")
+    df = df.stack("wavelength")
 
     return df
 
