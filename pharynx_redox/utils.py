@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import argparse
 import os
 import re
@@ -15,6 +17,15 @@ from skimage.measure import label, regionprops
 
 from pharynx_redox import experiment
 from pharynx_redox import profile_processing as pp
+
+
+def open_folder(path):
+    if sys.platform == "darwin":
+        subprocess.check_call(["open", "--", path])
+    elif sys.platform == "linux2":
+        subprocess.check_call(["xdg-open", "--", path])
+    elif sys.platform == "win32":
+        subprocess.check_call(["explorer", path])
 
 
 def requires_matlab(func):
