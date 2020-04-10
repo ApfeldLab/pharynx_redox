@@ -133,9 +133,14 @@ class App:
         if self.experiment.seg_images is not None:
             df = ip.measure_under_labels(
                 self.experiment.images, self.experiment.seg_images
-            )
+            ).reset_index()
 
-            df.to_csv("~/Desktop/neurons_gui.csv")
+            df.to_csv(
+                self.experiment.analysis_dir.joinpath(
+                    self.experiment.experiment_id + "-neuron_analysis.csv"
+                )
+            )
+            self.showDialog("Analysis finished!")
 
     def showDialog(self, message, title=""):
         msg_box = QMessageBox()
@@ -178,7 +183,7 @@ class App:
 
         if self.experiment.seg_images is None:
             self.experiment.seg_images = masks
-            l = self.viewer.add_labels(self.experiment.seg_images, name="masks")
+            self.viewer.add_labels(self.experiment.seg_images, name="masks")
         else:
             self.update_threshold(t)
 

@@ -70,7 +70,7 @@ class Ui_Form(object):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.groupBox.setTitle(_translate("Form", "Segmentation"))
-        self.segmentButton.setText(_translate("Form", "Segment Pharynxes"))
+        self.segmentButton.setText(_translate("Form", "Segment"))
         self.removeObjectsButton.setText(_translate("Form", "Remove Objects <"))
         self.runPharynxButton.setText(_translate("Form", "Analyze Pharynxes"))
         self.runNeuronsButton.setText(_translate("Form", "Analyze Neurons"))
