@@ -34,7 +34,7 @@ def segment_pharynxes(imgs, t, skip_wvl=["TL"], ref_wvl="410"):
         input_core_dims=[["y", "x"]],
         output_core_dims=[["y", "x"]],
     )
-    return segs.sel(wavelength=ref_wvl)
+    return segs
 
 
 def remove_small_objects(label_data, min_obj_size=5):
@@ -174,7 +174,7 @@ class App:
             self.experiment.seg_images, min_obj_size
         )
 
-        layer.data = self.experiment.seg_images.values
+        layer.data = self.experiment.seg_images.sel(wavelength="410").values
         layer.refresh()
 
     def handle_segment_pressed(self):
@@ -183,7 +183,9 @@ class App:
 
         if self.experiment.seg_images is None:
             self.experiment.seg_images = masks
-            self.viewer.add_labels(self.experiment.seg_images, name="masks")
+            self.viewer.add_labels(
+                self.experiment.seg_images.sel(wavelength="410"), name="masks"
+            )
         else:
             self.update_threshold(t)
 
@@ -197,7 +199,7 @@ class App:
             return
         else:
             self.experiment.seg_images = masks
-            self.get_layer("masks").data = masks
+            self.get_layer("masks").data = masks.sel(wavelength="410")
             self.get_layer("masks").refresh()
 
     def run(self):

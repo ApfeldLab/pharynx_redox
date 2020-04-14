@@ -330,6 +330,10 @@ class Experiment:
         logging.info(f"Skipping segmentation; loading from {filepath}")
 
     def segment_pharynxes(self):
+        if self.seg_images is not None:
+            logging.info("masks have been specified. skipping mask generation")
+            return
+
         try:
             self.seg_images = pio.load_and_restack_img_set(
                 self.seg_imgs_dir, self.raw_images

@@ -530,6 +530,7 @@ def add_derived_wavelengths(data, numerator="410", denominator="470"):
 
     # Need to add time coordinates to these dimensions
     # time comes from avg(time(410), time(470))
+
     t1 = data.sel(wavelength=numerator).time
     t2 = data.sel(wavelength=denominator).time
     time = t1 + ((t1 - t2) / 2)

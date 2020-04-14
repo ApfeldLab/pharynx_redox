@@ -349,15 +349,15 @@ def load_images(
 
     # Now, assign movement annotations to coordinates if possible
     try:
+        logging.info(f"Loading movement file from {movement_path}")
         mvmt = pd.read_csv(movement_path)
 
-        regions = mvmt.columns.drop(["experiment", "animal", "pair", "timepoint"])
+        regions = list(mvmt.columns.drop(["experiment", "animal", "pair", "timepoint"]))
         try:
-            regions = mvmt.columns.drop(["notes"])
-        except KeyError:
+            regions.remove("notes")
+        except ValueError:
             logging.info("no notes in movement file")
 
-        logging.info(f"Loading movement file from {movement_path}")
         mvmt_metadata = {
             r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size))
             for r in regions
@@ -366,13 +366,16 @@ def load_images(
         logging.info("Adding movement annotations to image data")
         for animal in mvmt.animal.unique():
             for pair in mvmt.pair.unique():
-                for region in regions:
-                    idx = mvmt.index[
-                        (mvmt["animal"] == animal) & (mvmt["pair"] == pair)
-                    ]
-                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx][region].values[
-                        0
-                    ]
+                for timepoint in mvmt.timepoint.unique():
+                    for region in regions:
+                        idx = mvmt.index[
+                            (mvmt["animal"] == animal)
+                            & (mvmt["pair"] == pair)
+                            & (mvmt["timepoint"] == timepoint)
+                        ]
+                        mvmt_metadata[region][animal, pair, timepoint] = mvmt.loc[idx][
+                            region
+                        ].values[0]
     except (IOError, ValueError) as e:
         default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
 
