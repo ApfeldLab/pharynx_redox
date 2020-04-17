@@ -19,6 +19,7 @@ data.
    usage
    developer_documentation
    api_reference
+   auto_examples/index
 
 
 Indices and tables

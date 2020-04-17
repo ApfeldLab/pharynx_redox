@@ -101,9 +101,6 @@ class PipelineButtonsWidget(QWidget):
 class App:
 
     viewer = None
-
-    log_transform = False
-
     buttons = None
 
     def __init__(self, experiment):

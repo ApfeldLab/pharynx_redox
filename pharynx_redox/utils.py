@@ -21,6 +21,50 @@ from pharynx_redox import experiment
 from pharynx_redox import profile_processing as pp
 
 
+def stack_to_hyperstack(data, channel_order, strains, metadata=None):
+    """Create a 6D 'Hyperstack' from a 3D stack of images
+
+    channel_order: list
+        the order of the channels in the stack
+    strains: list
+        the strain each animal
+    """
+    wvls, pairs = zip(*create_occurrence_count_tuples(channel_order))
+
+    # calculate dimensions of hyperstack
+    n_frames = data.shape[0]
+    n_frames_per_animal = len(channel_order)
+    n_wvls = len(np.unique(channel_order))
+    n_animals = len(strains)
+    n_pairs = np.max(pairs) + 1
+    n_timepoints = int(n_frames / (n_frames_per_animal * n_animals))
+
+    # create empty hyperstack with correct dimensions
+    da = xr.DataArray(
+        np.full(
+            (n_animals, n_timepoints, n_pairs, n_wvls, data.shape[-2], data.shape[-1]),
+            np.nan,
+            dtype=data.dtype,
+        ),
+        dims=["animal", "timepoint", "pair", "wavelength", "y", "x"],
+        coords={"wavelength": np.unique(channel_order), "strain": ("animal", strains),},
+    )
+
+    # fill hyperstack with data
+    frame = 0
+    for timepoint in range(n_timepoints):
+        for animal in range(n_animals):
+            for wvl, pair in zip(*[wvls, pairs]):
+                # Assign image data from current frame to correct index
+                da.loc[
+                    dict(animal=animal, timepoint=timepoint, pair=pair, wavelength=wvl)
+                ] = data[frame]
+
+                frame += 1
+
+    return da
+
+
 def open_folder(path):
     if sys.platform == "darwin":
         subprocess.check_call(["open", "--", path])
@@ -530,10 +574,12 @@ def add_derived_wavelengths(data, numerator="410", denominator="470"):
 
     # Need to add time coordinates to these dimensions
     # time comes from avg(time(410), time(470))
-
-    t1 = data.sel(wavelength=numerator).time
-    t2 = data.sel(wavelength=denominator).time
-    time = t1 + ((t1 - t2) / 2)
+    try:
+        t1 = data.sel(wavelength=numerator).time
+        t2 = data.sel(wavelength=denominator).time
+        time = t1 + ((t1 - t2) / 2)
+    except AttributeError:
+        time = None
 
     for wvl, wvl_data in zip(["r", "oxd", "e"], [r, oxd, e]):
         if wvl in data.wavelength.values:
@@ -541,7 +587,8 @@ def add_derived_wavelengths(data, numerator="410", denominator="470"):
         else:
             data = expand_dimension(data, "wavelength", {wvl: wvl_data})
 
-        data.time.loc[dict(wavelength=wvl)] = time
+        if time is not None:
+            data.time.loc[dict(wavelength=wvl)] = time
 
     return data
 

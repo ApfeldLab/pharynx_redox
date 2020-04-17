@@ -335,22 +335,16 @@ class Experiment:
             return
 
         try:
-            self.seg_images = pio.load_and_restack_img_set(
-                self.seg_imgs_dir, self.raw_images
-            )
-            logging.info(f"Loaded masks from {self.seg_imgs_dir}")
+            self.load_masks()
         except Exception as e:
             logging.error(f"Failed to load masks from {self.seg_imgs_dir}")
             logging.error(traceback.format_exc())
             # First time running the pipeline
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
+
             logging.info(f"writing masks to {self.seg_imgs_dir}")
-            pio.save_images_xarray_to_disk(
-                self.seg_images.astype(np.uint8),
-                self.seg_imgs_dir,
-                prefix=self.experiment_id,
-            )
+            self.save_masks()
 
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
@@ -668,6 +662,27 @@ class Experiment:
             f"Saving trimmed region means to {self.trimmed_region_data_filepath}"
         )
         self.trimmed_summary_table.to_csv(self.trimmed_region_data_filepath)
+
+    def save_masks(self):
+        pio.save_images_xarray_to_disk(
+            self.seg_images.astype(np.uint8),
+            self.seg_imgs_dir,
+            prefix=self.experiment_id,
+        )
+        logging.info(f"Saved masks to {self.seg_imgs_dir}")
+
+        # pio.save_profile_data(
+        #     self.seg_images, self.experiment_dir.joinpath("-masks.nc")
+        # )
+
+    def load_masks(self):
+        self.seg_images = pio.load_and_restack_img_set(
+            self.seg_imgs_dir, self.raw_images
+        )
+        logging.info(f"Loaded masks from {self.seg_imgs_dir}")
+        # self.seg_images = pio.load_profile_data(
+        #     self.experiment_dir.joinpath("-masks.nc")
+        # )
 
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")

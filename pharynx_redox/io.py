@@ -122,10 +122,22 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
                     )
                 metadata[label] = val
             all_metadata.append(metadata)
-        return all_metadata
+
+    md = {}
+    md["data"] = all_metadata
+    md["types"] = {
+        "stage_x": np.int16,
+        "stage_y": np.int16,
+        "stage_z": np.int16,
+        "time": "datetime64[us]",
+        "bin_x": np.uint8,
+        "bin_y": np.uint8,
+        "exposure": np.uint8,
+    }
+    return md
 
 
-def load_tiff_from_disk(image_path: Path, return_metadata=False) -> np.ndarray:
+def load_tiff_from_disk(image_path: Path) -> np.ndarray:
     """
     Load a tiff file from disk
 
@@ -146,10 +158,12 @@ def load_tiff_from_disk(image_path: Path, return_metadata=False) -> np.ndarray:
     """
     img_data = tifffile.imread(str(image_path))
 
-    if return_metadata:
-        return img_data, get_metadata_from_tiff(str(image_path))
-    else:
-        return img_data
+    try:
+        metadata = get_metadata_from_tiff(str(image_path))
+    except AttributeError:
+        metadata = None
+
+    return img_data, metadata
 
 
 def save_images_xarray_to_disk(
@@ -271,11 +285,7 @@ def load_images(
         strain_map = load_strain_map_from_disk(indexer_path)
 
     # Load Data
-    metadata = None
-    try:
-        imgs, metadata = load_tiff_from_disk(img_stack_path, return_metadata=True)
-    except:
-        imgs = load_tiff_from_disk(img_stack_path, return_metadata=False)
+    imgs, metadata = load_tiff_from_disk(img_stack_path)
 
     # Calculate dimensions of hyperstack
     wvls, pairs = zip(*utils.create_occurrence_count_tuples(channel_order))
@@ -287,36 +297,28 @@ def load_images(
     n_timepoints = int(n_frames / (n_frames_per_animal * n_animals))
 
     # Set up empty hyperstack
-    img_hyperstack = np.full(
-        (n_animals, n_timepoints, n_pairs, n_wvls, imgs.shape[-2], imgs.shape[-1]),
-        np.nan,
-        dtype=dtype,
-    )
-
     da = xr.DataArray(
-        img_hyperstack,
+        np.full(
+            (n_animals, n_timepoints, n_pairs, n_wvls, imgs.shape[-2], imgs.shape[-1]),
+            np.nan,
+            dtype=dtype,
+        ),
         dims=["animal", "timepoint", "pair", "wavelength", "y", "x"],
         coords={
             "wavelength": np.unique(channel_order),
             "strain": ("animal", strain_map),
+            "animal": ("animal", np.arange(n_animals, dtype=np.uint16)),
         },
     )
 
-    # Organize Metadata
+    # Set up empty metadata coords if necessary
     if metadata:
-        metadata_keys = [
-            ("stage_x", np.int16),
-            ("stage_y", np.int16),
-            ("stage_z", np.int16),
-            ("time", "datetime64[us]"),
-            ("bin_x", np.uint8),
-            ("bin_y", np.uint8),
-            ("exposure", np.uint8),
-        ]
-        metadata_df = pd.DataFrame(metadata)
+        metadata_df = pd.DataFrame(metadata["data"])
         all_coords = {
-            k: np.empty((n_animals, n_timepoints, n_pairs, n_wvls), dtype=dtype)
-            for k, dtype in metadata_keys
+            metadata_key: np.zeros(
+                (n_animals, n_timepoints, n_pairs, n_wvls), dtype=metadata_type
+            )
+            for metadata_key, metadata_type in metadata["types"].items()
         }
 
     # fill in the hyperstack
@@ -332,12 +334,13 @@ def load_images(
                 if metadata:
                     # build the metadata coords for current frame using metadata DF
                     wvl_idx = np.where(np.unique(channel_order) == wvl)[0][0]
-                    for key, _ in metadata_keys:
+                    for key in metadata["types"].keys():
                         all_coords[key][
                             animal, timepoint, pair, wvl_idx
                         ] = metadata_df.loc[frame][key]
 
                 frame += 1
+
     if metadata:
         da = da.assign_coords(
             {
@@ -348,8 +351,13 @@ def load_images(
         logging.info(f"Assigned coordinates to image data ({list(all_coords.keys())})")
 
     # Now, assign movement annotations to coordinates if possible
+    default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
+    default_mvmt_metadata = {
+        r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size), dtype=np.uint8)
+        for r in default_mvmt_regions
+    }
+
     try:
-        logging.info(f"Loading movement file from {movement_path}")
         mvmt = pd.read_csv(movement_path)
 
         regions = list(mvmt.columns.drop(["experiment", "animal", "pair", "timepoint"]))
@@ -359,7 +367,9 @@ def load_images(
             logging.info("no notes in movement file")
 
         mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size))
+            r: np.zeros(
+                (da.animal.size, da.pair.size, da.timepoint.size), dtype=np.uint8
+            )
             for r in regions
         }
 
@@ -376,201 +386,22 @@ def load_images(
                         mvmt_metadata[region][animal, pair, timepoint] = mvmt.loc[idx][
                             region
                         ].values[0]
-    except (IOError, ValueError) as e:
-        default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
+        logging.info(f"Loaded movement file from {movement_path}")
 
-        if movement_path is None:
-            logging.info(
-                f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
-            )
-        else:
-            logging.warn(
-                f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
-            )
+    except IOError:
+        logging.warn(
+            f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
+        )
+        mvmt_metadata = default_mvmt_metadata
 
-        mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size, da.timepoint.size))
-            for r in default_mvmt_regions
-        }
+    except ValueError:
+        logging.info(
+            f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
+        )
+        mvmt_metadata = default_mvmt_metadata
 
     mvmt_coords = {
         f"mvmt-{r}": (("animal", "pair", "timepoint"), mvmt_labels)
-        for r, mvmt_labels in mvmt_metadata.items()
-    }
-
-    da = da.assign_coords(mvmt_coords)
-    da = da.assign_coords({"animal": np.arange(da.animal.size)})
-
-    return da
-
-
-def load_images_old(
-    intercalated_image_stack_path: Path,
-    strain_map: [str] = None,
-    indexer_path=None,
-    movement_path=None,
-) -> xr.DataArray:
-    """
-    Loads the images specified by the path into an `xarray.DataArray <http://xarray.pydata.org/en/stable/generated/xarray.DataArray.html#xarray-dataarray/>`_,
-    organized by strain, wavelength, and pair.
-    
-    Parameters
-    ----------
-    intercalated_image_stack_path
-        the path to the raw image stack
-    strain_map
-        a list of strain names, corresponding to the strain of each animal. The length
-        must therefore be the same as the number of animals imaged. Overridden by 
-        indexer_path. If None, indexer_path must be given.
-    indexer_path
-        if given, use the indexer to load the strain map instead of passing it 
-        explicity. Overrides the strain_map parameter. If None, strain_map must be 
-        given.
-
-    Returns
-    -------
-    img_stack: xr.DataArray
-        A multi-dimensional array of the form::
-
-            (frame, wavelength, pair, height, width)
-
-        The data is returned in the form of an `xarray.DataArray` object. This is very
-        similar to (and indeed uses for its implementation) a numpy ndarray. The major
-        difference (exploited by this code-base) is that dimensions may be accessed by
-        labels in addition to the traditional index access.
-
-        For example, all transmitted-light images for the strain HD233 may be accessed
-        as follows::
-
-            >> all_images = load_images(intercalated_image_stack_path, imaging_scheme, strains)
-            >> all_images.data.shape
-            (123, 3, 2, 130, 174)
-            >> only_tl = all_images.sel(strain='HD233', wavelength='TL', pair=0)
-            >> only_tl.data.shape
-            (60, 130, 174)
-    """
-    # TODO: handle image stacks with no metadata
-    imgdata, metadata = load_tiff_from_disk(
-        intercalated_image_stack_path, return_metadata=True
-    )
-
-    if (indexer_path is None) and (strain_map is None):
-        raise ValueError(
-            "either `indexer_path` or `strain_map` must be supplied. Neither was."
-        )
-    if (indexer_path is not None) and (strain_map is not None):
-        raise ValueError(
-            "Only one of `indexer_path` or `strain_map` may be given. Both were."
-        )
-
-    if indexer_path:
-        strain_map = load_strain_map_from_disk(indexer_path)
-
-    # Organize the metadata
-    df = pd.DataFrame(metadata)
-
-    # Round x,y so grouping is robust to small stage movements
-    # we will group on these rounded (x,y) coordinates to associate each frame with
-    # an animal
-
-    obs = np.asarray(np.asarray([df["stage_x"], df["stage_y"]]).T, dtype=np.float)
-    kmeans = KMeans(n_clusters=len(strain_map)).fit(obs)
-    df["animal"] = np.sort(kmeans.labels_)
-    df["pair"] = df.groupby(["animal", "wavelength"]).cumcount()
-
-    n_animals = len(strain_map)
-    n_pairs = len(df["pair"].unique())
-    n_wvls = len(df["wavelength"].unique())
-
-    imgdata_reshaped = np.full(
-        (n_animals, n_pairs, n_wvls, imgdata.shape[-2], imgdata.shape[-1]),
-        np.nan,
-        dtype=np.uint16,
-    )
-
-    metadata_keys = [
-        ("stage_x", np.int16),
-        ("stage_y", np.int16),
-        ("stage_z", np.int16),
-        ("time", "datetime64[us]"),
-        ("bin_x", np.uint8),
-        ("bin_y", np.uint8),
-        ("exposure", np.uint8),
-    ]
-
-    # Generate xarray Coordinates
-    all_coords = {
-        k: np.empty((n_animals, n_pairs, n_wvls), dtype=dtype)
-        for k, dtype in metadata_keys
-    }
-
-    for animal in df["animal"].unique():
-        for pair in df["pair"].unique():
-            for wvl_idx, wvl in enumerate(df["wavelength"].unique()):
-                try:
-                    idx = df.index[
-                        (df["animal"] == animal)
-                        & (df["wavelength"] == wvl)
-                        & (df["pair"] == pair)
-                    ][0]
-                    imgdata_reshaped[animal, pair, wvl_idx] = imgdata[idx]
-                    for key, _ in metadata_keys:
-                        all_coords[key][animal, pair, wvl_idx] = df.loc[idx][key]
-                except IndexError:
-                    # This happens when, for example, TL is only imaged once per pair
-                    # when this happens, that slice is left as it was initialized
-                    continue
-
-    da = xr.DataArray(
-        imgdata_reshaped,
-        dims=["animal", "pair", "wavelength", "y", "x"],
-        coords={
-            "wavelength": df["wavelength"].unique(),
-            "strain": ("animal", strain_map),
-            # "experiment_id": "N/A",
-            "time": (("animal", "pair", "wavelength"), all_coords["time"]),
-            "stage_x": (("animal", "pair", "wavelength"), all_coords["stage_x"]),
-            "stage_y": (("animal", "pair", "wavelength"), all_coords["stage_y"]),
-            "stage_z": (("animal", "pair", "wavelength"), all_coords["stage_z"]),
-            "exposure": (("animal", "pair", "wavelength"), all_coords["exposure"]),
-        },
-    )
-
-    # Now assign movement if we find a movement file
-    try:
-        mvmt = pd.read_csv(movement_path)
-        logging.info(f"Loading movement file from {movement_path}")
-        mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size)) for r in mvmt.region.unique()
-        }
-        logging.info("Adding movement annotations to image data")
-        for animal in mvmt.animal.unique():
-            for pair in mvmt.pair.unique():
-                for region in mvmt.region.unique():
-                    idx = mvmt.index[
-                        (mvmt["animal"] == animal)
-                        & (mvmt["region"] == region)
-                        & (mvmt["pair"] == pair)
-                    ]
-                    mvmt_metadata[region][animal, pair] = mvmt.loc[idx]["movement"]
-    except (IOError, ValueError) as e:
-        default_mvmt_regions = ["posterior", "anterior", "sides_of_tip", "tip"]
-
-        if movement_path is None:
-            logging.info(
-                f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
-            )
-        else:
-            logging.warn(
-                f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
-            )
-
-        mvmt_metadata = {
-            r: np.zeros((da.animal.size, da.pair.size)) for r in default_mvmt_regions
-        }
-
-    mvmt_coords = {
-        f"mvmt-{r}": (("animal", "pair"), mvmt_labels)
         for r, mvmt_labels in mvmt_metadata.items()
     }
 
