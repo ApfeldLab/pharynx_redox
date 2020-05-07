@@ -1,6 +1,6 @@
 import collections
 from dataclasses import dataclass
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
 import logging
 import warnings
 
@@ -112,7 +112,7 @@ def align_pa(
     # position needs to be reindexed, otherwise xarray freaks out
     # Axis=4 because that is the index of `position`
     intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=4).reindex(
-        position=np.arange(intensity_data.position.size)
+        position=np.linspace(0, 1, intensity_data.position.size)
     )
 
     mean_intensity = trim_profile(
@@ -414,8 +414,8 @@ def _register_profiles_pop(
     reg_profile_data = profile_data.copy()
     warp_data = []
 
-    i410 = matlab.double(profile_data.sel(wavelength="410").values.tolist())
-    i470 = matlab.double(profile_data.sel(wavelength="470").values.tolist())
+    i410 = matlab.double(profile_data.sel(wavelength=ratio_numerator).values.tolist())
+    i470 = matlab.double(profile_data.sel(wavelength=ratio_denominator).values.tolist())
 
     resample_resolution = float(profile_data.position.size)
 
@@ -486,7 +486,7 @@ def channel_register(
     ratio_numerator="410",
     ratio_denominator="470",
     **reg_params,
-) -> xr.DataArray:
+) -> Tuple[xr.DataArray, xr.DataArray]:
 
     try:
         import matlab.engine
@@ -498,7 +498,7 @@ def channel_register(
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
-    warp_data = []
+    warp_data = profile_data.copy().isel(wavelength=0)
 
     for pair in profile_data.pair:
         for timepoint in profile_data.timepoint:
@@ -506,7 +506,7 @@ def channel_register(
                 profile_data.sel(pair=pair, timepoint=timepoint), eng=eng, **reg_params
             )
             reg_profile_data.loc[dict(pair=pair, timepoint=timepoint)] = reg
-            # TODO keep track of warp data
+            warp_data.loc[dict(pair=pair, timepoint=timepoint)] = np.array(warp_).T
 
     reg_profile_data = utils.add_derived_wavelengths(
         reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
