@@ -92,7 +92,8 @@ def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
         the dimensions that the images are stored in the `imgs` array. 
     """
 
-    submed = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
+    submed = imgs.copy()
+    submed.values = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
     submed.loc[dict(wavelength="TL")] = imgs.sel(wavelength="TL")
     return submed
 
@@ -225,7 +226,8 @@ def center_and_rotate_pharynxes(
                         dict(wavelength=wvl, pair=pair, timepoint=tp)
                     ][img_idx] = rotated_seg
 
-    return fl_rotated_stack.astype(fl_images.dtype), seg_rotated_stack
+    fl_rotated_stack.values = fl_rotated_stack.values.astype(fl_images.dtype)
+    return fl_rotated_stack, seg_rotated_stack
 
 
 def extract_largest_binary_object(
@@ -518,7 +520,7 @@ def calculate_midline(
 
     Notes
     -----
-    Right now this only works for images that this have been centered this and aligned this with their
+    Right now this only works for images that this have been centered and aligned with their
     anterior-posterior along the horizontal.
     """
     import warnings
@@ -651,6 +653,7 @@ def measure_under_midline(
             else:
                 return straightened
     except:
+        logging.warn('measuring under midline failed')
         return np.zeros((1, n_points))
 
 
@@ -671,13 +674,7 @@ def measure_under_midlines(
     fl_stack
         The fluorescence stack under which to measure
     midlines: dict
-        A list of dictionaries of midlines with the following structure::
-
-            [
-                {'410': [UnivariateSpline, UnivariateSpline, ...]},
-                {'470': [UnivariateSpline, UnivariateSpline, ...]},
-                ...
-            ]
+        A DataArray containing the midlines 
     n_points: int
         the number of points to sample under the midline
     frame_specific: bool
@@ -701,13 +698,18 @@ def measure_under_midlines(
         input_core_dims=[["x", "y"], []],
         output_core_dims=[["position"]],
         vectorize=True,
+        keep_attrs=True,
         kwargs={"n_points": n_points, "thickness": thickness, "order": order},
     )
     # measurements.attrs["frame_specific_midlines"] = frame_specific
 
-    # measurements = measurements.assign_coords(
-    #     {"position": np.linspace(0, 1, measurements.position.size)}
-    # )
+    measurements = measurements.assign_coords(
+        {"position": np.linspace(0, 1, measurements.position.size)},
+    )
+    try:
+        measurements = measurements.assign_coords(time=fl_stack.time)
+    except AttributeError:
+        pass
 
     return measurements
 
