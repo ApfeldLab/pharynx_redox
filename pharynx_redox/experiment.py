@@ -143,10 +143,18 @@ class Experiment:
         self.processed_images_dir = self.experiment_dir.joinpath("processed_images")
         self.rot_seg_dir = self.processed_images_dir.joinpath("rot_seg")
         self.rot_fl_dir = self.processed_images_dir.joinpath("rot_fl")
-        self.seg_imgs_dir = self.processed_images_dir.joinpath("segmented_images")
         self.fl_imgs_dir = self.processed_images_dir.joinpath("fluorescent_images")
         self.analysis_dir = self.get_analysis_dir()
         self.fig_dir = self.analysis_dir.joinpath("figs")
+
+        self.orig_images_filepath = self.processed_images_dir.joinpath("images.nc")
+        self.aligned_images_filepath = self.processed_images_dir.joinpath(
+            "aligned_images.nc"
+        )
+        self.seg_images_filepath = self.processed_images_dir.joinpath("seg_images.nc")
+        self.aligned_seg_images_filepath = self.processed_images_dir.joinpath(
+            "aligned_seg_images.nc"
+        )
 
         self.movement_filepath = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
@@ -254,6 +262,7 @@ class Experiment:
         # #         [raw_image_data.get_index("animal"), raw_image_data["experiment_id"],]
         # #     )
         # )
+        raw_image_data = self.add_experiment_metadata_to_data_array(raw_image_data)
 
         return raw_image_data
 
@@ -336,14 +345,12 @@ class Experiment:
 
         try:
             self.load_masks()
-        except Exception as e:
-            logging.error(f"Failed to load masks from {self.seg_imgs_dir}")
-            logging.error(traceback.format_exc())
-            # First time running the pipeline
+        except IOError:
+            logging.warn(f"Failed to load masks from {self.seg_images_filepath}")
+
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
 
-            logging.info(f"writing masks to {self.seg_imgs_dir}")
             self.save_masks()
 
     def align_and_center(self):
@@ -496,6 +503,23 @@ class Experiment:
     ####################################################################################
     # PERSISTENCE / IO
     ####################################################################################
+
+    def save_images(self):
+        """Save this experiment's images to disk as netCDF4 files"""
+        imgs_paths = [
+            (self.images, self.orig_images_filepath),
+            (self.rot_fl, self.aligned_images_filepath),
+            (self.seg_images, self.seg_images_filepath),
+            (self.rot_seg, self.aligned_seg_images_filepath),
+        ]
+        for img, path in imgs_paths:
+            if img is not None:
+                logging.info(f"Saving images to {path}")
+                img.to_netcdf(path)
+
+    # def load_images(self):
+    # pass
+
     def make_fig_dir(self):
         fig_dir = self.analysis_dir.joinpath("figs")
         fig_dir.mkdir(parents=True, exist_ok=True)
@@ -664,22 +688,26 @@ class Experiment:
         self.trimmed_summary_table.to_csv(self.trimmed_region_data_filepath)
 
     def save_masks(self):
-        pio.save_images_xarray_to_disk(
-            self.seg_images.astype(np.uint8),
-            self.seg_imgs_dir,
-            prefix=self.experiment_id,
-        )
-        logging.info(f"Saved masks to {self.seg_imgs_dir}")
+        logging.info(f"writing masks to {self.seg_images_filepath}")
+
+        self.seg_images.to_netcdf(self.seg_images_filepath)
+        # pio.save_images_xarray_to_disk(
+        #     self.seg_images.astype(np.uint8),
+        #     self.seg_imgs_dir,
+        #     prefix=self.experiment_id,
+        # )
+        logging.info(f"Saved masks to {self.seg_images_filepath}")
 
         # pio.save_profile_data(
         #     self.seg_images, self.experiment_dir.joinpath("-masks.nc")
         # )
 
     def load_masks(self):
-        self.seg_images = pio.load_and_restack_img_set(
-            self.seg_imgs_dir, self.raw_images
-        )
-        logging.info(f"Loaded masks from {self.seg_imgs_dir}")
+        # self.seg_images = pio.load_and_restack_img_set(
+        #     self.seg_imgs_dir, self.raw_images
+        # )
+        self.seg_images = xr.load_dataarray(self.seg_images_filepath)
+        logging.info(f"Loaded masks from {self.seg_images_filepath}")
         # self.seg_images = pio.load_profile_data(
         #     self.experiment_dir.joinpath("-masks.nc")
         # )
