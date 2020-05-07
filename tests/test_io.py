@@ -1,4 +1,7 @@
+import os
 import pytest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 import xarray as xr
 import numpy as np
 from pharynx_redox import io
@@ -130,3 +133,29 @@ class TestIO:
         )
 
         assert len(strain_map) == 123
+
+    def test_save_images_xarray_to_disk(self, paired_imgs, shared_datadir):
+        io.save_images_xarray_to_disk(
+            paired_imgs, shared_datadir / "test_save_imgs_dir", z_axis="animal"
+        )
+
+        files = list((shared_datadir / "test_save_imgs_dir").glob("*.tiff"))
+        assert (
+            len(files)
+            == paired_imgs.timepoint.size
+            * paired_imgs.pair.size
+            * paired_imgs.wavelength.size
+        )
+
+    def test_save_images_xarray_to_disk_pair_zaxis(self, paired_imgs, shared_datadir):
+        io.save_images_xarray_to_disk(
+            paired_imgs, shared_datadir / "test_save_imgs_dir", z_axis="pair"
+        )
+
+        files = list((shared_datadir / "test_save_imgs_dir").glob("*.tiff"))
+        assert (
+            len(files)
+            == paired_imgs.animal.size
+            * paired_imgs.timepoint.size
+            * paired_imgs.wavelength.size
+        )

@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
 import os
+import itertools
 
 import numpy as np
 import pandas as pd
@@ -15,14 +16,38 @@ from pharynx_redox import utils
 
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
+    """Load the data at the given path into an xr.DataArray.
+
+    Right now, this is just a wrapper around `xr.load_dataarray` but I made it just so we'd be using a standarzied IO
+    interface for the data.
+
+    Parameters
+    ----------
+    path : Union[Path, str]
+        path to the profile data
+
+    Returns
+    -------
+    xr.DataArray
+        the data
+    """
     logging.info("Loading data from %s" % path)
-    # data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
     return xr.load_dataarray(path)
 
 
-def save_profile_data(
-    profile_data: xr.DataArray, path: Union[Path, str]
-) -> xr.DataArray:
+def save_profile_data(profile_data: xr.DataArray, path: Union[Path, str]) -> None:
+    """Save the data to disk.
+
+    Right now, this is just a wrapper around `xr.to_netcdf` but I made it just so we'd be using a standarzied IO
+    interface for the data.
+
+    Parameters
+    ----------
+    profile_data: xr.DataArray
+        the data to save
+    path : Union[Path, str]
+        the path to save the data at
+    """
     logging.info("Saving data to %s" % path)
     profile_data.to_netcdf(path)
 
@@ -162,11 +187,24 @@ def load_tiff_from_disk(image_path: Path) -> (np.ndarray, dict):
 
 
 def save_images_xarray_to_disk(
-    imgs: xr.DataArray, dir_path: str, prefix: str = None, suffix: str = None
+    imgs: xr.DataArray,
+    dir_path: str,
+    prefix: str = None,
+    suffix: str = None,
+    z_axis: str = "animal",
 ) -> None:
     """
-    Save the given image stack to disk inside the given directory, separated by
-    wavelength and pair
+    Save the given image stack to disk inside the given directory, separated by each axis except for
+    the given z-axis.
+
+    For example, say you've imaged 60 animals, each with 3 timepoints and 2 pairs. In this case,
+    you will most likely want to scroll through the animals in FIJI/etc. So you would use `z_axis='animal'`
+    to output stacks with 60 frames - one frame per animal. You would have each combination of (timepoint, pair, wavelength)
+    in its own stack.
+
+    However, say you've imaged 6 animals, each with 100 timepoints and 2 pairs. In this case, you would
+    use `z_axis='timepoint'`. This would result in each each stack getting 100 frames - one per timepoint. Each
+    (animal, pair, wavelength) combination would get its own file.
 
     Parameters
     ----------
@@ -178,6 +216,8 @@ def save_images_xarray_to_disk(
         a string with which to prepend the filenames
     suffix: optional
         a string with which to append the filenames
+    z_axis:
+
 
     Returns
     -------
@@ -189,15 +229,26 @@ def save_images_xarray_to_disk(
     prefix = f"{prefix}-" if prefix else ""
     suffix = f"-{suffix}" if suffix else ""
 
-    for pair in imgs.pair.data:
-        for wvl in imgs.wavelength.data:
-            final_path = dir_path.joinpath(f"{prefix}wvl={wvl}_pair={pair}{suffix}.tif")
-            if imgs.data.dtype == np.bool:
-                data = np.uint8(imgs.sel(wavelength=wvl, pair=pair).data * 255)
-            else:
-                data = imgs.sel(wavelength=wvl, pair=pair).data
+    # remove the z-axis from the dimensons over which we will iterate
+    dims = list(imgs.dims)
+    for d in [z_axis, "x", "y"]:
+        dims.remove(d)
 
-            tifffile.imsave(str(final_path), data)
+    # Build a list of dictionaries with each combination of unique values for the remaining dimensions
+    selector_values = list(
+        itertools.product(*[np.unique(imgs[dim]).tolist() for dim in dims])
+    )
+    selectors = [dict(zip(dims, vals)) for vals in selector_values]
+
+    for selector in selectors:
+        selector_str = "-".join([f"{k}={v}" for k, v in selector.items()])
+        path = dir_path.joinpath(f"{prefix}{selector_str}{suffix}.tiff")
+        data = imgs.sel(**selector).values
+
+        if data.dtype == np.bool:
+            data = data.astype(np.uint8) * 255
+
+        tifffile.imsave(str(path), data)
 
 
 def load_images(
