@@ -264,13 +264,16 @@ def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int
 
 
 def load_images(
-    img_stack_path: Path,
+    img_stack_path: Union[Path, str],
     channel_order: [str],
     strain_map: [str] = None,
     indexer_path: Path = None,
     movement_path: Path = None,
     dtype=np.uint16,
 ) -> xr.DataArray:
+
+    img_stack_path = Path(img_stack_path)
+
     # Check Arguments
     if (indexer_path is None) and (strain_map is None):
         raise ValueError(
@@ -395,8 +398,8 @@ def load_images(
         mvmt_metadata = default_mvmt_metadata
 
     except ValueError:
-        logging.info(
-            f"No movement file supplied. All movement ({default_mvmt_regions}) assigned to 0."
+        logging.warn(
+            f"Movement file incorrectly specified. All movement ({default_mvmt_regions}) assigned to 0."
         )
         mvmt_metadata = default_mvmt_metadata
 
@@ -406,6 +409,7 @@ def load_images(
     }
 
     da = da.assign_coords(mvmt_coords)
+    da.name = img_stack_path.stem
 
     return da
 
