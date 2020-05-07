@@ -257,11 +257,6 @@ class Experiment:
             }
         )
 
-        # # raw_image_data = raw_image_data.reindex(
-        # #     animal=pd.MultiIndex.from_arrays(
-        # #         [raw_image_data.get_index("animal"), raw_image_data["experiment_id"],]
-        # #     )
-        # )
         raw_image_data = self.add_experiment_metadata_to_data_array(raw_image_data)
 
         return raw_image_data
@@ -703,14 +698,8 @@ class Experiment:
         # )
 
     def load_masks(self):
-        # self.seg_images = pio.load_and_restack_img_set(
-        #     self.seg_imgs_dir, self.raw_images
-        # )
         self.seg_images = xr.load_dataarray(self.seg_images_filepath)
         logging.info(f"Loaded masks from {self.seg_images_filepath}")
-        # self.seg_images = pio.load_profile_data(
-        #     self.experiment_dir.joinpath("-masks.nc")
-        # )
 
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")

@@ -16,8 +16,8 @@ class TestUtils:
 
         assert utils.create_occurrence_count_tuples(l) == expected
 
-    def test_expand_dimension(self):
-        data = xr.load_dataarray(test_data_path.joinpath("all_rot_fl.nc"))
+    def test_expand_dimension(self, shared_datadir):
+        data = xr.load_dataarray(shared_datadir / "all_rot_fl.nc")
 
         r = data.sel(wavelength="410") / data.sel(wavelength="470")
         oxd = pp.r_to_oxd(r)
@@ -30,7 +30,7 @@ class TestUtils:
         assert np.array_equal(data.sel(wavelength="oxd").values, oxd.values)
 
     def test_add_derived_wavelengths(self):
-        data = xr.load_dataarray(test_data_path.joinpath("all_rot_fl.nc"))
+        data = xr.load_dataarray(shared_datadir / "all_rot_fl.nc")
 
         r = data.sel(wavelength="410") / data.sel(wavelength="470")
         oxd = pp.r_to_oxd(r)

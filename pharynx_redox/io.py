@@ -16,26 +16,15 @@ from pharynx_redox import utils
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
     logging.info("Loading data from %s" % path)
-
     # data = xr.load_dataarray(path).set_index(animal=["experiment_id", "animal"])
-    data = xr.load_dataarray(path)
-
-    try:
-        data = data.rename({"animal_": "animal"})
-    except ValueError:
-        pass
-
-    return data
+    return xr.load_dataarray(path)
 
 
 def save_profile_data(
     profile_data: xr.DataArray, path: Union[Path, str]
 ) -> xr.DataArray:
     logging.info("Saving data to %s" % path)
-    try:
-        profile_data.reset_index("animal").to_netcdf(path)
-    except KeyError:
-        profile_data.to_netcdf(path)
+    profile_data.to_netcdf(path)
 
 
 def _parse_illum_setting(ilum_setting: str) -> str:
@@ -77,6 +66,11 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
     -------
     List[Dict]
         a list where each entry is a dictionary containing the metadata for that image
+    
+    Raises
+    ------
+    AttributeError
+        The given image file does not contain metadata in the expected format
     """
 
     # Each image has a "description" string (formatted as XML) associated with it
@@ -129,7 +123,7 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
         "stage_x": np.int16,
         "stage_y": np.int16,
         "stage_z": np.int16,
-        "time": "datetime64[us]",
+        "time": "datetime64[ns]",
         "bin_x": np.uint8,
         "bin_y": np.uint8,
         "exposure": np.uint8,
@@ -137,7 +131,7 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
     return md
 
 
-def load_tiff_from_disk(image_path: Path) -> np.ndarray:
+def load_tiff_from_disk(image_path: Path) -> (np.ndarray, dict):
     """
     Load a tiff file from disk
 
@@ -148,11 +142,12 @@ def load_tiff_from_disk(image_path: Path) -> np.ndarray:
 
     Returns
     -------
-    img_data: np.ndarray of shape
+    img_data: np.ndarray
         the image stack as a numpy array with the following dimensions::
 
             (n_images, height, width)
-    metadata: List[Dict]
+
+    metadata: dict
         the metadata associated with each image. Only returned if return_metadata=True
 
     """
@@ -205,64 +200,6 @@ def save_images_xarray_to_disk(
             tifffile.imsave(str(final_path), data)
 
 
-def load_and_restack_img_set(
-    dir_path: Union[str, Path], template_img_stack: xr.DataArray
-):
-    """
-    Given a directory containing multiple .TIFF files, each labeled with wavelength
-    and pair, load them into an xarray in memory.
-    
-    Parameters
-    ----------
-    dir_path : Union[str, Path]
-        the directory containing the images. Must contain *only* those images to load
-        into the xarray.
-    """
-    # TODO: test
-    new_array = template_img_stack.copy()
-
-    for fn in os.listdir(dir_path):
-        try:
-            fn = dir_path.joinpath(fn)
-            wvl = re.search("wvl=(.+)_pair", str(fn)).group(1)
-            pair = int(re.search("pair=(\d+)_?", str(fn)).group(1))
-
-            img = load_tiff_from_disk(fn)
-            new_array.loc[dict(wavelength=wvl, pair=pair)] = img
-        except AttributeError:
-            logging.warn(
-                f"Encountered non-standard file in segmentation directory: {fn}"
-            )
-            continue
-
-    return new_array
-
-
-def process_imaging_scheme_str(imaging_scheme: str, delimiter="/") -> [(str, int)]:
-    """
-    Split the imaging scheme string by the given delimiter, and return
-    [(wavelength, nth_occurrence), ...]
-
-    Examples
-    --------
-    >>> process_imaging_scheme_str("TL/470/410/470/410", delimiter='/')
-    [("TL", 0), ("470", 0), ("410", 0), ("470", 1), ("410", 1)]
-
-    Parameters
-    ----------
-    imaging_scheme
-        A string of wavelengths which indicate the order in which images were taken, separated by the delimiter
-    delimiter
-        a string which separates the wavelengths in the imaging scheme string
-
-    Returns
-    -------
-    list
-        [(wavelength, nth_occurrence), ...]
-    """
-    return utils.create_occurrence_count_tuples(imaging_scheme.split(delimiter))
-
-
 def load_images(
     img_stack_path: Union[Path, str],
     channel_order: [str],
@@ -310,7 +247,7 @@ def load_images(
         coords={
             "wavelength": np.unique(channel_order),
             "strain": ("animal", strain_map),
-            "animal": ("animal", np.arange(n_animals, dtype=np.uint16)),
+            "exp_animal": ("animal", np.arange(n_animals, dtype=np.uint16)),
         },
     )
 
@@ -398,9 +335,14 @@ def load_images(
         mvmt_metadata = default_mvmt_metadata
 
     except ValueError:
-        logging.warn(
-            f"Movement file incorrectly specified. All movement ({default_mvmt_regions}) assigned to 0."
-        )
+        if movement_path is None:
+            logging.info(
+                f"No movement path specified. All movement ({default_mvmt_regions}) assigned to 0."
+            )
+        else:
+            logging.warn(
+                f"Movement file incorrectly specified. All movement ({default_mvmt_regions}) assigned to 0."
+            )
         mvmt_metadata = default_mvmt_metadata
 
     mvmt_coords = {
@@ -412,34 +354,6 @@ def load_images(
     da.name = img_stack_path.stem
 
     return da
-
-
-def save_split_images_to_disk(images: xr.DataArray, prefix: str, dir_path: str) -> None:
-    """
-    Save the given image container to disk, splitting the images by wavelength and pair.
-
-    Parameters
-    ----------
-    images
-        The DataArray containing the images
-    prefix
-        The name that will be used to save the images
-    dir_path
-        The directory to save the images in
-
-    Returns
-    -------
-    None
-
-    """
-    dir_path = Path(dir_path)
-    dir_path.mkdir(parents=True, exist_ok=True)
-    for wvl in images.wavelength.data:
-        for pair in images.pair.data:
-            tifffile.imsave(
-                str(dir_path.joinpath(f"{prefix}-{wvl}-{pair}.tif").absolute()),
-                images.sel(wavelength=wvl, pair=pair).data,
-            )
 
 
 def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
@@ -482,33 +396,3 @@ def load_strain_map_from_disk(strain_map_path: Path) -> np.ndarray:
             for x in strain_map_df.itertuples()
         ]
     ).flatten()
-
-
-def load_all_rot_fl(meta_dir: Path) -> xr.DataArray:
-    """
-    TODO: Documentation
-
-    Returns
-    -------
-
-    """
-    return xr.concat(
-        [load_profile_data(p) for p in meta_dir.glob("**/*/*_rot_fl.nc")], dim="spec"
-    )
-
-
-def load_all_rot_seg() -> xr.DataArray:
-    """
-    TODO: Documentation
-
-    Returns
-    -------
-
-    """
-    return xr.load_dataarray("../data/paired_ratio/all_rot_seg.nc")
-
-
-if __name__ == "__main__":
-    load_strain_map_from_disk(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv"
-    )
