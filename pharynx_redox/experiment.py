@@ -357,15 +357,11 @@ class Experiment:
             reference_wavelength=self.reference_wavelength,
         )
 
-        logging.info(f"Saving rotated FL images to {self.rot_fl_dir}")
-        pio.save_images_xarray_to_disk(
-            self.rot_fl.astype(np.uint16), self.rot_fl_dir, prefix=self.experiment_id
-        )
+        logging.info(f"Saving rotated FL images to {self.aligned_images_filepath}")
+        pio.save_profile_data(self.rot_fl, self.aligned_images_filepath)
 
-        logging.info(f"Saving rotated masks to {self.rot_seg_dir}")
-        pio.save_images_xarray_to_disk(
-            self.rot_seg.astype(np.uint8), self.rot_seg_dir, prefix=self.experiment_id
-        )
+        logging.info(f"Saving rotated masks to {self.aligned_seg_images_filepath}")
+        pio.save_profile_data(self.rot_seg, self.aligned_seg_images_filepath)
 
     def calculate_midlines(self):
         logging.info("Calculating midlines")
@@ -684,21 +680,11 @@ class Experiment:
 
     def save_masks(self):
         logging.info(f"writing masks to {self.seg_images_filepath}")
-
-        self.seg_images.to_netcdf(self.seg_images_filepath)
-        # pio.save_images_xarray_to_disk(
-        #     self.seg_images.astype(np.uint8),
-        #     self.seg_imgs_dir,
-        #     prefix=self.experiment_id,
-        # )
+        pio.save_profile_data(self.seg_images, self.seg_images_filepath)
         logging.info(f"Saved masks to {self.seg_images_filepath}")
 
-        # pio.save_profile_data(
-        #     self.seg_images, self.experiment_dir.joinpath("-masks.nc")
-        # )
-
     def load_masks(self):
-        self.seg_images = xr.load_dataarray(self.seg_images_filepath)
+        self.seg_images = pio.load_profile_data(self.seg_images_filepath)
         logging.info(f"Loaded masks from {self.seg_images_filepath}")
 
     def persist_to_disk(self):

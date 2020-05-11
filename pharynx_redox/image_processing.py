@@ -95,6 +95,7 @@ def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
     submed = imgs.copy()
     submed.values = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
     submed.loc[dict(wavelength="TL")] = imgs.sel(wavelength="TL")
+    submed = submed.astype(imgs.dtype)
     return submed
 
 
@@ -582,6 +583,7 @@ def measure_under_midline(
         x-coordinates.
 
     """
+    # Make sure the image orientation matches with the expected order of map_coordinates
     try:
         if thickness == 0:
             xs, ys = mid.linspace(n=n_points)
@@ -589,7 +591,6 @@ def measure_under_midline(
             return ndi.map_coordinates(fl, np.stack([xs, ys]), order=1)
         else:
             # Gets a bit wonky, but makes sense
-            # TODO: maybe refactor this stuff out into individual functions?
 
             # We need to get the normal lines from each point in the midline
             # then measure under those lines.
@@ -617,11 +618,8 @@ def measure_under_midline(
             ys0 = ys + y0
             ys1 = ys + y1
 
-            # This is kinda weird... But we need to do it.
-            # TODO: Could be made faster w/ vectorization? Too tired to figure that out when I wrote it though
-
             # We need to measure in a consistent direction along the normal line
-            # y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
+            # if y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
             for y0, y1, x0, x1, i in zip(ys0, ys1, xs0, xs1, range(len(xs0))):
                 if y0 < y1:
                     tx = xs0[i]
@@ -652,9 +650,15 @@ def measure_under_midline(
                 return profile
             else:
                 return straightened
-    except:
-        logging.warn('measuring under midline failed')
-        return np.zeros((1, n_points))
+    except AttributeError:
+        # This happens if the image is TL. Then it will have `None` instead of
+        # a midline object
+        pass
+    except Exception as e:
+        # Here, something actually went wrong
+        logging.warn(f"measuring under midline failed with error {e}")
+
+    return np.zeros((1, n_points))
 
 
 def measure_under_midlines(
@@ -701,7 +705,6 @@ def measure_under_midlines(
         keep_attrs=True,
         kwargs={"n_points": n_points, "thickness": thickness, "order": order},
     )
-    # measurements.attrs["frame_specific_midlines"] = frame_specific
 
     measurements = measurements.assign_coords(
         {"position": np.linspace(0, 1, measurements.position.size)},
