@@ -485,7 +485,16 @@ def channel_register(
     eng=None,
     ratio_numerator="410",
     ratio_denominator="470",
-    **reg_params,
+    n_deriv: float = 2.0,
+    rough_lambda: float = 0.01,
+    rough_n_breaks: float = 300.0,
+    rough_order: float = 4.0,
+    smooth_lambda: float = 10.0 ** 2,
+    smooth_n_breaks: float = 100.0,
+    smooth_order: float = 4.0,
+    warp_lambda: float = 5.0e3,
+    warp_n_basis: float = 30.0,
+    warp_order: float = 4.0,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
 
     try:
@@ -511,6 +520,7 @@ def channel_register(
     reg_profile_data = utils.add_derived_wavelengths(
         reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
     )
+
     return reg_profile_data, warp_data
 
 

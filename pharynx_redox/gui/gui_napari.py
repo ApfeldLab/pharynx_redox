@@ -128,15 +128,7 @@ class App:
 
     def run_neuron_analysis(self):
         if self.experiment.seg_images is not None:
-            df = ip.measure_under_labels(
-                self.experiment.images, self.experiment.seg_images
-            ).reset_index()
-
-            df.to_csv(
-                self.experiment.analysis_dir.joinpath(
-                    self.experiment.experiment_id + "-neuron_analysis.csv"
-                )
-            )
+            self.experiment.run_neuron_pipeline()
             self.showDialog("Analysis finished!")
 
     def showDialog(self, message, title=""):
@@ -208,6 +200,8 @@ class App:
                     self.viewer.add_image(
                         self.experiment.images.sel(wavelength=wvl), name=wvl
                     )
+            if self.experiment.seg_images is not None:
+                masks = self.experiment.seg_images
 
 
 if __name__ == "__main__":

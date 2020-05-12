@@ -285,6 +285,7 @@ class Experiment:
         return analysis_dir_
 
     def make_analysis_dir(self) -> None:
+        logging.info(f"Making analysis directory at {self.get_analysis_dir()}")
         self.get_analysis_dir().mkdir(parents=True, exist_ok=True)
 
     @property
@@ -313,7 +314,7 @@ class Experiment:
 
     def full_pipeline(self):
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
-        logging.info(f"Making analysis directory at {self.analysis_dir}")
+
         self.make_analysis_dir()
 
         logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
@@ -334,6 +335,17 @@ class Experiment:
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
 
         return self
+
+    def run_neuron_pipeline(self):
+        logging.info(
+            f"Starting full neuron analysis pipeline run for {self.experiment_dir}"
+        )
+        self.make_analysis_dir()
+        df = ip.measure_under_labels(self.images, self.seg_images).reset_index()
+
+        df.to_csv(
+            self.get_analysis_dir() / (self.experiment_id + "-neuron_analysis.csv")
+        )
 
     def load_seg_imgs_from_disk(self, filepath):
         logging.info(f"Skipping segmentation; loading from {filepath}")
