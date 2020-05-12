@@ -156,13 +156,12 @@ def get_moving_idx(
 
     re_str = f"mvmt-({'|'.join(regions)})$"
     mvmt_df = (
-        data.reset_index("animal")
-        .coords.to_dataset()
+        data.coords.to_dataset()
         .to_dataframe()
         .filter(regex=re_str, axis=1)
         .groupby(["animal", "timepoint", "pair"])
         .max()
-        .applymap(lambda x: x >= 2)
+        .applymap(lambda x: x >= mvmt_thresh)
     )
     mvmt_df = mvmt_df.any("columns").unstack("pair")
 
@@ -173,8 +172,7 @@ def get_moving_idx(
     }
 
     st_df = (
-        data.reset_index("animal")
-        .coords.to_dataset()
+        data.coords.to_dataset()
         .to_dataframe()
         .filter(regex=re_str, axis=1)
         .groupby(["animal", "timepoint", "pair"])
@@ -190,56 +188,6 @@ def get_moving_idx(
     }
 
     return mv_idx, st_idx  # , mv_both_idx, mv_first_idx
-
-
-def resample_moving(
-    data: xr.DataArray,
-    p_moving: float,
-    n: float,
-    regions: typing.Union[str, typing.List[str]],
-) -> xr.DataArray:
-    """
-    Sample from moving and stationary populations in proportion to a hypothetical
-    scenario wherein ``p`` percent animals are moving.
-    
-    Parameters
-    ----------
-    data : xr.DataArray
-        the Profile Data to resampel
-    p_moving : float
-        the percent moving for the hypothetical population
-    n : float
-        the hypothetical populationsize
-    regions : typing.Union[str, typing.List[str]]
-        which region(s) should be considered for movement stratification
-
-    Returns
-    -------
-    xr.DataArray
-        the resampled hypothetical population
-    """
-    mv_idx, st_idx = get_moving_idx(data, regions)
-
-    # Create the probability of selection map - each idx indicates the probability of
-    # selection during re-sampling... initialize with 0s for all idx
-    p_selected = np.zeros((data.shape[0],))
-
-    # we need to divide by the number of animals in each movement group
-    p_selected[mv_idx] = p_moving / np.sum(mv_idx)
-    p_selected[st_idx] = (1 - p_moving) / np.sum(st_idx)
-
-    # Finally, normalize the entire probability array so that it sums to 1, which is
-    # required by np.random.choice
-    p_selected = p_selected / p_selected.sum(0)
-
-    # The idx that are False for mv_idx AND st_idx were never assigned probabilities,
-    # so they stay at 0.0
-    # This is what we want, where if the animal moved in both frames, we are not
-    # interested in it
-
-    idx = np.random.choice(np.arange(data.shape[0]), size=n, replace=True, p=p_selected)
-
-    return data[idx]
 
 
 def select_by_mvmt(

@@ -281,8 +281,11 @@ class Experiment:
         analysis_dir_ = self.experiment_dir.joinpath(
             "analyses", utils.get_valid_filename(f"{date_str}_{self.strategy}")
         )
-        analysis_dir_.mkdir(parents=True, exist_ok=True)
+        # analysis_dir_.mkdir(parents=True, exist_ok=True)
         return analysis_dir_
+
+    def make_analysis_dir(self) -> None:
+        self.get_analysis_dir().mkdir(parents=True, exist_ok=True)
 
     @property
     def trimmed_summary_table(self):
@@ -310,6 +313,8 @@ class Experiment:
 
     def full_pipeline(self):
         logging.info(f"Starting full pipeline run for {self.experiment_dir}")
+        logging.info(f"Making analysis directory at {self.analysis_dir}")
+        self.make_analysis_dir()
 
         logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
         pio.save_images_xarray_to_disk(
