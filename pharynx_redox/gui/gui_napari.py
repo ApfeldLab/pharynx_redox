@@ -117,7 +117,7 @@ class App:
         self.buttons.ui.removeObjectsButton.pressed.connect(
             self.handle_remove_objects_pressed
         )
-        self.viewer.layers.events.changed.connect(self.on_layers_change)
+        # self.viewer.layers.events.changed.connect(self.on_layers_change)
         self.buttons.ui.runNeuronsButton.pressed.connect(self.run_neuron_analysis)
         self.buttons.ui.runPharynxButton.pressed.connect(self.run_pharynx_analysis)
 
@@ -142,9 +142,9 @@ class App:
         if return_value == QMessageBox.Open:
             utils.open_folder(self.experiment.analysis_dir)
 
-    def on_layers_change(self, event):
-        if self.get_layer("masks") is None:
-            self.experiment.seg_images = None
+    # def on_layers_change(self, event):
+    #     if self.get_layer("masks") is None:
+    #         self.experiment.seg_images = None
 
     def get_layer(self, name):
         for layer in self.viewer.layers:
@@ -202,6 +202,9 @@ class App:
                     )
             if self.experiment.seg_images is not None:
                 masks = self.experiment.seg_images
+                self.viewer.add_labels(
+                    self.experiment.seg_images.sel(wavelength="410"), name="masks"
+                )
 
 
 if __name__ == "__main__":

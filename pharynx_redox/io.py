@@ -31,8 +31,9 @@ def load_profile_data(path: Union[Path, str]) -> xr.DataArray:
     xr.DataArray
         the data
     """
-    logging.info("Loading data from %s" % path)
-    return xr.load_dataarray(path)
+    data = xr.load_dataarray(path)
+    logging.info("Loaded data from %s" % path)
+    return data
 
 
 def save_profile_data(profile_data: xr.DataArray, path: Union[Path, str]) -> None:

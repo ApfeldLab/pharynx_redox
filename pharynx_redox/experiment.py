@@ -205,6 +205,13 @@ class Experiment:
         self.raw_images = self._load_raw_images()
         self.images = ip.subtract_medians(self.raw_images)
 
+        # try to load masks
+        try:
+            self.load_masks()
+        except IOError:
+            logging.info("No masks found in experiment directory")
+            pass
+
     def try_to_load_from_config_file(self):
         try:
             with open(self.settings_filepath, "r") as f:
@@ -353,16 +360,11 @@ class Experiment:
     def segment_pharynxes(self):
         if self.seg_images is not None:
             logging.info("masks have been specified. skipping mask generation")
+            self.save_masks()
             return
-
-        try:
-            self.load_masks()
-        except IOError:
-            logging.warn(f"Failed to load masks from {self.seg_images_filepath}")
-
+        else:
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
-
             self.save_masks()
 
     def align_and_center(self):
