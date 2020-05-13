@@ -75,8 +75,9 @@ class Experiment:
     measure_thickness: float = 0.0
 
     # Registration Parameters
-    channel_register: int = 1
-    population_register: int = 1
+    channel_register: int = 0
+    population_register: int = 0
+    image_register: int = 1
 
     n_deriv: float = 0.0
 
@@ -140,52 +141,12 @@ class Experiment:
         self.raw_img_stack_filepath = self.experiment_dir.joinpath(
             self.experiment_id + ".tif"
         )
-        self.processed_images_dir = self.experiment_dir.joinpath("processed_images")
-        self.rot_seg_dir = self.processed_images_dir.joinpath("rot_seg")
-        self.rot_fl_dir = self.processed_images_dir.joinpath("rot_fl")
-        self.fl_imgs_dir = self.processed_images_dir.joinpath("fluorescent_images")
-        self.analysis_dir = self.get_analysis_dir()
-        self.fig_dir = self.analysis_dir.joinpath("figs")
-
-        self.orig_images_filepath = self.processed_images_dir.joinpath("images.nc")
-        self.aligned_images_filepath = self.processed_images_dir.joinpath(
-            "aligned_images.nc"
-        )
-        self.seg_images_filepath = self.processed_images_dir.joinpath("seg_images.nc")
-        self.aligned_seg_images_filepath = self.processed_images_dir.joinpath(
-            "aligned_seg_images.nc"
-        )
 
         self.movement_filepath = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
         self.indexer_filepath = self.experiment_dir.joinpath(
             self.experiment_id + "-indexer.csv"
-        )
-        self.untrimmed_profile_data_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_profile_data.nc"
-        )
-        self.trimmed_profile_data_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_profile_data.nc"
-        )
-        self.warp_data_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-warp_data.npy"
-        )
-
-        self.untrimmed_profile_data_csv_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_profile_data.csv"
-        )
-
-        self.trimmed_profile_data_csv_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_profile_data.csv"
-        )
-
-        self.untrimmed_region_data_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_region_data.csv"
-        )
-
-        self.trimmed_region_data_filepath = self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_region_data.csv"
         )
 
         # Other computed properties
@@ -211,6 +172,83 @@ class Experiment:
         except IOError:
             logging.info("No masks found in experiment directory")
             pass
+
+    # Computed Filepaths
+    @property
+    def processed_images_dir(self):
+        return self.experiment_dir.joinpath("processed_images")
+
+    @property
+    def rot_seg_dir(self):
+        return self.processed_images_dir.joinpath("rot_seg")
+
+    @property
+    def rot_fl_dir(self):
+        return self.processed_images_dir.joinpath("rot_fl")
+
+    @property
+    def fl_imgs_dir(self):
+        return self.processed_images_dir.joinpath("fluorescent_images")
+
+    @property
+    def fig_dir(self):
+        return self.get_analysis_dir().joinpath("figs")
+
+    @property
+    def orig_images_filepath(self):
+        return self.processed_images_dir.joinpath("images.nc")
+
+    @property
+    def aligned_images_filepath(self):
+        return self.processed_images_dir.joinpath("aligned_images.nc")
+
+    @property
+    def seg_images_filepath(self):
+        return self.processed_images_dir.joinpath("seg_images.nc")
+
+    @property
+    def aligned_seg_images_filepath(self):
+        return self.processed_images_dir.joinpath("aligned_seg_images.nc")
+
+    @property
+    def untrimmed_profile_data_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-untrimmed_profile_data.nc"
+        )
+
+    @property
+    def trimmed_profile_data_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-trimmed_profile_data.nc"
+        )
+
+    @property
+    def warp_data_filepath(self):
+        return self.get_analysis_dir().joinpath(self.experiment_id + "-warp_data.npy")
+
+    @property
+    def untrimmed_profile_data_csv_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-untrimmed_profile_data.csv"
+        )
+
+    @property
+    def trimmed_profile_data_csv_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-trimmed_profile_data.csv"
+        )
+
+    @property
+    def untrimmed_region_data_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-untrimmed_region_data.csv"
+        )
+
+    @property
+    def trimmed_region_data_filepath(self):
+        return self.get_analysis_dir().joinpath(
+            self.experiment_id + "-trimmed_region_data.csv"
+        )
 
     def try_to_load_from_config_file(self):
         try:
@@ -330,6 +368,7 @@ class Experiment:
         )
 
         self.segment_pharynxes()
+        self.register_images()
         self.align_and_center()
         self.calculate_midlines()
         self.measure_under_midlines()
@@ -366,6 +405,11 @@ class Experiment:
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(self.images, self.seg_threshold)
             self.save_masks()
+
+    def register_images(self):
+        if self.image_register:
+            logging.info("Registering Images")
+            self.images = ip.register_all_images(self.images, self.seg_images)
 
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
@@ -418,7 +462,7 @@ class Experiment:
 
         reg_param_dict = {k: getattr(self, k) for k in reg_params}
 
-        if self.population_register:
+        if self.population_register == 1:
             logging.info("Standardizing profiles")
             (
                 self.untrimmed_profiles,
@@ -430,7 +474,7 @@ class Experiment:
                 **reg_param_dict,
             )
 
-        if self.channel_register:
+        if self.channel_register == 1:
             logging.info("Channel-Registering profiles")
             (
                 self.untrimmed_profiles,
@@ -448,7 +492,7 @@ class Experiment:
             profile_processing.trim_profiles(
                 self.untrimmed_profiles,
                 self.seg_threshold,
-                ref_wvl=self.ratio_numerator,
+                ref_wvl=self.reference_wavelength,
             )
         )
 
@@ -531,7 +575,7 @@ class Experiment:
     # pass
 
     def make_fig_dir(self):
-        fig_dir = self.analysis_dir.joinpath("figs")
+        fig_dir = self.get_analysis_dir().joinpath("figs")
         fig_dir.mkdir(parents=True, exist_ok=True)
         return fig_dir
 

@@ -503,6 +503,19 @@ def channel_register(
         logging.warn("MATLAB engine not installed! Skipping registration.")
         return profile_data
 
+    reg_params = dict(
+        n_deriv=2.0,
+        rough_lambda=0.01,
+        rough_n_breaks=300.0,
+        rough_order=4.0,
+        smooth_lambda=10.0 ** 2,
+        smooth_n_breaks=100.0,
+        smooth_order=4.0,
+        warp_lambda=5.0e3,
+        warp_n_basis=30.0,
+        warp_order=4.0,
+    )
+
     if eng is None:
         eng = matlab.engine.start_matlab()
 

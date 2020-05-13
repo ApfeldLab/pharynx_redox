@@ -10,10 +10,13 @@ import pandas as pd
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
-from scipy.stats import norm
+from scipy.stats import norm, zscore
 from skimage import measure, transform, filters, exposure, img_as_float
 from skimage.external import tifffile
 from skimage.transform import AffineTransform, warp
+import SimpleITK as sitk
+from skimage.measure import label, regionprops
+
 
 from pharynx_redox import profile_processing
 
@@ -887,3 +890,191 @@ def create_normed_rgb_ratio_stack(
             tifffile.imsave(f, rgb_img)
 
     return rgb_img
+
+
+def get_bbox(m, pad=5):
+    try:
+        y_min, x_min, y_max, x_max = np.array(regionprops(label(m))[0].bbox)
+
+        y_min = max(int(y_min - (pad / 2)), 0)
+        x_min = max(int(x_min - (pad / 2)), 0)
+        y_max = min(int(y_max + (pad / 2)), m.shape[0])
+        x_max = min(int(x_max + (pad / 2)), m.shape[1])
+
+        return np.array([y_min, x_min, y_max, x_max]).astype(np.float)
+    except IndexError:
+        return [np.nan, np.nan, np.nan, np.nan]
+
+
+def bspline_intra_modal_registration(
+    fixed_image,
+    moving_image,
+    fixed_image_mask=None,
+    fixed_points=None,
+    moving_points=None,
+    ylim=None,
+    point_width=5.0,
+):
+
+    registration_method = sitk.ImageRegistrationMethod()
+
+    # Determine the number of BSpline control points using the physical spacing we want for the control grid.
+    grid_physical_spacing = [
+        point_width,
+        point_width,
+        point_width,
+    ]  # A control point every 50mm
+    image_physical_size = [
+        size * spacing
+        for size, spacing in zip(fixed_image.GetSize(), fixed_image.GetSpacing())
+    ]
+    mesh_size = [
+        int(image_size / grid_spacing + 0.5)
+        for image_size, grid_spacing in zip(image_physical_size, grid_physical_spacing)
+    ]
+
+    initial_transform = sitk.BSplineTransformInitializer(
+        image1=fixed_image, transformDomainMeshSize=mesh_size, order=2
+    )
+    registration_method.SetInitialTransform(initial_transform)
+
+    registration_method.SetMetricAsMeanSquares()
+    # Settings for metric sampling, usage of a mask is optional. When given a mask the sample points will be
+    # generated inside that region. Also, this implicitly speeds things up as the mask is smaller than the
+    # whole image.
+    # registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
+    # registration_method.SetMetricSamplingPercentage(0.1)
+    if fixed_image_mask:
+        registration_method.SetMetricFixedMask(fixed_image_mask)
+
+    # Multi-resolution framework.
+    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [4,2,1])
+    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [2,1])
+    # registration_method.SetSmoothingSigmasPerLevel(smoothingSigmas=[1,0])
+    # registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+    registration_method.SetInterpolator(sitk.sitkLinear)
+    registration_method.SetOptimizerAsLBFGSB(
+        gradientConvergenceTolerance=1e-5, numberOfIterations=10
+    )
+    # registration_method.SetOptimizerAsGradientDescent(learningRate=1.0, numberOfIterations=50, convergenceMinimumValue=1e-6, convergenceWindowSize=10)
+    # registration_method.SetOptimizerAsAmoeba()
+    # registration_method.SetOptimizerAsAmoeba()
+    # registration_method.SetOptimizerAsLBFGS2(numberOfIterations=1000)
+
+    # registration_method.AddCommand(sitk.sitkStartEvent, start_plot)
+    # registration_method.AddCommand(sitk.sitkEndEvent, end_plot)
+    # registration_method.AddCommand(
+    #     sitk.sitkMultiResolutionIterationEvent, update_multires_iterations
+    # )
+    # registration_method.AddCommand(sitk.sitkIterationEvent, lambda: plot_values(registration_method, ylim=ylim))
+
+    # If corresponding points in the fixed and moving image are given then we display the similarity metric
+    # and the TRE during the registration.
+    # if fixed_points and moving_points:
+    #     registration_method.AddCommand(
+    #         sitk.sitkStartEvent, rc.metric_and_reference_start_plot
+    #     )
+    #     registration_method.AddCommand(
+    #         sitk.sitkEndEvent, rc.metric_and_reference_end_plot
+    #     )
+    #     registration_method.AddCommand(
+    #         sitk.sitkIterationEvent,
+    #         lambda: rc.metric_and_reference_plot_values(
+    #             registration_method, fixed_points, moving_points
+    #         ),
+    #     )
+
+    return registration_method.Execute(fixed_image, moving_image)
+
+
+def register_image(fixed, moving, mask=None, point_width=5.0):
+    z_fixed = zscore(fixed.values)
+    z_moving = zscore(moving.values)
+
+    if mask is not None:
+        mask = sitk.GetImageFromArray(mask * 255)
+
+    tx = bspline_intra_modal_registration(
+        sitk.GetImageFromArray(z_fixed),
+        sitk.GetImageFromArray(z_moving),
+        fixed_image_mask=mask,
+        point_width=point_width,
+    )
+
+    reg_moving = sitk.GetArrayFromImage(
+        sitk.Resample(
+            sitk.GetImageFromArray(moving),
+            sitk.GetImageFromArray(fixed),
+            tx,
+            sitk.sitkLinear,
+        )
+    )
+
+    return reg_moving
+
+
+def crop(img, bbox):
+    y_min, x_min, y_max, x_max = bbox.values.astype(np.int)
+
+    return img[y_min:y_max, x_min:x_max]
+
+
+def register_all_images(
+    imgs,
+    masks,
+    bbox_pad=10,
+    point_width=6.0,
+    fixed_wvl="410",
+    moving_wvl="470",
+    mask_wvl="410",
+):
+    bboxes = xr.apply_ufunc(
+        get_bbox,
+        masks,
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["pos"]],
+        vectorize=True,
+        kwargs={"pad": bbox_pad},
+    ).assign_coords({"pos": ["min_row", "max_row", "min_col", "max_col"]})
+
+    reg_imgs = imgs.copy()
+
+    for animal in imgs.animal:
+        for pair in imgs.pair:
+            for timepoint in imgs.timepoint:
+                fixed = imgs.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=fixed_wvl
+                )
+                moving = imgs.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=moving_wvl
+                )
+                mask = masks.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
+                )
+                bbox = bboxes.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
+                )
+
+                # crop image
+                crop_fixed = crop(fixed, bbox)
+                crop_moving = crop(moving, bbox)
+                crop_mask = crop(mask, bbox)
+
+                # register image
+                reg_moving = register_image(
+                    crop_fixed, crop_moving, mask=crop_mask, point_width=point_width
+                )
+
+                # paste cropped images back into correct location (from bbox)
+                y_min, x_min, y_max, x_max = bbox.values.astype(np.int)
+                reg_imgs.loc[
+                    dict(
+                        animal=animal,
+                        pair=pair,
+                        timepoint=timepoint,
+                        wavelength=moving_wvl,
+                    )
+                ][y_min:y_max, x_min:x_max] = reg_moving
+
+    return reg_imgs
