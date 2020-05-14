@@ -103,15 +103,19 @@ def align_pa(
     ).data
     flipped = np.fliplr(unflipped)
 
-    # do the actual cosine-similarity measurements
+    # cosine-similarity measurements
     should_flip = (
         spatial.distance.cdist(ref_vecs, unflipped, "cosine")[0, :]
         > spatial.distance.cdist(ref_vecs, flipped, "cosine")[0, :]
     )
+    print(should_flip)
 
+    # Do the actual flip
     # position needs to be reindexed, otherwise xarray freaks out
-    # Axis=4 because that is the index of `position`
-    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=4).reindex(
+    intensity_data[should_flip] = np.flip(
+        intensity_data[should_flip].values, axis=intensity_data.get_axis_num("position")
+    )
+    intensity_data = intensity_data.reindex(
         position=np.linspace(0, 1, intensity_data.position.size)
     )
 
@@ -137,7 +141,9 @@ def align_pa(
         return intensity_data
 
     if peaks[0] < len(mean_intensity) - peaks[1]:
-        intensity_data = np.flip(intensity_data, axis=3)
+        intensity_data = np.flip(
+            intensity_data, axis=intensity_data.get_axis_num("position")
+        )
 
     return intensity_data
 
