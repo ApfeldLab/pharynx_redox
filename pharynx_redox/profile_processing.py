@@ -133,6 +133,7 @@ def align_pa(
     )
 
     # parameters found experimentally
+    # TODO these could use some tweaking
     peaks, _ = signal.find_peaks(
         mean_intensity, distance=0.2 * len(mean_intensity), prominence=200, wlen=10
     )

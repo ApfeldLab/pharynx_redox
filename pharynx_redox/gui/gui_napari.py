@@ -163,7 +163,9 @@ class App:
             self.experiment.seg_images, min_obj_size
         )
 
-        layer.data = self.experiment.seg_images.sel(wavelength="410").values
+        layer.data = self.experiment.seg_images.sel(
+            wavelength=self.experiment.reference_wavelength
+        ).values
         layer.refresh()
 
     def handle_segment_pressed(self):
@@ -173,7 +175,10 @@ class App:
         if self.experiment.seg_images is None:
             self.experiment.seg_images = masks
             self.viewer.add_labels(
-                self.experiment.seg_images.sel(wavelength="410"), name="masks"
+                self.experiment.seg_images.sel(
+                    wavelength=self.experiment.reference_wavelength
+                ),
+                name="masks",
             )
         else:
             self.update_threshold(t)
@@ -188,7 +193,9 @@ class App:
             return
         else:
             self.experiment.seg_images = masks
-            self.get_layer("masks").data = masks.sel(wavelength="410")
+            self.get_layer("masks").data = masks.sel(
+                wavelength=self.experiment.reference_wavelength
+            )
             self.get_layer("masks").refresh()
 
     def run(self):
@@ -203,7 +210,10 @@ class App:
             if self.experiment.seg_images is not None:
                 masks = self.experiment.seg_images
                 self.viewer.add_labels(
-                    self.experiment.seg_images.sel(wavelength="410"), name="masks"
+                    self.experiment.seg_images.sel(
+                        wavelength=self.experiment.reference_wavelength
+                    ),
+                    name="masks",
                 )
 
 
