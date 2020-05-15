@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/pharynx_redox/gui/qt_ui_files/image_stack_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -12,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_XArrayDisplayWidget(object):
     def setupUi(self, XArrayDisplayWidget):
         XArrayDisplayWidget.setObjectName("XArrayDisplayWidget")
-        XArrayDisplayWidget.resize(1680, 1005)
+        XArrayDisplayWidget.resize(1075, 679)
         self.gridLayout_2 = QtWidgets.QGridLayout(XArrayDisplayWidget)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.widget = QtWidgets.QWidget(XArrayDisplayWidget)
@@ -42,21 +43,23 @@ class Ui_XArrayDisplayWidget(object):
         self.pairSlider.setOrientation(QtCore.Qt.Horizontal)
         self.pairSlider.setObjectName("pairSlider")
         self.verticalLayout_3.addWidget(self.pairSlider)
-        self.displayMaskCheckbox = QtWidgets.QCheckBox(self.groupBox_2)
-        self.displayMaskCheckbox.setObjectName("displayMaskCheckbox")
-        self.verticalLayout_3.addWidget(self.displayMaskCheckbox)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.excludeButton = QtWidgets.QToolButton(self.groupBox_2)
+        self.excludeButton.setObjectName("excludeButton")
+        self.horizontalLayout_2.addWidget(self.excludeButton)
+        self.flipButton = QtWidgets.QToolButton(self.groupBox_2)
+        self.flipButton.setObjectName("flipButton")
+        self.horizontalLayout_2.addWidget(self.flipButton)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_2)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.editMaskCheckBox = QtWidgets.QCheckBox(self.groupBox_2)
-        self.editMaskCheckBox.setObjectName("editMaskCheckBox")
-        self.horizontalLayout.addWidget(self.editMaskCheckBox)
-        self.drawToolButton = QtWidgets.QToolButton(self.groupBox_2)
-        self.drawToolButton.setObjectName("drawToolButton")
-        self.horizontalLayout.addWidget(self.drawToolButton)
-        self.kernelRadiusSpinBox = QtWidgets.QSpinBox(self.groupBox_2)
-        self.kernelRadiusSpinBox.setProperty("value", 5)
-        self.kernelRadiusSpinBox.setObjectName("kernelRadiusSpinBox")
-        self.horizontalLayout.addWidget(self.kernelRadiusSpinBox)
+        self.maskCheckBox = QtWidgets.QCheckBox(self.groupBox_2)
+        self.maskCheckBox.setObjectName("maskCheckBox")
+        self.horizontalLayout.addWidget(self.maskCheckBox)
+        self.midlineCheckBox = QtWidgets.QCheckBox(self.groupBox_2)
+        self.midlineCheckBox.setObjectName("midlineCheckBox")
+        self.horizontalLayout.addWidget(self.midlineCheckBox)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
         self.verticalLayout_2.addWidget(self.groupBox_2)
         self.line_2 = QtWidgets.QFrame(self.widget)
@@ -64,24 +67,25 @@ class Ui_XArrayDisplayWidget(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_2.addWidget(self.line_2)
-        spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        self.groupBox = QtWidgets.QGroupBox(self.widget)
+        self.groupBox.setObjectName("groupBox")
+        self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
+        self.gridLayout.setObjectName("gridLayout")
+        self.paintButton = QtWidgets.QToolButton(self.groupBox)
+        self.paintButton.setObjectName("paintButton")
+        self.gridLayout.addWidget(self.paintButton, 0, 2, 1, 1)
+        self.brushSizeSlider = QtWidgets.QSlider(self.groupBox)
+        self.brushSizeSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.brushSizeSlider.setObjectName("brushSizeSlider")
+        self.gridLayout.addWidget(self.brushSizeSlider, 0, 0, 1, 1)
+        self.verticalLayout_2.addWidget(self.groupBox)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem)
         self.line = QtWidgets.QFrame(self.widget)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.verticalLayout_2.addWidget(self.line)
-        self.propertiesGroupBox = QtWidgets.QGroupBox(self.widget)
-        self.propertiesGroupBox.setMaximumSize(QtCore.QSize(300, 16777215))
-        self.propertiesGroupBox.setObjectName("propertiesGroupBox")
-        self.gridLayout_3 = QtWidgets.QGridLayout(self.propertiesGroupBox)
-        self.gridLayout_3.setObjectName("gridLayout_3")
-        self.propertiesDataTreeWidget = DataTreeWidget(self.propertiesGroupBox)
-        self.propertiesDataTreeWidget.setObjectName("propertiesDataTreeWidget")
-        self.gridLayout_3.addWidget(self.propertiesDataTreeWidget, 0, 0, 1, 1)
-        self.verticalLayout_2.addWidget(self.propertiesGroupBox)
         self.gridLayout_2.addWidget(self.widget, 0, 0, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setSpacing(1)
@@ -90,12 +94,6 @@ class Ui_XArrayDisplayWidget(object):
         self.tabWidget.setObjectName("tabWidget")
         self.tab = QtWidgets.QWidget()
         self.tab.setObjectName("tab")
-        self.gridLayout = QtWidgets.QGridLayout(self.tab)
-        self.gridLayout.setObjectName("gridLayout")
-        self.ImageViewBox = ImageView(self.tab)
-        self.ImageViewBox.setMinimumSize(QtCore.QSize(400, 0))
-        self.ImageViewBox.setObjectName("ImageViewBox")
-        self.gridLayout.addWidget(self.ImageViewBox, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
@@ -104,7 +102,6 @@ class Ui_XArrayDisplayWidget(object):
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 1, 1, 1)
 
         self.retranslateUi(XArrayDisplayWidget)
-        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(XArrayDisplayWidget)
 
     def retranslateUi(self, XArrayDisplayWidget):
@@ -113,23 +110,11 @@ class Ui_XArrayDisplayWidget(object):
         self.groupBox_2.setTitle(_translate("XArrayDisplayWidget", "Controls"))
         self.label.setText(_translate("XArrayDisplayWidget", "Wavelength"))
         self.label_2.setText(_translate("XArrayDisplayWidget", "Pair"))
-        self.displayMaskCheckbox.setText(
-            _translate("XArrayDisplayWidget", "Display Mask")
-        )
-        self.editMaskCheckBox.setText(
-            _translate("XArrayDisplayWidget", "Edit Mask (m)")
-        )
-        self.drawToolButton.setText(_translate("XArrayDisplayWidget", "Draw (d)"))
-        self.propertiesGroupBox.setTitle(
-            _translate("XArrayDisplayWidget", "Properties")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Raw")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2),
-            _translate("XArrayDisplayWidget", "Segmented"),
-        )
-
-
-from pyqtgraph import DataTreeWidget, ImageView
+        self.excludeButton.setText(_translate("XArrayDisplayWidget", "exclude"))
+        self.flipButton.setText(_translate("XArrayDisplayWidget", "flip L/R"))
+        self.maskCheckBox.setText(_translate("XArrayDisplayWidget", "Show / Edit Mask"))
+        self.midlineCheckBox.setText(_translate("XArrayDisplayWidget", "Show Midline"))
+        self.groupBox.setTitle(_translate("XArrayDisplayWidget", "Mask Tools"))
+        self.paintButton.setText(_translate("XArrayDisplayWidget", "paint"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Tab 1"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Tab 2"))

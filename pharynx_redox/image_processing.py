@@ -6,22 +6,84 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import xarray as xr
+import pandas as pd
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
-from scipy.signal import find_peaks
-from scipy.spatial.distance import cdist
-from scipy.stats import norm
-from skimage import measure, transform
+from scipy.stats import norm, zscore
+from skimage import measure, transform, filters, exposure, img_as_float
 from skimage.external import tifffile
 from skimage.transform import AffineTransform, warp
+import SimpleITK as sitk
+from skimage.measure import label, regionprops
 
-from . import profile_processing
+
+from pharynx_redox import profile_processing
 
 
-def subtract_medians(
-    imgs: Union[np.ndarray, xr.DataArray]
-) -> Union[np.ndarray, xr.DataArray]:
+def measure_under_labels(
+    I: xr.DataArray,
+    S: xr.DataArray,
+    ref_wvl: str = "410",
+    ratio_numerator="410",
+    ratio_denominator="470",
+    measurements: List[str] = ["label", "mean_intensity", "area"],
+):
+    """Measure the intensities of each channel under the label image"""
+    df = []
+    I = I.where(I.wavelength != "TL", drop=True)
+
+    for a in I.animal.values:
+        for tp in I.timepoint.values:
+            for p in I.pair.values:
+                for wvl in I.wavelength.values:
+                    img_selector = dict(animal=a, timepoint=tp, pair=p, wavelength=wvl)
+                    seg_selector = dict(
+                        animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
+                    )
+
+                    if "wavelength" in S.dims:
+                        seg_frame = S.sel(
+                            animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
+                        )
+                    else:
+                        # single wavelength was passed
+                        seg_frame = S.sel(animal=a, timepoint=tp, pair=p)
+
+                    L = measure.label(seg_frame)
+
+                    sub_df = pd.DataFrame(
+                        measure.regionprops_table(
+                            L,
+                            intensity_image=I.sel(**img_selector).values,
+                            properties=measurements,
+                        )
+                    )
+
+                    sub_df["animal"] = a
+                    sub_df["timepoint"] = tp
+                    sub_df["pair"] = p
+                    sub_df["wavelength"] = wvl
+                    sub_df["strain"] = I.sel(**img_selector).strain.values
+
+                    df.append(sub_df)
+
+    df = pd.concat(df)
+    df = df.set_index(["animal", "timepoint", "pair", "wavelength", "label"]).unstack(
+        "wavelength"
+    )
+    df[("mean_intensity", "r")] = (
+        df["mean_intensity"][ratio_numerator] / df["mean_intensity"][ratio_denominator]
+    )
+    df[("area", "r")] = df[("area", ratio_numerator)]
+    df[("strain", "r")] = df[("strain", ratio_numerator)]
+
+    df = df.stack("wavelength")
+
+    return df
+
+
+def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
     """
     Subtract the median from each image.
 
@@ -33,7 +95,11 @@ def subtract_medians(
         the dimensions that the images are stored in the `imgs` array. 
     """
 
-    return imgs - np.median(imgs, axis=(-2, -1), keepdims=True).astype(imgs.dtype)
+    submed = imgs.copy()
+    submed.values = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
+    submed.loc[dict(wavelength="TL")] = imgs.sel(wavelength="TL")
+    submed = submed.astype(imgs.dtype)
+    return submed
 
 
 def get_lr_bounds(
@@ -108,59 +174,64 @@ def center_and_rotate_pharynxes(
     seg_rotated_stack = seg_images.copy()
 
     blurred_seg = fl_images.copy()
-    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 6, 6))
+    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 0, 6, 6))
     blurred_seg_data = blurred_seg_data > blur_seg_thresh
     blurred_seg.data = blurred_seg_data
 
+    # STACK_ITERATION
     for img_idx in range(fl_images.animal.size):
         for wvl in fl_images.wavelength.data:
             for pair in fl_images.pair.data:
-                # Optimization potential here...
-                # this recalculates all region properties for the reference each time
-                reference_seg = seg_images.isel(animal=img_idx).sel(
-                    wavelength=reference_wavelength, pair=pair
-                )
-                img = fl_images.isel(animal=img_idx).sel(wavelength=wvl, pair=pair)
-                seg = seg_rotated_stack.isel(animal=img_idx).sel(
-                    wavelength=wvl, pair=pair
-                )
-
-                try:
-                    props = measure.regionprops(
-                        measure.label(reference_seg), coordinates="rc"
-                    )[0]
-                except IndexError:
-                    raise ValueError(
-                        f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
+                for tp in fl_images.timepoint.values:
+                    # Optimization potential here...
+                    # this recalculates all region properties for the reference each time
+                    reference_seg = seg_images.isel(animal=img_idx).sel(
+                        wavelength=reference_wavelength, pair=pair, timepoint=tp
+                    )
+                    img = fl_images.isel(animal=img_idx).sel(
+                        wavelength=wvl, pair=pair, timepoint=tp
+                    )
+                    seg = seg_rotated_stack.isel(animal=img_idx).sel(
+                        wavelength=wvl, pair=pair, timepoint=tp
                     )
 
-                # pharynx_center_y, pharynx_center_x = props.centroid
-                pharynx_center_y, pharynx_center_x = np.mean(
-                    np.nonzero(reference_seg), axis=1
-                )
-                pharynx_orientation = props.orientation
+                    try:
+                        props = measure.regionprops(measure.label(reference_seg))[0]
+                    except IndexError:
+                        raise ValueError(
+                            f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
+                        )
 
-                translation_matrix = transform.EuclideanTransform(
-                    translation=(
-                        -(img_center_x - pharynx_center_x),
-                        -(img_center_y - pharynx_center_y),
+                    # pharynx_center_y, pharynx_center_x = props.centroid
+                    pharynx_center_y, pharynx_center_x = np.mean(
+                        np.nonzero(reference_seg), axis=1
                     )
-                )
+                    pharynx_orientation = props.orientation
 
-                rotated_img = rotate(img.data, translation_matrix, pharynx_orientation)
-                rotated_seg = rotate(
-                    seg.data, translation_matrix, pharynx_orientation, order=0
-                )
+                    translation_matrix = transform.EuclideanTransform(
+                        translation=(
+                            -(img_center_x - pharynx_center_x),
+                            -(img_center_y - pharynx_center_y),
+                        )
+                    )
 
-                fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][
-                    img_idx
-                ] = rotated_img
+                    rotated_img = rotate(
+                        img.data, translation_matrix, pharynx_orientation
+                    )
+                    rotated_seg = rotate(
+                        seg.data, translation_matrix, pharynx_orientation, order=0
+                    )
 
-                seg_rotated_stack.loc[dict(wavelength=wvl, pair=pair)][
-                    img_idx
-                ] = rotated_seg
+                    fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair, timepoint=tp)][
+                        img_idx
+                    ] = rotated_img
 
-    return fl_rotated_stack.astype(fl_images.dtype), seg_rotated_stack
+                    seg_rotated_stack.loc[
+                        dict(wavelength=wvl, pair=pair, timepoint=tp)
+                    ][img_idx] = rotated_seg
+
+    fl_rotated_stack.values = fl_rotated_stack.values.astype(fl_images.dtype)
+    return fl_rotated_stack, seg_rotated_stack
 
 
 def extract_largest_binary_object(
@@ -194,6 +265,26 @@ def get_area_of_largest_object(S):
         return 0
 
 
+# def segment_pharynx(fl_img: xr.DataArray, min_area=1000, t_step=100):
+#     """
+#     Segment the pharynx.
+
+#     Parameters
+#     ----------
+#     fl_img : xr.DataArray
+#         the fluorescent image (must contain only one pharynx)
+#     min_area : int, optional
+#         the minimum area of the pharynx (in px), by default 500
+#     t_step : int, optional
+#         the amount by which the intensity may change in estimating the threshold,
+#         by default 100
+#     """
+#     I = exposure.rescale_intensity(img_as_float(fl_img))
+#     t = filters.threshold_otsu(I)
+
+#     return I > t
+
+
 def segment_pharynx(fl_img: xr.DataArray):
     seg = fl_img.copy()
 
@@ -214,8 +305,10 @@ def segment_pharynx(fl_img: xr.DataArray):
 
     area = get_area_of_largest_object(S)
 
-    i = 0 
-    while (min_area > area) or (area > max_area) or (i >= max_iter):
+    i = 0
+    while (min_area > area) or (area > max_area):
+        if i >= max_iter:
+            return S
         area = get_area_of_largest_object(S)
 
         logging.debug(f"Setting p={p}")
@@ -280,17 +373,27 @@ def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataA
 
     seg = fl_stack.copy()
     i = 0
+    # STACK_ITERATION
     for img_idx in range(fl_stack.animal.size):
         for wvl_idx in range(fl_stack.wavelength.size):
             for pair in range(fl_stack.pair.size):
-                selector = dict(animal=img_idx, wavelength=wvl_idx, pair=pair)
-                logging.debug(
-                    f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
-                )
-                I = fl_stack.isel(selector)
-                S = segment_pharynx(I)
-                seg[selector] = extract_largest_binary_object(S)
-                i = i + 1
+                for tp in fl_stack.timepoint.values:
+                    selector = dict(
+                        animal=img_idx, wavelength=wvl_idx, pair=pair, timepoint=tp
+                    )
+                    logging.debug(
+                        f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
+                    )
+                    if fl_stack.wavelength.values[wvl_idx].lower() == "tl":
+                        logging.debug("skipping TL")
+                        continue
+                    I = fl_stack.isel(selector)
+                    S = segment_pharynx(I)
+                    seg[selector] = extract_largest_binary_object(S)
+                    i = i + 1
+    # seg = 255 * seg.astype(np.uint8)
+    seg = seg.astype(np.uint8)
+    seg.loc[dict(wavelength="TL")] = 0
     return seg
 
 
@@ -389,7 +492,11 @@ def calculate_midlines(
     calculate_midline
     """
     return xr.apply_ufunc(
-        calculate_midline, rot_seg_stack, input_core_dims=[["y", "x"]], vectorize=True
+        calculate_midline,
+        rot_seg_stack,
+        input_core_dims=[["y", "x"]],
+        vectorize=True,
+        keep_attrs=True,
     )
 
 
@@ -417,20 +524,24 @@ def calculate_midline(
 
     Notes
     -----
-    Right now this only works for images that this have been centered this and aligned this with their
+    Right now this only works for images that this have been centered and aligned with their
     anterior-posterior along the horizontal.
     """
-    try:
-        rp = measure.regionprops(measure.label(rot_seg_img))[0]
-        xs, ys = rp.coords[:, 1], rp.coords[:, 0]
-        left_bound, _, _, right_bound = rp.bbox
-        # noinspection PyTypeChecker
-        return Polynomial.fit(
-            xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
-        )
-    except IndexError:
-        # Indicates trying to measure on TL for example
-        return None
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            rp = measure.regionprops(measure.label(rot_seg_img))[0]
+            xs, ys = rp.coords[:, 1], rp.coords[:, 0]
+            left_bound, _, _, right_bound = rp.bbox
+            # noinspection PyTypeChecker
+            return Polynomial.fit(
+                xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
+            )
+        except IndexError:
+            # Indicates trying to measure on TL for example
+            return None
 
 
 def measure_under_midline(
@@ -458,7 +569,7 @@ def measure_under_midline(
     
     Notes
     -----
-    Using thickness is 5-8 times slower, depending on the amount of thickness 
+    Using thickness is slower, depending on the amount of thickness 
 
     On my machine (2GHz Intel Core i5), as of 12/4/19:
         0-thickness:
@@ -471,9 +582,11 @@ def measure_under_midline(
     Returns
     -------
     zs: np.ndarray
-        The intensity profile of the image measured under the midline at the given x-coordinates.
+        The intensity profile of the image measured under the midline at the given 
+        x-coordinates.
 
     """
+    # Make sure the image orientation matches with the expected order of map_coordinates
     try:
         if thickness == 0:
             xs, ys = mid.linspace(n=n_points)
@@ -481,7 +594,6 @@ def measure_under_midline(
             return ndi.map_coordinates(fl, np.stack([xs, ys]), order=1)
         else:
             # Gets a bit wonky, but makes sense
-            # TODO: maybe refactor this stuff out into individual functions?
 
             # We need to get the normal lines from each point in the midline
             # then measure under those lines.
@@ -509,11 +621,8 @@ def measure_under_midline(
             ys0 = ys + y0
             ys1 = ys + y1
 
-            # This is kinda weird... But we need to do it.
-            # TODO: Could be made faster w/ vectorization? Too tired to figure that out when I wrote it though
-
             # We need to measure in a consistent direction along the normal line
-            # y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
+            # if y0 < y1, we're going to be measuring in an opposite direction along the line... so we need flip the coordinates
             for y0, y1, x0, x1, i in zip(ys0, ys1, xs0, xs1, range(len(xs0))):
                 if y0 < y1:
                     tx = xs0[i]
@@ -544,8 +653,15 @@ def measure_under_midline(
                 return profile
             else:
                 return straightened
-    except:
-        return np.zeros((1, n_points))
+    except AttributeError:
+        # This happens if the image is TL. Then it will have `None` instead of
+        # a midline object
+        pass
+    except Exception as e:
+        # Here, something actually went wrong
+        logging.warn(f"measuring under midline failed with error {e}")
+
+    return np.zeros((1, n_points))
 
 
 def measure_under_midlines(
@@ -565,13 +681,7 @@ def measure_under_midlines(
     fl_stack
         The fluorescence stack under which to measure
     midlines: dict
-        A list of dictionaries of midlines with the following structure::
-
-            [
-                {'410': [UnivariateSpline, UnivariateSpline, ...]},
-                {'470': [UnivariateSpline, UnivariateSpline, ...]},
-                ...
-            ]
+        A DataArray containing the midlines 
     n_points: int
         the number of points to sample under the midline
     frame_specific: bool
@@ -595,100 +705,19 @@ def measure_under_midlines(
         input_core_dims=[["x", "y"], []],
         output_core_dims=[["position"]],
         vectorize=True,
+        keep_attrs=True,
         kwargs={"n_points": n_points, "thickness": thickness, "order": order},
     )
 
-    # measurements.attrs["frame_specific_midlines"] = frame_specific
+    measurements = measurements.assign_coords(
+        {"position": np.linspace(0, 1, measurements.position.size)},
+    )
+    try:
+        measurements = measurements.assign_coords(time=fl_stack.time)
+    except AttributeError:
+        pass
 
     return measurements
-
-
-def align_pa(
-    intensity_data: xr.DataArray,
-    reference_wavelength: str = "410",
-    reference_pair: int = 0,
-) -> xr.DataArray:
-    """
-    Given intensity profile data, flip each animal along their anterior-posterior axis
-    if necessary, so that all face the same direction
-
-    Parameters
-    ----------
-    intensity_data
-        the data to align
-    reference_pair: optional
-        the pair to calculate the alignment for
-    reference_wavelength: optional
-        the wavelength to calculate the alignment for
-
-    Returns
-    -------
-    aligned_intensity_data
-        the PA-aligned intensity data
-
-    Notes
-    -----
-    The alignments are calculated for a single wavelength and pair for each animal, then
-    applied to all wavelengths and pairs for that animal.
-
-    The algorithm works as follows:
-
-        - take the derivative of the (trimmed) intensity profiles (this accounts for
-          differences in absolute intensity between animals)
-        - use the first animal in the stack as the reference profile
-        - for all animals:
-
-           - compare a forward and reverse profile to the reference profile (using the
-             cosine-similarity metric)
-           - keep either the forward or reverse profile accordingly
-
-        - finally, determine the location of the peaks in the *average* profile
-
-            - reverse all profiles if necessary (this will be necessary if the first
-              animal happens to be reversed)
-
-    """
-    data = intensity_data
-
-    ref_data = data.sel(wavelength=reference_wavelength, pair=reference_pair)
-    ref_profile = ref_data.isel(animal=0).data
-
-    ref_vecs = np.tile(ref_profile, (data.animal.size, 1))
-    unflipped = data.sel(wavelength=reference_wavelength, pair=reference_pair).data
-    flipped = np.fliplr(unflipped)
-
-    # do the actual cosine-similarity measurements
-    should_flip = (
-        cdist(ref_vecs, unflipped, "cosine")[0, :]
-        > cdist(ref_vecs, flipped, "cosine")[0, :]
-    )
-
-    # position needs to be reindexed, otherwise xarray freaks out
-    intensity_data[should_flip] = np.flip(intensity_data[should_flip], axis=3).reindex(
-        position=np.arange(intensity_data.position.size)
-    )
-
-    mean_intensity = profile_processing.trim_profile(
-        np.mean(
-            intensity_data.sel(wavelength=reference_wavelength, pair=reference_pair),
-            axis=0,
-        ).data,
-        threshold=2000,
-        new_length=100,
-    )
-
-    # parameters found experimentally
-    peaks, _ = find_peaks(
-        mean_intensity, distance=0.2 * len(mean_intensity), prominence=200, wlen=10
-    )
-
-    if len(peaks) < 2:
-        return intensity_data
-
-    if peaks[0] < len(mean_intensity) - peaks[1]:
-        intensity_data = np.flip(intensity_data, axis=3)
-
-    return intensity_data
 
 
 def center_of_mass_midline(rot_fl: xr.DataArray, s: float, ext: str):
@@ -861,3 +890,191 @@ def create_normed_rgb_ratio_stack(
             tifffile.imsave(f, rgb_img)
 
     return rgb_img
+
+
+def get_bbox(m, pad=5):
+    try:
+        y_min, x_min, y_max, x_max = np.array(regionprops(label(m))[0].bbox)
+
+        y_min = max(int(y_min - (pad / 2)), 0)
+        x_min = max(int(x_min - (pad / 2)), 0)
+        y_max = min(int(y_max + (pad / 2)), m.shape[0])
+        x_max = min(int(x_max + (pad / 2)), m.shape[1])
+
+        return np.array([y_min, x_min, y_max, x_max]).astype(np.float)
+    except IndexError:
+        return [np.nan, np.nan, np.nan, np.nan]
+
+
+def bspline_intra_modal_registration(
+    fixed_image,
+    moving_image,
+    fixed_image_mask=None,
+    fixed_points=None,
+    moving_points=None,
+    ylim=None,
+    point_width=5.0,
+):
+
+    registration_method = sitk.ImageRegistrationMethod()
+
+    # Determine the number of BSpline control points using the physical spacing we want for the control grid.
+    grid_physical_spacing = [
+        point_width,
+        point_width,
+        point_width,
+    ]  # A control point every 50mm
+    image_physical_size = [
+        size * spacing
+        for size, spacing in zip(fixed_image.GetSize(), fixed_image.GetSpacing())
+    ]
+    mesh_size = [
+        int(image_size / grid_spacing + 0.5)
+        for image_size, grid_spacing in zip(image_physical_size, grid_physical_spacing)
+    ]
+
+    initial_transform = sitk.BSplineTransformInitializer(
+        image1=fixed_image, transformDomainMeshSize=mesh_size, order=2
+    )
+    registration_method.SetInitialTransform(initial_transform)
+
+    registration_method.SetMetricAsMeanSquares()
+    # Settings for metric sampling, usage of a mask is optional. When given a mask the sample points will be
+    # generated inside that region. Also, this implicitly speeds things up as the mask is smaller than the
+    # whole image.
+    # registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
+    # registration_method.SetMetricSamplingPercentage(0.1)
+    if fixed_image_mask:
+        registration_method.SetMetricFixedMask(fixed_image_mask)
+
+    # Multi-resolution framework.
+    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [4,2,1])
+    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [2,1])
+    # registration_method.SetSmoothingSigmasPerLevel(smoothingSigmas=[1,0])
+    # registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+    registration_method.SetInterpolator(sitk.sitkLinear)
+    registration_method.SetOptimizerAsLBFGSB(
+        gradientConvergenceTolerance=1e-5, numberOfIterations=10
+    )
+    # registration_method.SetOptimizerAsGradientDescent(learningRate=1.0, numberOfIterations=50, convergenceMinimumValue=1e-6, convergenceWindowSize=10)
+    # registration_method.SetOptimizerAsAmoeba()
+    # registration_method.SetOptimizerAsAmoeba()
+    # registration_method.SetOptimizerAsLBFGS2(numberOfIterations=1000)
+
+    # registration_method.AddCommand(sitk.sitkStartEvent, start_plot)
+    # registration_method.AddCommand(sitk.sitkEndEvent, end_plot)
+    # registration_method.AddCommand(
+    #     sitk.sitkMultiResolutionIterationEvent, update_multires_iterations
+    # )
+    # registration_method.AddCommand(sitk.sitkIterationEvent, lambda: plot_values(registration_method, ylim=ylim))
+
+    # If corresponding points in the fixed and moving image are given then we display the similarity metric
+    # and the TRE during the registration.
+    # if fixed_points and moving_points:
+    #     registration_method.AddCommand(
+    #         sitk.sitkStartEvent, rc.metric_and_reference_start_plot
+    #     )
+    #     registration_method.AddCommand(
+    #         sitk.sitkEndEvent, rc.metric_and_reference_end_plot
+    #     )
+    #     registration_method.AddCommand(
+    #         sitk.sitkIterationEvent,
+    #         lambda: rc.metric_and_reference_plot_values(
+    #             registration_method, fixed_points, moving_points
+    #         ),
+    #     )
+
+    return registration_method.Execute(fixed_image, moving_image)
+
+
+def register_image(fixed, moving, mask=None, point_width=5.0):
+    z_fixed = zscore(fixed.values)
+    z_moving = zscore(moving.values)
+
+    if mask is not None:
+        mask = sitk.GetImageFromArray(mask * 255)
+
+    tx = bspline_intra_modal_registration(
+        sitk.GetImageFromArray(z_fixed),
+        sitk.GetImageFromArray(z_moving),
+        fixed_image_mask=mask,
+        point_width=point_width,
+    )
+
+    reg_moving = sitk.GetArrayFromImage(
+        sitk.Resample(
+            sitk.GetImageFromArray(moving),
+            sitk.GetImageFromArray(fixed),
+            tx,
+            sitk.sitkLinear,
+        )
+    )
+
+    return reg_moving
+
+
+def crop(img, bbox):
+    y_min, x_min, y_max, x_max = bbox.values.astype(np.int)
+
+    return img[y_min:y_max, x_min:x_max]
+
+
+def register_all_images(
+    imgs,
+    masks,
+    bbox_pad=10,
+    point_width=6.0,
+    fixed_wvl="410",
+    moving_wvl="470",
+    mask_wvl="410",
+):
+    bboxes = xr.apply_ufunc(
+        get_bbox,
+        masks,
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["pos"]],
+        vectorize=True,
+        kwargs={"pad": bbox_pad},
+    ).assign_coords({"pos": ["min_row", "max_row", "min_col", "max_col"]})
+
+    reg_imgs = imgs.copy()
+
+    for animal in imgs.animal:
+        for pair in imgs.pair:
+            for timepoint in imgs.timepoint:
+                fixed = imgs.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=fixed_wvl
+                )
+                moving = imgs.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=moving_wvl
+                )
+                mask = masks.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
+                )
+                bbox = bboxes.sel(
+                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
+                )
+
+                # crop image
+                crop_fixed = crop(fixed, bbox)
+                crop_moving = crop(moving, bbox)
+                crop_mask = crop(mask, bbox)
+
+                # register image
+                reg_moving = register_image(
+                    crop_fixed, crop_moving, mask=crop_mask, point_width=point_width
+                )
+
+                # paste cropped images back into correct location (from bbox)
+                y_min, x_min, y_max, x_max = bbox.values.astype(np.int)
+                reg_imgs.loc[
+                    dict(
+                        animal=animal,
+                        pair=pair,
+                        timepoint=timepoint,
+                        wavelength=moving_wvl,
+                    )
+                ][y_min:y_max, x_min:x_max] = reg_moving
+
+    return reg_imgs

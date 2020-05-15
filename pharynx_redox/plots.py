@@ -1,11 +1,18 @@
+"""
+Miscellaneous and sundry plotting functions for to please your visual cortex 
+"""
+
+import logging
 from pprint import pformat
 from typing import Dict, Tuple, Union
+from pathlib import Path
+import warnings
 
 from tqdm.auto import tqdm
 
-from . import profile_processing as pp
-from . import data_analysis as da
-from . import utils
+from pharynx_redox import profile_processing as pp
+from pharynx_redox import data_analysis as da
+from pharynx_redox import utils
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -20,6 +27,190 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
+from skimage.measure import label, regionprops
+
+
+def imshow_r_stack(
+    imgs: xr.DataArray,
+    profile_data: xr.DataArray,
+    output_dir: Union[str, Path],
+    per_animal_cmap: bool = True,
+    fl_wvl: str = "410",
+    cmap: str = "coolwarm",
+    width: int = 80,
+    height: int = 30,
+    progress_bar: bool = True,
+    colorbar=True,
+):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    center = (np.array(imgs.shape[-2:]) / 2).astype(np.int)
+    wpad = int(width / 2)
+    hpad = int(height / 2)
+    for tp in tqdm(imgs.timepoint.values, leave=False, desc="timepoint"):
+        for pair in tqdm(imgs.pair.values, leave=False, desc="pair"):
+            filepath = output_dir.joinpath(f"timepoint={tp}_pair={pair}.pdf")
+            with PdfPages(filepath) as pdf:
+                i = 0
+                for animal in tqdm(imgs.animal.values, desc="animal", leave=False):
+                    fig, ax = plt.subplots()
+                    selector = dict(animal=animal, timepoint=tp, pair=pair)
+                    im, cbar = imshow_ratio_normed(
+                        imgs.sel(wavelength="r", **selector),
+                        imgs.sel(wavelength=fl_wvl, **selector),
+                        profile_data=profile_data.sel(wavelength="r", **selector),
+                        prob=0.999,
+                        colorbar=colorbar,
+                        i_min=0,
+                        i_max=3000,
+                        cmap=cmap,
+                        ax=ax,
+                    )
+                    ax.set_xlim(center[1] - wpad, center[1] + wpad)
+                    ax.set_ylim(center[0] - hpad, center[0] + hpad)
+                    ax.set_title(str(selector))
+                    pdf.savefig()
+                    if (i % 20) == 0:
+                        plt.close("all")
+                    i += 1
+
+
+def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+    """
+    For each wavelength and pair in the given data, this function plots a line plot with
+    each color representing a unique strain. The line is the mean value across animals
+    for that strain, and the shaded regions are the 95% confidence intervals
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    """
+    strains = np.unique(data.strain.values)
+    cmap = plt.get_cmap("Set2")
+    colormap = dict(zip(strains, cmap.colors))
+
+    wvls = list(map(lambda x: x.lower(), data.wavelength.values))
+    for wvl in ignored_wvls:
+        wvls.remove(wvl.lower())
+
+    for wvl in wvls:
+        for pair in data.pair.values:
+            for tp in data.timepoint.values:
+                fig, ax = plt.subplots()
+                for strain in strains:
+                    strain_data = data.where(data["strain"] == strain, drop=True)
+                    ax.plot(
+                        strain_data.sel(wavelength=wvl, pair=pair, timepoint=tp).T,
+                        color=colormap[strain],
+                        alpha=0.5,
+                    )
+
+                title = f"wavelength = {wvl} ; pair = {pair} ; timepoint = {tp}"
+                ax.set_title(title)
+                ax.legend(
+                    [
+                        plt.Line2D([0], [0], color=color, lw=4)
+                        for color in cmap.colors[: len(strains)]
+                    ],
+                    strains,
+                )
+                yield title, fig
+
+
+def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+    """
+    For each wavelength and pair in the given data, this function plots a line plot with
+    each color representing a unique strain. The line is the mean value across animals
+    for that strain, and the shaded regions are the 95% confidence intervals
+    
+    Parameters
+    ----------
+    data : [type]
+        [description]
+    """
+    strains = np.unique(data.strain.values)
+    cmap = plt.get_cmap("Set2")
+    colormap = dict(zip(strains, cmap.colors))
+    wvls = list(map(lambda x: x.lower(), data.wavelength.values))
+    for wvl in ignored_wvls:
+        wvls.remove(wvl.lower())
+    for wvl in wvls:
+        for pair in data.pair.values:
+            for tp in data.timepoint.values:
+                fig, ax = plt.subplots()
+                for strain in np.unique(data.strain.values):
+                    strain_data = data.where(data["strain"] == strain, drop=True)
+                    plot_profile_avg_with_bounds(
+                        strain_data.sel(wavelength=wvl, pair=pair, timepoint=tp),
+                        label=strain,
+                        ax=ax,
+                        color=colormap[strain],
+                    )
+                title = f"wavelength = {wvl} ; pair = {pair} ; timepoint = {tp}"
+                ax.set_title(title)
+                ax.legend()
+                yield title, fig
+
+
+def plot_err_with_region_summaries(
+    data: xr.DataArray,
+    measure_regions: Dict,
+    display_regions=None,
+    ax=None,
+    profile_color="black",
+    label=None,
+):
+    st_color = "k"
+    mv_color = "tab:red"
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if display_regions is None:
+        display_regions = measure_regions
+
+    df = da.fold_v_point_table(data, measure_regions)
+    df_avgs = df.reset_index().groupby("region").agg(["mean", "sem"]).reset_index()
+
+    xs = np.linspace(0, 1, data.position.size)
+
+    plot_profile_avg_with_sem_bounds(
+        100 * da.fold_error(data), xs=xs, ax=ax, color=profile_color, label=label
+    )
+
+    for region, region_err_mean, region_err_sem in zip(
+        df_avgs["region"],
+        df_avgs["fold_error_region"][1]["mean"],
+        df_avgs["fold_error_region"][1]["sem"],
+    ):
+        try:
+            ax.axhline(
+                100 * region_err_mean,
+                *display_regions[region],
+                color=profile_color,
+                alpha=1,
+                lw=2,
+                solid_capstyle="butt",
+            )
+            ax.errorbar(
+                x=np.mean(display_regions[region]),
+                y=100 * region_err_mean,
+                yerr=100 * region_err_sem,
+                color=profile_color,
+                elinewidth=0.5,
+                capsize=1,
+                capthick=0.5,
+            )
+        except:
+            continue
+
+    ax.set_xlim(0, 1)
+
+    add_regions_to_axis(
+        ax, display_regions, alpha=0.3, hide_labels=True, skip=["medial_axis"]
+    )
+    ax.set_xlabel("position along midline")
 
 
 def plot_stage_layout(
@@ -47,7 +238,7 @@ def plot_stage_layout(
     
     See Also
     --------
-    pharynx_io.load_images
+    io.load_images
     seaborn.lmplot
     """
     df = pd.DataFrame(
@@ -61,6 +252,14 @@ def plot_stage_layout(
     return sns.lmplot(x="stage_x", y="stage_y", data=df, hue="strain", fit_reg=False)
 
 
+def ecdf_(data):
+    """ Compute ECDF """
+    x = np.sort(data)
+    n = x.size
+    y = np.arange(1, n + 1) / n
+    return (x, y)
+
+
 def cdf_plot(data, *args, **kwargs):
     """
     Plot a CDF, compatible with Seaborn's FacetGrid
@@ -72,15 +271,20 @@ def cdf_plot(data, *args, **kwargs):
     **kwargs
         keyword arguments passed onto ``plt.step``
     """
-    ecdf = sm.distributions.ECDF(data)
-    x = np.linspace(min(data), max(data))
-    y = ecdf(x)
+    # ecdf = sm.distributions.ECDF(data)
+    x, y = ecdf_(data)
+    # x = np.linspace(min(data), max(data), len(data))
+    # logging.debug(x)
+    # y = ecdf(x)
+    # plt.step(x, y, **kwargs)
+    # sns.kdeplot(data, cumulative=True)
     plt.step(x, y, **kwargs)
 
 
 def add_regions_to_axis(
     ax,
     regions: dict,
+    skip=[],
     label_dist_bottom_percent: float = 0.03,
     label_x_offset_percent: float = 0.005,
     alpha: float = 0.03,
@@ -104,7 +308,8 @@ def add_regions_to_axis(
                     'pm4': [12, 30],
                     ...
                 }
-
+    skip
+        the regions to skip plotting
     label_dist_bottom_percent
         the distance from the bottom of the axis that the region labels should be placed, expressed as a percentage of the axis height
     label_x_offset_percent
@@ -125,7 +330,11 @@ def add_regions_to_axis(
     text_x_offset = (max_x - min_x) * label_x_offset_percent
 
     for region, bounds in regions.items():
-        ax.axvspan(bounds[0], bounds[1], alpha=alpha, color=color, **kwargs)
+        if region in skip:
+            continue
+        ax.axvspan(
+            bounds[0], bounds[1], alpha=alpha, color=color, linewidth=0, **kwargs
+        )
         if not hide_labels:
             ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
@@ -149,13 +358,55 @@ def plot_profile_avg_with_bounds(
 
     """
     if ax is None:
+        ax = plt.gca()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if xs is not None:
+            ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+        else:
+            ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+
+        lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
+    if xs is None:
+        xs = np.arange(len(lower))
+
+    kwargs.pop("linestyle", None)
+    kwargs.pop("linewidth", None)
+    kwargs.pop("lw", None)
+    ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
+
+    return ax
+
+
+def plot_profile_avg_with_sem_bounds(data, ax=None, label=None, xs=None, **kwargs):
+    """
+    TODO: Documentation
+
+    Parameters
+    ----------
+    data
+    ax
+    label
+    kwargs
+
+    Returns
+    -------
+
+    """
+    if ax is None:
         _, ax = plt.subplots()
 
+    mean = np.nanmean(data, axis=0)
     if xs is not None:
-        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+        ax.plot(xs, mean, label=label, **kwargs)
     else:
-        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
-    lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
+        ax.plot(mean, label=label, **kwargs)
+
+    with np.errstate(invalid="ignore"):
+        sem = stats.sem(data)
+
+        lower, upper = mean - sem, mean + sem
     if xs is None:
         xs = np.arange(len(lower))
 
@@ -196,82 +447,100 @@ def imshow_ratio_normed(
     **imshow_kwargs,
 ):
     """
-    Show the given ratio image, first converting to HSV and setting the "V" (value) channel to be the given (normalized) intensity image
+    Show the given ratio image, first converting to HSV and setting the "V" (value) 
+    channel to be the given (normalized) intensity image
 
     Parameters
     ----------
     ratio_img
         the ratio image to display
     fl_img
-        the fluorescent intensity image with which to "value-correct" the ratio image. A good choice here is the max value of both intensity channels used in the ratio.
+        the fluorescent intensity image with which to "value-correct" the ratio image. 
+        A good choice here is the max value of both intensity channels used in the 
+        ratio.
     profile_data
-        the midline profile data corresponding to the ratio image. This is used to center and to choose min/max values for the ratio colormap.
+        the midline profile data corresponding to the ratio image. This is used to 
+        center and to choose min/max values for the ratio colormap.
     prob
-        The "confidence interval" around the center of the ratio values to include in the colormap. For example, 0.95 translates to a min/max of mean(ratio) +/- (1.96*std(ratio))
+        The "confidence interval" around the center of the ratio values to include in 
+        the colormap. For example, 0.95 translates to a min/max of 
+        mean(ratio) +/- (1.96*std(ratio))
     cmap
-        The colormap used to display the ratio image. Diverging colormaps are a good choice here (default is RdBu_r).
+        The colormap used to display the ratio image. Diverging colormaps are a good 
+        choice here (default is RdBu_r).
     r_min
-        The minimum value for the ratio colormap. If None, uses the `prob` parameter (see its description), and requires `profile_data`.
+        The minimum value for the ratio colormap. If None, uses the `prob` parameter 
+        (see its description), and requires `profile_data`.
     r_max
-        The maximum value for the ratio colormap. If None, uses the `prob` parameter (see its description), and requires `profile_data`.
+        The maximum value for the ratio colormap. If None, uses the `prob` parameter 
+        (see its description), and requires `profile_data`.
     i_min
         The intensity to map to 0 in the value channel
     i_max
         The intensity to map to 1 in the value channel
     clip
-        Whether or not the value channel should be clipped to [0, 1] before converting back to RGB. Leaving this as True is a sane default.
+        Whether or not the value channel should be clipped to [0, 1] before converting 
+        back to RGB. Leaving this as True is a sane default.
     ax
-        If given, the image is plotted on this axis. If ``None``, this function uses the pyplot interface.
+        If given, the image is plotted on this axis. If ``None``, this function uses the
+        pyplot interface.
+    colorbar
+        show the colorbar or not
     imshow_args
         keyword arguments that will be passed along to the ``imshow`` function
     """
 
-    # Convert ratio to RGB
-    if profile_data is None:
-        if (r_min is None) or (r_max is None):
-            raise ValueError("r_min and r_max must be set if profile_data is not given")
-    else:
-        r_mean = np.mean(profile_data)
-        r_std = np.std(profile_data)
-        Z = stats.norm.ppf(
-            prob
-        )  # this converts probability -> "Z" value (e.g. 0.95 -> 1.96)
-        window = r_std * Z
-        r_min_ = r_mean - window
-        r_max_ = r_mean + window
-    if r_min is None:
-        r_min = r_min_
-    if r_max is None:
-        r_max = r_max_
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Convert ratio to RGB
+        if profile_data is None:
+            if (r_min is None) or (r_max is None):
+                raise ValueError(
+                    "r_min and r_max must be set if profile_data is not given"
+                )
+        else:
+            r_mean = np.mean(profile_data)
+            r_std = np.std(profile_data)
+            Z = stats.norm.ppf(
+                prob
+            )  # this converts probability -> "Z" value (e.g. 0.95 -> 1.96)
+            window = r_std * Z
+            r_min_ = r_mean - window
+            r_max_ = r_mean + window
+        if r_min is None:
+            r_min = r_min_
+        if r_max is None:
+            r_max = r_max_
 
-    norm_ratio = colors.Normalize(vmin=r_min, vmax=r_max)
+        norm_ratio = colors.Normalize(vmin=r_min, vmax=r_max)
 
-    cmap = cm.get_cmap(cmap)
+        cmap = cm.get_cmap(cmap)
 
-    img_rgba = cmap(norm_ratio(ratio_img))
+        img_rgba = cmap(norm_ratio(ratio_img))
 
-    # Now convert RGB to HSV, using intensity image as the "V" (value)
-    if i_max is None:
-        i_max = np.max(fl_img)
+        # Now convert RGB to HSV, using intensity image as the "V" (value)
+        if i_max is None:
+            i_max = np.max(fl_img)
 
-    norm_fl = colors.Normalize(vmin=i_min, vmax=i_max, clip=clip)
-    hsv_img = colors.rgb_to_hsv(img_rgba[:, :, :3])  # ignore the "alpha" channel
-    hsv_img[:, :, -1] = norm_fl(fl_img)
+        norm_fl = colors.Normalize(vmin=i_min, vmax=i_max, clip=clip)
+        hsv_img = colors.rgb_to_hsv(img_rgba[:, :, :3])  # ignore the "alpha" channel
+        hsv_img[:, :, -1] = norm_fl(fl_img)
 
-    if ax is None:
-        ax = plt.gca()
+        if ax is None:
+            ax = plt.gca()
 
-    # Convert HSV back to RGB and plot
-    img_rgba = colors.hsv_to_rgb(hsv_img)
+        # Convert HSV back to RGB and plot
+        img_rgba = colors.hsv_to_rgb(hsv_img)
 
-    im = ax.imshow(img_rgba, **imshow_kwargs)
-    im.cmap = cmap
-    im.norm = norm_ratio
+        im = ax.imshow(img_rgba, **imshow_kwargs)
+        im.cmap = cmap
+        im.norm = norm_ratio
 
-    if colorbar:
-        add_img_colorbar(ax, **colorbar_kwargs_dict)
-
-    return im
+        if colorbar:
+            cbar = add_img_colorbar(ax, **colorbar_kwargs_dict)
+            return im, cbar
+        else:
+            return im
 
 
 def add_img_colorbar(ax, position="right", size="5%", pad=0.05, **colorbar_kwargs):
@@ -477,4 +746,93 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
 
     plt.tight_layout()
 
+    return fig
+
+
+def plot_pharynx_R_imgs(
+    img: xr.DataArray,
+    mask: xr.DataArray,
+    crop: bool = True,
+    crop_pad: int = 10,
+    cmap_normalization: str = "frame",
+    cmap: str = "coolwarm",
+    fig_kwargs=None,
+):
+    """
+    Generate a figure which has ratio images broken up by timepoint and pair
+    
+    Parameters
+    ----------
+    img : xr.DataArray
+        The image to display. Should contain a single animal, and the `r` and `410`
+        wavelengths.
+    mask : xr.DataArray
+        The mask with which a ROI will be used for calculated the average R value of
+        the pharynx
+    crop : bool, optional
+        Whether the image should be cropped, by default True
+    crop_pad : int, optional
+        The padding for the crop, as number of pixels on each side of
+        the bounding box surrounding the pharynx, by default 10
+    cmap_normalization : str, optional
+        How the colormap should be normalized, by default "frame". "frame" means each
+        timepoint and pair will be normalized separately
+    cmap : str, optional
+        The colormap to use, by default "coolwarm"
+    fig_kwargs : [type], optional
+        Keyword arguments to be passed to `matplotlib.pyplot.figure`, by default None
+    
+    Raises
+    ------
+    ValueError
+        [description]
+    ValueError
+        [description]
+    NotImplementedError
+        [description]
+    """
+    if "animal" in img.dims:
+        raise ValueError(
+            f"Image must contain single animal. Given stack contains {img.animal.size} animals"
+        )
+
+    valid_cmap_normalizations = ["frame", "animal"]
+    if cmap_normalization not in valid_cmap_normalizations:
+        raise ValueError(
+            f"`cmap_normaliztion` must be one of {valid_cmap_normalizations} (given <{cmap_normalization}>)"
+        )
+
+    fig = plt.figure(constrained_layout=True)
+    gs = gridspec.GridSpec(ncols=img.pair.size, nrows=img.timepoint.size, figure=fig)
+
+    for i, tp in enumerate(img.timepoint.values):
+        for j, pair in enumerate(img.pair.values):
+            ax = fig.add_subplot(gs[i, j])
+            ax.set_title(f"timepoint = {tp} | Pair={pair}")
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            R = img.sel(wavelength="r", timepoint=tp, pair=pair).values
+            I = img.sel(wavelength="410", timepoint=tp, pair=pair).values
+            M = mask.sel(wavelength="410", timepoint=tp, pair=pair).astype(bool).values
+
+            P_r = R[M]
+
+            if cmap_normalization == "frame":
+                r_min = np.mean(P_r) - 1.96 * np.std(P_r)
+                r_max = np.mean(P_r) + 1.96 * np.std(P_r)
+
+                i_max = 0.30 * regionprops(label(M), intensity_image=I)[0].max_intensity
+            if cmap_normalization == "animal":
+                raise NotImplementedError
+
+            if crop:
+                rp = regionprops(label(M), intensity_image=R)[0]
+                (min_row, min_col, max_row, max_col) = rp.bbox
+                ax.set_ylim(max_row + crop_pad, min_row - crop_pad)
+                ax.set_xlim(min_col - crop_pad, max_col + crop_pad)
+
+            imshow_ratio_normed(
+                R, I, cmap=cmap, i_min=0, i_max=i_max, r_min=r_min, r_max=r_max, ax=ax
+            )
     return fig

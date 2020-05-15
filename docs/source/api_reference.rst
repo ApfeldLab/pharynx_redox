@@ -18,18 +18,7 @@ Pharynx IO
 ==========
 This module coordinates loading data from and saving data to disk.
 
-.. autosummary::
-
-    load_tiff_from_disk
-    save_images_xarray_to_disk
-    process_imaging_scheme_str
-    load_images
-    save_split_images_to_disk
-    load_strain_map_from_disk
-    load_all_rot_fl
-    load_all_rot_seg
-
-.. automodule:: pharynx_redox.pharynx_io
+.. automodule:: pharynx_redox.io
     :members:
     :undoc-members:
 

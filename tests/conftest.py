@@ -1,5 +1,7 @@
 import pytest
+import requests
 import sys
+import os
 
 
 def pytest_load_initial_conftests(args):
@@ -28,3 +30,8 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def download_test_data():
+    pass

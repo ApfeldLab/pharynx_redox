@@ -1,31 +1,48 @@
 name: pharedox
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - python=3.7
+
+  # Numerical
   - numpy
-  - tqdm
-  - sphinx_rtd_theme
-  - jupyter
-  - black
-  - sphinx
-  - scipy
-  - numpydoc
-  - pytest
   - xarray
-  - statsmodels
-  - seaborn
-  - pytest-cov
-  - matplotlib
+  - scikit-image
+  - scipy
+  - numba
   - scikit-learn
-  - netcdf4
-  - pandas
-  - pyqt
   - keras
-  - pylint
-  - cached-property
-  - marshmallow
-  - sphinx-autodoc-typehints
+  - pandas
+  - statsmodels
+
+  # Viz
+  - matplotlib
+  - seaborn
+  - pyqt
+  - pyqtgraph
+  - napari
+  - tqdm
+  - pyimagej
+  - openjdk=8
+
+  # Testing
+  - pytest
   - pytest-xdist
-# prefix: /Users/sean/opt/anaconda3/envs/pharedox
+  - pytest-cov
+
+  # Docs
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-autodoc-typehints
+  - numpydoc
+
+  # Misc / Utils
+  - cached-property
+  - netcdf4
+  - jupyter
+  - jupyterlab
+
+  # Code tools
+  - pylint
+  - black
