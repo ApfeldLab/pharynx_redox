@@ -77,7 +77,7 @@ class Experiment:
     # Registration Parameters
     channel_register: int = 0
     population_register: int = 0
-    image_register: int = 1
+    image_register: int = 0
 
     n_deriv: float = 0.0
 
