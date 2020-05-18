@@ -14,15 +14,14 @@ DISTNAME = "pharedox"
 DESCRIPTION = "Software tools for measuring cytosolic redox state in the pharynx of the nematode C. elegans"
 LONG_DESCRIPTION = long_description
 LICENSE = "BSD 3-Clause"
-DOWNLOAD_URL = "https://github.com/ApfeldLab/pharedox/"
+DOWNLOAD_URL = "https://github.com/ApfeldLab/pharynx_redox/"
 
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    # 'License :: OSI Approved :: BSD License',
-    # 'Programming Language :: C',
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.7",
@@ -48,38 +47,34 @@ if sys.version_info < (MIN_PY_MAJOR_VER, MIN_PY_MINOR_VER):
     sys.exit(1)
 
 requirements = [
-    "numpy",
-    "xarray",
-    "netcdf4",
-    "scikit-image",
-    "scipy",
-    "numba",
-    "scikit-learn",
-    "pandas",
-    "statsmodels",
-    "simpleITK",
-    "matplotlib",
-    "seaborn",
-    "pyqt5",
-    "pyqtgraph",
-    "napari",
-    "tqdm",
-    "pyyaml",
-    "sphinx",
-    "sphinx_rtd_theme",
-    "sphinx-autodoc-typehints",
-    "numpydoc",
-    "cached-property",
+    "numpy>=1.18",
+    "xarray==0.15.1",
+    "netCDF4==1.5.3",
+    "scikit-image==0.17.2",
+    "tifffile==2020.5.11",
+    "scipy>=1.4.1",
+    "numba>=0.49.1",
+    "scikit-learn>=0.23.0",
+    "pandas>=1.0.3,<2",
+    "statsmodels==0.11.1",
+    "simpleITK==1.2.4",
+    "matplotlib>=3.2.1",
+    "seaborn>=0.10.1",
+    "PyQt5>=5.14.2",
+    "napari==0.3.1",
+    "tqdm>=4.46",
+    "PyYAML>=5.3.1",
+    "sphinx>=3.0.3",
+    "sphinx_rtd_theme>=0.4.3",
+    "sphinx-autodoc-typehints>=1.10.3",
+    "numpydoc>=0.9.2",
     "jupyter",
     "pylint",
+    "isort",
     "black",
 ]
 
-test_requirements = [
-    "pytest",
-    "pytest-xdist",
-    "pytest-cov",
-]
+test_requirements = ["pytest", "pytest-xdist", "pytest-cov", "pytest-datadir"]
 
 setup(
     name="pharedox",
@@ -87,7 +82,7 @@ setup(
     description=DESCRIPTION,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    download_url=DOWNLOAD_URL,
+    url=DOWNLOAD_URL,
     author="Sean Johnsen",
     author_email="sean.b.johnsen@gmail.com",
     maintainer="Sean Johnsen",
@@ -100,5 +95,5 @@ setup(
     setup_requires=["pytest-runner",],
     tests_require=test_requirements,
     test_suite="tests",
-    project_urls={"Bug Reports": "https://github.com/ApfeldLab/pharedox/issues"},
+    project_urls={"Bug Reports": "https://github.com/ApfeldLab/pharynx_redox/issues"},
 )

@@ -1,17 +1,16 @@
-import re
+import itertools
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
-import os
-import itertools
 
 import numpy as np
 import pandas as pd
+import tifffile
 import xarray as xr
-from skimage.external import tifffile
-from sklearn.cluster import KMeans
 
+from skimage import io as skio
 from pharedox import utils
 
 
@@ -131,7 +130,7 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
     with tifffile.TiffFile(str(image_path)) as tif:
         all_metadata = []
         for page in tif.pages:
-            descr = str(page.tags["image_description"].value, "utf-8")
+            descr = page.tags["ImageDescription"].value
             metadata = {}
             for key, label, fn in metadata_keyfuncs:
                 try:
@@ -177,7 +176,7 @@ def load_tiff_from_disk(image_path: Path) -> (np.ndarray, dict):
         the metadata associated with each image. Only returned if return_metadata=True
 
     """
-    img_data = tifffile.imread(str(image_path))
+    img_data = skio.imread(str(image_path))
 
     try:
         metadata = get_metadata_from_tiff(str(image_path))

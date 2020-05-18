@@ -1,22 +1,21 @@
+import logging
 from typing import Dict, List, Union
 
-import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import xarray as xr
 import pandas as pd
+import SimpleITK as sitk
+import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.interpolate import UnivariateSpline
 from scipy.stats import norm, zscore
-from skimage import measure, transform, filters, exposure, img_as_float
-from skimage.external import tifffile
-from skimage.transform import AffineTransform, warp
-import SimpleITK as sitk
+from skimage import exposure, filters, img_as_float, measure, transform
+from skimage import io
 from skimage.measure import label, regionprops
-
+from skimage.transform import AffineTransform, warp
 
 from pharedox import profile_processing
 
@@ -887,7 +886,7 @@ def create_normed_rgb_ratio_stack(
 
     if output_filename is not None:
         with open(output_filename, "wb") as f:
-            tifffile.imsave(f, rgb_img)
+            io.imsave(f, rgb_img)
 
     return rgb_img
 
