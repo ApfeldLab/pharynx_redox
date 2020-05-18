@@ -16,58 +16,42 @@ This example doesn't do much, it just makes a simple plot
 
 
 
-.. image:: /auto_examples/images/sphx_glr_plot_hello_001.png
-    :class: sphx-glr-single-img
-
-
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-    /Users/sean/code/pharedox/docs/source/examples/plot_hello.py:30: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
-      plt.show()
 
 
 
-
-
-
-|
 
 
 .. code-block:: default
 
 
-    from __future__ import division, absolute_import, print_function
+    # from __future__ import division, absolute_import, print_function
 
 
-    import numpy as np
-    import seaborn as sns
-    import matplotlib.pyplot as plt
+    # import numpy as np
+    # import seaborn as sns
+    # import matplotlib.pyplot as plt
 
-    # Enforce the use of default set style
+    # # Enforce the use of default set style
 
-    # Create a noisy periodic dataset
-    y_array = np.array([])
-    x_array = np.array([])
-    rs = np.random.RandomState(8)
-    for _ in range(15):
-        x = np.linspace(0, 30 / 2, 30)
-        y = np.sin(x) + rs.normal(0, 1.5) + rs.normal(0, 0.3, 30)
-        y_array = np.append(y_array, y)
-        x_array = np.append(x_array, x)
+    # # Create a noisy periodic dataset
+    # y_array = np.array([])
+    # x_array = np.array([])
+    # rs = np.random.RandomState(8)
+    # for _ in range(15):
+    #     x = np.linspace(0, 30 / 2, 30)
+    #     y = np.sin(x) + rs.normal(0, 1.5) + rs.normal(0, 0.3, 30)
+    #     y_array = np.append(y_array, y)
+    #     x_array = np.append(x_array, x)
 
-    # Plot the average over replicates with confidence interval
-    sns.lineplot(y=y_array, x=x_array)
-    # to avoid text output
-    plt.show()
+    # # Plot the average over replicates with confidence interval
+    # sns.lineplot(y=y_array, x=x_array)
+    # # to avoid text output
+    # plt.show()
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.386 seconds)
+   **Total running time of the script:** ( 0 minutes  0.001 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_hello.py:
