@@ -11,7 +11,7 @@ curation:
 # PIPELINE PARAMETERS
 ###################################################################################
 pipeline:
-    strategy: "test"
+    strategy: ""
     channel_order: ['470', '410', '470', '410', 'TL']
 
     # R -> OxD parameters
