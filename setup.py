@@ -2,6 +2,10 @@ from setuptools import setup, find_packages
 from os import path
 import sys
 
+# Speed up entrypoints
+# see https://github.com/ninjaaron/fast-entry_points
+import fastentrypoints
+
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
@@ -63,6 +67,7 @@ requirements = [
     "PyQt5>=5.14.2",
     "napari==0.3.1",
     "tqdm>=4.46",
+    "click>=7.1.2,<8",
     "PyYAML>=5.3.1",
     "sphinx>=3.0.3",
     "sphinx_rtd_theme>=0.4.3",
@@ -96,4 +101,8 @@ setup(
     tests_require=test_requirements,
     test_suite="tests",
     project_urls={"Bug Reports": "https://github.com/ApfeldLab/pharynx_redox/issues"},
+    entry_points="""
+        [console_scripts]
+        pharedox=pharedox.scripts.__main__:cli
+    """,
 )
