@@ -12,8 +12,8 @@ from scipy import spatial, signal
 from sklearn.preprocessing import scale
 from tqdm.auto import tqdm
 
-from pharynx_redox import utils
-from pharynx_redox import constants
+from pharedox import utils
+from pharedox import constants
 
 from numba import vectorize, int64
 

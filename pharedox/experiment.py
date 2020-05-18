@@ -5,7 +5,7 @@ the analysis pipeline for redox imaging experiments.
 
 import sys
 
-sys.path.append("/Users/sean/code/pharynx_redox/")
+sys.path.append("/Users/sean/code/pharedox/")
 
 import datetime
 import logging
@@ -27,10 +27,10 @@ from numpy.polynomial import Polynomial
 import click
 from tqdm import tqdm
 
-from pharynx_redox import constants
-from pharynx_redox import image_processing as ip
-from pharynx_redox import io as pio
-from pharynx_redox import profile_processing, utils, plots
+from pharedox import constants
+from pharedox import image_processing as ip
+from pharedox import io as pio
+from pharedox import profile_processing, utils, plots
 
 
 @dataclass

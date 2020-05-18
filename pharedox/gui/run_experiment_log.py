@@ -10,11 +10,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from pharynx_redox import io as pio
-from pharynx_redox import image_processing as ip
-from pharynx_redox import experiment
-from pharynx_redox import utils
-from pharynx_redox.qt_py_files.experiment_run_log import Ui_Form
+from pharedox import io as pio
+from pharedox import image_processing as ip
+from pharedox import experiment
+from pharedox import utils
+from pharedox.qt_py_files.experiment_run_log import Ui_Form
 
 
 class QTextEditLogger(logging.Handler, QtCore.QObject):
@@ -65,7 +65,7 @@ class RunExperimentThread(QtCore.QThread):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     dlg = ExperimentRunWidget(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47"
+        "/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47"
     )
     dlg.show()
     dlg.raise_()

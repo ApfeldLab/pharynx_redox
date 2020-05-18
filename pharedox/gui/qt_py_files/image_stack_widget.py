@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/pharynx_redox/gui/qt_ui_files/image_stack_widget.ui'
+# Form implementation generated from reading ui file '/Users/sean/code/pharedox/pharedox/gui/qt_ui_files/image_stack_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -79,7 +79,9 @@ class Ui_XArrayDisplayWidget(object):
         self.brushSizeSlider.setObjectName("brushSizeSlider")
         self.gridLayout.addWidget(self.brushSizeSlider, 0, 0, 1, 1)
         self.verticalLayout_2.addWidget(self.groupBox)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_2.addItem(spacerItem)
         self.line = QtWidgets.QFrame(self.widget)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -116,5 +118,10 @@ class Ui_XArrayDisplayWidget(object):
         self.midlineCheckBox.setText(_translate("XArrayDisplayWidget", "Show Midline"))
         self.groupBox.setTitle(_translate("XArrayDisplayWidget", "Mask Tools"))
         self.paintButton.setText(_translate("XArrayDisplayWidget", "paint"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Tab 1"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("XArrayDisplayWidget", "Tab 2"))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab), _translate("XArrayDisplayWidget", "Tab 1")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_2),
+            _translate("XArrayDisplayWidget", "Tab 2"),
+        )

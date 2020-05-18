@@ -208,8 +208,8 @@ class ImageStackWidget(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     imgs = pio.load_images(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
-        indexer_path="/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
+        "/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
+        indexer_path="/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
     )
     masks = ip.segment_pharynxes(imgs, threshold=2000)
 

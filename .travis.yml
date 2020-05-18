@@ -5,7 +5,7 @@ install:
   - pip install -e .[test]
 
 script:
-  - pytest --cov=pharynx_redox
+  - pytest --cov=pharedox
 
 after_success:
   - coveralls

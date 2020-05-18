@@ -9,9 +9,9 @@ Download source code
 In your terminal application, navigate to the directory in which you would like the new 
 source code directory to live, then type::
     
-    $ git clone https://github.com/half-adder/pharynx_redox.git
+    $ git clone https://github.com/half-adder/pharedox.git
 
-This will create a directory called ``pharynx_redox`` in the parent directory.
+This will create a directory called ``pharedox`` in the parent directory.
 
 Install Anaconda
 ----------------

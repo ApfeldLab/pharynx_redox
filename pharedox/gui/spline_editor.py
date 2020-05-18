@@ -7,7 +7,7 @@ from pyqtgraph.graphicsItems.ROI import ROI
 from scipy import interpolate
 from scipy.spatial.distance import cdist
 from dataclasses import dataclass, astuple
-from pharynx_redox.gui.qt_py_files.spline_editor import Ui_Form
+from pharedox.gui.qt_py_files.spline_editor import Ui_Form
 import numpy as np
 
 

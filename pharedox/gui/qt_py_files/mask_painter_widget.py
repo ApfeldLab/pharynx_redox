@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/pharynx_redox/gui/qt_ui_files/mask_painter_widget.ui'
+# Form implementation generated from reading ui file '/Users/sean/code/pharedox/pharedox/gui/qt_ui_files/mask_painter_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #

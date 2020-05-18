@@ -14,11 +14,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 
-from pharynx_redox import io as pio
-from pharynx_redox import image_processing as ip
-from pharynx_redox import utils
-from pharynx_redox.qt_py_files import load_dialog
-from pharynx_redox.run_experiment_log import ExperimentRunWidget
+from pharedox import io as pio
+from pharedox import image_processing as ip
+from pharedox import utils
+from pharedox.qt_py_files import load_dialog
+from pharedox.run_experiment_log import ExperimentRunWidget
 
 
 class RunExperimentDialogWidget(QtWidgets.QWidget):

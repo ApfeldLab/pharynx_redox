@@ -1,4 +1,4 @@
-from pharynx_redox import (
+from pharedox import (
     io as pio,
     image_processing as ip,
     experiment,
@@ -21,7 +21,7 @@ logging.basicConfig(
     datefmt="%I:%M:%S",
 )
 
-meta_dir = Path("/Users/sean/code/pharynx_redox/data/paired_ratio")
+meta_dir = Path("/Users/sean/code/pharedox/data/paired_ratio")
 
 prof_raw = xr.concat(
     [
@@ -35,10 +35,10 @@ prof_raw = prof_raw.assign_coords(
 )
 
 rot_fl = xr.load_dataarray(
-    "/Users/sean/code/pharynx_redox/data/paired_ratio/all_rot_fl.nc"
+    "/Users/sean/code/pharedox/data/paired_ratio/all_rot_fl.nc"
 ).rename({"spec": "animal"})
 rot_seg = xr.load_dataarray(
-    "/Users/sean/code/pharynx_redox/data/paired_ratio/all_rot_seg.nc"
+    "/Users/sean/code/pharedox/data/paired_ratio/all_rot_seg.nc"
 ).rename({"spec": "animal"})
 
 midlines = ip.calculate_midlines(rot_seg)

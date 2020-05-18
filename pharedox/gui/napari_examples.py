@@ -2,7 +2,7 @@ import numpy as np
 import napari
 from skimage import data
 from qtpy.QtWidgets import QWidget
-from pharynx_redox.gui.qt_py_files.pipeline_buttons import Ui_Form
+from pharedox.gui.qt_py_files.pipeline_buttons import Ui_Form
 
 
 blobs_raw = data.binary_blobs(length=64, n_dim=2, volume_fraction=0.1)

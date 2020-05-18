@@ -9,12 +9,12 @@ from skimage import morphology
 import xarray as xr
 
 from pathlib import Path
-from pharynx_redox import image_processing as ip
+from pharedox import image_processing as ip
 from qtpy.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtCore import pyqtSignal
 from qtpy.QtWidgets import QApplication, QSplashScreen
-from pharynx_redox.gui.qt_py_files.pipeline_buttons import Ui_Form
-from pharynx_redox import experiment, utils
+from pharedox.gui.qt_py_files.pipeline_buttons import Ui_Form
+from pharedox import experiment, utils
 
 import logging
 

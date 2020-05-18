@@ -10,8 +10,8 @@ from functools import reduce
 
 from pandas.core.indexes.base import InvalidIndexError
 
-from pharynx_redox import profile_processing
-from pharynx_redox import io as pio
+from pharedox import profile_processing
+from pharedox import io as pio
 
 
 def fold_v_point_table(
@@ -29,7 +29,7 @@ def fold_v_point_table(
     regions: dict
         a region dictionary. should map `[region -> [left_bound, right_bound]]` where
         `region` is a string and `left_bound` and `right_bound` are floats from 
-        `[0, 1]`. See the `pharynx_redox.constants` module
+        `[0, 1]`. See the `pharedox.constants` module
     
     Returns
     -------

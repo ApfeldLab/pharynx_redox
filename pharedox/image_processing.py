@@ -18,7 +18,7 @@ import SimpleITK as sitk
 from skimage.measure import label, regionprops
 
 
-from pharynx_redox import profile_processing
+from pharedox import profile_processing
 
 
 def measure_under_labels(

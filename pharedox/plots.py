@@ -10,9 +10,9 @@ import warnings
 
 from tqdm.auto import tqdm
 
-from pharynx_redox import profile_processing as pp
-from pharynx_redox import data_analysis as da
-from pharynx_redox import utils
+from pharedox import profile_processing as pp
+from pharedox import data_analysis as da
+from pharedox import utils
 
 import matplotlib.colors
 import matplotlib.pyplot as plt

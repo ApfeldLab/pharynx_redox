@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 import pytest
 
-from pharynx_redox import profile_processing as pp, utils, io
+from pharedox import profile_processing as pp, utils, io
 
 test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 

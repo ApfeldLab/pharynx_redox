@@ -26,7 +26,7 @@ This example doesn't do much, it just makes a simple plot
 
  .. code-block:: none
 
-    /Users/sean/code/pharynx_redox/docs/source/examples/plot_hello.py:30: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
+    /Users/sean/code/pharedox/docs/source/examples/plot_hello.py:30: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
       plt.show()
 
 

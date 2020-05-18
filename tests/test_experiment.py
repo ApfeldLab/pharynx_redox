@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch
 import xarray as xr
 import numpy as np
-from pharynx_redox import io, experiment, image_processing as ip
+from pharedox import io, experiment, image_processing as ip
 
 
 class TestExperiment:

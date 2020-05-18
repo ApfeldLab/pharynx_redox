@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 from dataclasses import dataclass
 
-from pharynx_redox import io as pio
+from pharedox import io as pio
 
 from .qt_py_files.image_stack_widget import Ui_XArrayDisplayWidget
 
@@ -242,8 +242,8 @@ if __name__ == "__main__":
     pg.setConfigOptions(imageAxisOrder="row-major")
 
     imgs = pio.load_images(
-        "/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
-        indexer_path="/Users/sean/code/pharynx_redox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
+        "/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
+        indexer_path="/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
     )
     imgs[:10].to_netcdf("~/Desktop/testing_img.nc")
     # imgs = xr.load_dataarray("~/Desktop/testing_img.nc")

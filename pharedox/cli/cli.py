@@ -3,7 +3,7 @@ command-line interface for running an analysis
 """
 
 from pathlib import Path
-from pharynx_redox import experiment
+from pharedox import experiment
 
 
 def analyze_experiment(experiment_dir: str):

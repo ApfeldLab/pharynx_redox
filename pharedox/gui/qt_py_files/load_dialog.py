@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/sean/code/pharynx_redox/pharynx_redox/gui/qt_ui_files/load_dialog.ui'
+# Form implementation generated from reading ui file '/Users/sean/code/pharedox/pharedox/gui/qt_ui_files/load_dialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -26,10 +26,14 @@ class Ui_Dialog(object):
         self.experimentDirectoryLabel.setObjectName("experimentDirectoryLabel")
         self.horizontalLayout.addWidget(self.experimentDirectoryLabel)
         self.experimentDirectoryLineEdit = QtWidgets.QLineEdit(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.experimentDirectoryLineEdit.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.experimentDirectoryLineEdit.sizePolicy().hasHeightForWidth()
+        )
         self.experimentDirectoryLineEdit.setSizePolicy(sizePolicy)
         self.experimentDirectoryLineEdit.setObjectName("experimentDirectoryLineEdit")
         self.horizontalLayout.addWidget(self.experimentDirectoryLineEdit)
@@ -39,7 +43,9 @@ class Ui_Dialog(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout_2.addItem(spacerItem)
         self.cancelButton = QtWidgets.QPushButton(Dialog)
         self.cancelButton.setObjectName("cancelButton")
@@ -56,7 +62,9 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Analyze Experiment"))
         self.label.setText(_translate("Dialog", "Run analysis on an image stack."))
-        self.experimentDirectoryLabel.setText(_translate("Dialog", "Experiment Directory"))
+        self.experimentDirectoryLabel.setText(
+            _translate("Dialog", "Experiment Directory")
+        )
         self.dirSelectToolButton.setText(_translate("Dialog", "..."))
         self.cancelButton.setText(_translate("Dialog", "Cancel"))
         self.runButton.setText(_translate("Dialog", "Run"))

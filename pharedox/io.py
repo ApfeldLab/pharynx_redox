@@ -12,7 +12,7 @@ import xarray as xr
 from skimage.external import tifffile
 from sklearn.cluster import KMeans
 
-from pharynx_redox import utils
+from pharedox import utils
 
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:

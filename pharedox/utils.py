@@ -17,8 +17,8 @@ from skimage.measure import label, regionprops
 import logging
 
 
-from pharynx_redox import experiment
-from pharynx_redox import profile_processing as pp
+from pharedox import experiment
+from pharedox import profile_processing as pp
 
 
 def stack_to_hyperstack(data, channel_order, strains, metadata=None):
@@ -108,7 +108,7 @@ def parse_reg_param_filename(s: Path):
 
     Example
     -------
-    >>> s = Path("/Users/sean/code/pharynx_redox/data/registration_param_sweep/n_deriv=2.0_rough_lambda=0.01_rough_n_breaks=300.0_rough_order=6.0_smooth_lambda=8.0_smooth_n_breaks=100.0_smooth_order=6.0_warp_lambda=10000.0_warp_n_basis=10.0_warp_order=4.0.nc")
+    >>> s = Path("/Users/sean/code/pharedox/data/registration_param_sweep/n_deriv=2.0_rough_lambda=0.01_rough_n_breaks=300.0_rough_order=6.0_smooth_lambda=8.0_smooth_n_breaks=100.0_smooth_order=6.0_warp_lambda=10000.0_warp_n_basis=10.0_warp_order=4.0.nc")
     >>> parse_reg_param_filename(s)
     >>> {'n_deriv': '2.0',
     ...  'rough_lambda': '0.01',

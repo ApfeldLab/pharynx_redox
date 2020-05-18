@@ -14,7 +14,7 @@ import sys
 
 
 LOG_FILE = "/Users/sean/Desktop/registration_log.log"
-META_DIR = "/Users/sean/code/pharynx_redox/data/paired_ratio/"
+META_DIR = "/Users/sean/code/pharedox/data/paired_ratio/"
 OUTPUT_FOLDER = "~/Desktop/reg_sweep/"
 
 logging.basicConfig(

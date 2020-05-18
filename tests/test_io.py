@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 import xarray as xr
 import numpy as np
-from pharynx_redox import io
+from pharedox import io
 
 
 class TestIO:
