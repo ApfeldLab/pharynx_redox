@@ -104,42 +104,36 @@ class Experiment:
 
     def __init__(self, dir):
         self.experiment_dir = Path(dir)
-        self.settings_filepath = self.experiment_dir.joinpath("settings.yaml")
-        with open(self.settings_filepath, "r") as f:
+        self.settings_path = self.experiment_dir.joinpath("settings.yaml")
+        with open(self.settings_path, "r") as f:
             self._config = load(f.read(), self.experiment_schema).data
 
         self.experiment_id = self.experiment_dir.stem
 
         # compute the filenames/paths for this experiment
-        self.raw_img_stack_filepath = self.experiment_dir.joinpath(
+        self.raw_img_stack_path = self.experiment_dir.joinpath(
             self.experiment_id + ".tif"
         )
-
-        self.movement_filepath = self.experiment_dir.joinpath(
+        self.movement_path = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
-        self.indexer_filepath = self.experiment_dir.joinpath(
+        self.indexer_path = self.experiment_dir.joinpath(
             self.experiment_id + "-indexer.csv"
         )
+        self.processed_images_dir = self.experiment_dir.joinpath("processed_images")
+        self.rot_seg_dir = self.processed_images_dir.joinpath("rot_seg")
+        self.rot_fl_dir = self.processed_images_dir.joinpath("rot_fl")
+        self.fl_imgs_dir = self.processed_images_dir.joinpath("fluorescent_images")
+        self.orig_images_path = self.processed_images_dir.joinpath("images.nc")
+        self.seg_images_path = self.processed_images_dir.joinpath("seg_images.nc")
+        self.aligned_images_path = self.processed_images_dir.joinpath(
+            "aligned_images.nc"
+        )
+        self.aligned_seg_images_path = self.processed_images_dir.joinpath(
+            "aligned_seg_images.nc"
+        )
 
-        # Other computed properties
-        self.strains = pio.load_strain_map_from_disk(self.indexer_filepath)
-
-        self.scaled_regions_trimmed = {
-            region: [
-                int(self._config["pipeline"]["trimmed_profile_length"] * x)
-                for x in bounds
-            ]
-            for region, bounds in self._config["pipeline"]["trimmed_regions"].items()
-        }
-
-        self.scaled_regions_untrimmed = {
-            region: [
-                int(self._config["pipeline"]["untrimmed_profile_length"] * x)
-                for x in bounds
-            ]
-            for region, bounds in self._config["pipeline"]["untrimmed_regions"].items()
-        }
+        self.strains = pio.load_strain_map_from_disk(self.indexer_path)
 
         # load images
         self.raw_images = self._load_raw_images()
@@ -154,90 +148,72 @@ class Experiment:
 
     # Computed Filepaths
     @property
-    def processed_images_dir(self):
-        return self.experiment_dir.joinpath("processed_images")
-
-    @property
-    def rot_seg_dir(self):
-        return self.processed_images_dir.joinpath("rot_seg")
-
-    @property
-    def rot_fl_dir(self):
-        return self.processed_images_dir.joinpath("rot_fl")
-
-    @property
-    def fl_imgs_dir(self):
-        return self.processed_images_dir.joinpath("fluorescent_images")
-
-    @property
     def fig_dir(self):
         return self.analysis_dir.joinpath("figs")
 
     @property
-    def orig_images_filepath(self):
-        return self.processed_images_dir.joinpath("images.nc")
-
-    @property
-    def aligned_images_filepath(self):
-        return self.processed_images_dir.joinpath("aligned_images.nc")
-
-    @property
-    def seg_images_filepath(self):
-        return self.processed_images_dir.joinpath("seg_images.nc")
-
-    @property
-    def aligned_seg_images_filepath(self):
-        return self.processed_images_dir.joinpath("aligned_seg_images.nc")
-
-    @property
-    def untrimmed_profile_data_filepath(self):
+    def untrimmed_profile_data_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-untrimmed_profile_data.nc"
         )
 
     @property
-    def trimmed_profile_data_filepath(self):
+    def trimmed_profile_data_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-trimmed_profile_data.nc"
         )
 
     @property
-    def warp_data_filepath(self):
+    def warp_data_path(self):
         return self.analysis_dir.joinpath(self.experiment_id + "-warp_data.npy")
 
     @property
-    def untrimmed_profile_data_csv_filepath(self):
+    def untrimmed_profile_data_csv_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-untrimmed_profile_data.csv"
         )
 
     @property
-    def trimmed_profile_data_csv_filepath(self):
+    def trimmed_profile_data_csv_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-trimmed_profile_data.csv"
         )
 
     @property
-    def untrimmed_region_data_filepath(self):
+    def untrimmed_region_data_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-untrimmed_region_data.csv"
         )
 
     @property
-    def trimmed_region_data_filepath(self):
+    def trimmed_region_data_path(self):
         return self.analysis_dir.joinpath(
             self.experiment_id + "-trimmed_region_data.csv"
         )
+
+    @property
+    def analysis_dir(self) -> Path:
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        strategy = self._config["pipeline"]["strategy"]
+        if len(strategy) > 0:
+            suffix = f"_{strategy}"
+        else:
+            suffix = ""
+        analysis_dir_ = self.experiment_dir.joinpath(
+            "analyses", utils.get_valid_filename(f"{date_str}{suffix}"),
+        )
+        # analysis_dir_.mkdir(parents=True, exist_ok=True)
+        return analysis_dir_
 
     def _load_raw_images(self):
         """
         This returns the raw (non-median-subtracted) images
         """
-        logging.info(f"Loading image data from {self.raw_img_stack_filepath}")
+        logging.info(f"Loading image data from {self.raw_img_stack_path}")
         raw_image_data = pio.load_images(
-            img_stack_path=self.raw_img_stack_filepath,
+            img_stack_path=self.raw_img_stack_path,
             strain_map=self.strains,
-            movement_path=self.movement_filepath,
+            movement_path=self.movement_path,
             channel_order=self._config["pipeline"]["channel_order"],
         )
 
@@ -254,33 +230,17 @@ class Experiment:
         return raw_image_data
 
     def _load_movement(self) -> pd.DataFrame:
-        movement_filepath = self.experiment_dir.joinpath(
-            self.experiment_id + "-mvmt.csv"
-        )
+        movement_path = self.experiment_dir.joinpath(self.experiment_id + "-mvmt.csv")
         try:
-            df = pd.read_csv(movement_filepath)
+            df = pd.read_csv(movement_path)
             df = df.pivot_table(
                 index="animal", columns=["region", "pair"], values="movement"
             )
             df = df.stack("pair")
             return df
         except FileNotFoundError:
-            logging.warning(f"Tried to access {movement_filepath}; file was not found")
+            logging.warning(f"Tried to access {movement_path}; file was not found")
             return None
-
-    @property
-    def analysis_dir(self) -> Path:
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        strategy = self._config["pipeline"]["strategy"]
-        if len(strategy) > 0:
-            suffix = f"_{strategy}"
-        else:
-            suffix = ""
-        analysis_dir_ = self.experiment_dir.joinpath(
-            "analyses", utils.get_valid_filename(f"{date_str}{suffix}"),
-        )
-        # analysis_dir_.mkdir(parents=True, exist_ok=True)
-        return analysis_dir_
 
     def make_analysis_dir(self) -> None:
         logging.info(f"Making analysis directory at {self.analysis_dir}")
@@ -342,8 +302,8 @@ class Experiment:
 
         df.to_csv(self.analysis_dir / (self.experiment_id + "-neuron_analysis.csv"))
 
-    def load_seg_imgs_from_disk(self, filepath):
-        logging.info(f"Skipping segmentation; loading from {filepath}")
+    def load_seg_imgs_from_disk(self, path):
+        logging.info(f"Skipping segmentation; loading from {path}")
 
     def segment_pharynxes(self):
         if self.seg_images is not None:
@@ -371,11 +331,11 @@ class Experiment:
             reference_wavelength=self._config["pipeline"]["reference_wavelength"],
         )
 
-        logging.info(f"Saving rotated FL images to {self.aligned_images_filepath}")
-        pio.save_profile_data(self.rot_fl, self.aligned_images_filepath)
+        logging.info(f"Saving rotated FL images to {self.aligned_images_path}")
+        pio.save_profile_data(self.rot_fl, self.aligned_images_path)
 
-        logging.info(f"Saving rotated masks to {self.aligned_seg_images_filepath}")
-        pio.save_profile_data(self.rot_seg, self.aligned_seg_images_filepath)
+        logging.info(f"Saving rotated masks to {self.aligned_seg_images_path}")
+        pio.save_profile_data(self.rot_seg, self.aligned_seg_images_path)
 
     def calculate_midlines(self):
         logging.info("Calculating midlines")
@@ -462,10 +422,10 @@ class Experiment:
     def save_images(self):
         """Save this experiment's images to disk as netCDF4 files"""
         imgs_paths = [
-            (self.images, self.orig_images_filepath),
-            (self.rot_fl, self.aligned_images_filepath),
-            (self.seg_images, self.seg_images_filepath),
-            (self.rot_seg, self.aligned_seg_images_filepath),
+            (self.images, self.orig_images_path),
+            (self.rot_fl, self.aligned_images_path),
+            (self.seg_images, self.seg_images_path),
+            (self.rot_seg, self.aligned_seg_images_path),
         ]
         for img, path in imgs_paths:
             if img is not None:
@@ -612,50 +572,44 @@ class Experiment:
     def persist_profile_data(self):
         # First, the netCDF4 format
         logging.info(
-            f"Saving untrimmed profile data to {self.untrimmed_profile_data_filepath}"
+            f"Saving untrimmed profile data to {self.untrimmed_profile_data_path}"
         )
-        pio.save_profile_data(
-            self.untrimmed_profiles, self.untrimmed_profile_data_filepath
-        )
+        pio.save_profile_data(self.untrimmed_profiles, self.untrimmed_profile_data_path)
 
-        logging.info(
-            f"Saving trimmed profile data to {self.trimmed_profile_data_filepath}"
-        )
-        pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_filepath)
+        logging.info(f"Saving trimmed profile data to {self.trimmed_profile_data_path}")
+        pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_path)
 
         # Warps, if necessary
         if self._config["pipeline"]["channel_register"]:
-            logging.info(f"Saving warp data to {self.warp_data_filepath}")
-            with open(self.warp_data_filepath, "wb") as f:
+            logging.info(f"Saving warp data to {self.warp_data_path}")
+            with open(self.warp_data_path, "wb") as f:
                 np.save(f, self.warps)
 
         # Now, save the profile data in "tidy" format as CSV
         profile_processing.to_dataframe(self.trimmed_profiles, "value").to_csv(
-            self.trimmed_profile_data_csv_filepath
+            self.trimmed_profile_data_csv_path
         )
         profile_processing.to_dataframe(self.untrimmed_profiles, "value").to_csv(
-            self.untrimmed_profile_data_csv_filepath
+            self.untrimmed_profile_data_csv_path
         )
 
     def save_summary_data(self):
         # Persist the region means
         logging.info(
-            f"Saving untrimmed region means to {self.untrimmed_region_data_filepath}"
+            f"Saving untrimmed region means to {self.untrimmed_region_data_path}"
         )
-        self.untrimmed_summary_table.to_csv(self.untrimmed_region_data_filepath)
-        logging.info(
-            f"Saving trimmed region means to {self.trimmed_region_data_filepath}"
-        )
-        self.trimmed_summary_table.to_csv(self.trimmed_region_data_filepath)
+        self.untrimmed_summary_table.to_csv(self.untrimmed_region_data_path)
+        logging.info(f"Saving trimmed region means to {self.trimmed_region_data_path}")
+        self.trimmed_summary_table.to_csv(self.trimmed_region_data_path)
 
     def save_masks(self):
-        logging.info(f"writing masks to {self.seg_images_filepath}")
-        pio.save_profile_data(self.seg_images, self.seg_images_filepath)
-        logging.info(f"Saved masks to {self.seg_images_filepath}")
+        logging.info(f"writing masks to {self.seg_images_path}")
+        pio.save_profile_data(self.seg_images, self.seg_images_path)
+        logging.info(f"Saved masks to {self.seg_images_path}")
 
     def load_masks(self):
-        self.seg_images = pio.load_profile_data(self.seg_images_filepath)
-        logging.info(f"Loaded masks from {self.seg_images_filepath}")
+        self.seg_images = pio.load_profile_data(self.seg_images_path)
+        logging.info(f"Loaded masks from {self.seg_images_path}")
 
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
