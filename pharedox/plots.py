@@ -13,6 +13,7 @@ from tqdm.auto import tqdm
 from pharedox import profile_processing as pp
 from pharedox import data_analysis as da
 from pharedox import utils
+from pharedox import constants
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -836,3 +837,61 @@ def plot_pharynx_R_imgs(
                 R, I, cmap=cmap, i_min=0, i_max=i_max, r_min=r_min, r_max=r_max, ax=ax
             )
     return fig
+
+
+def plot_multiple_pop_errors(
+    data_and_labels,
+    ylim=None,
+    xlim=None,
+    add_regions=True,
+    figsize=(20, 10),
+    dpi=100,
+    regions=constants.untrimmed_regions,
+):
+    """Plot multiple error profiles and their corresponding labels
+
+    Parameters
+    ----------
+    data_and_labels : List[Tuple(xr.DataArray, str)]
+        A list of (data, label), one for each data set to plot
+    ylim : Tuple(float, float), optional
+        The y limits of the plot, by default None
+    xlim : Tuple(float, float), optional
+        The x-limits of the plot, by default None
+    add_regions : bool, optional
+        Whether or not to add regions to the plot, by default True
+    figsize : Tuple(float, floa), optional
+        The figure size, by default (20, 10)
+    dpi : int, optional
+        The DPI of the plot, by default 100
+    regions : dict, optional
+        The regions to plot, if enabled, by default constants.untrimmed_regions
+    
+    Returns
+    -------
+    fig, ax
+        The figure and axis object
+    """
+
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+    for data, label in data_and_labels:
+        xs = np.linspace(0, 1, data.position.size)
+        plot_profile_avg_with_bounds(
+            da.fold_error(data.sel(timepoint=0)), xs=xs, ax=ax, label=label
+        )
+
+    if ylim:
+        ax.set_ylim(*ylim)
+    if xlim:
+        ax.set_xlim(*xlim)
+
+    if add_regions:
+        add_regions_to_axis(ax, regions, alpha=0.3, hide_labels=True)
+
+    ax.set_ylabel("Absolute Error (%)")
+    ax.set_xlabel("position along midline")
+
+    ax.legend(loc="lower left")
+
+    return fig, ax
