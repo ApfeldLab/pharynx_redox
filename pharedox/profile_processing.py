@@ -266,8 +266,7 @@ def summarize_over_regions(
     rescale: bool = True,
     value_name: str = "value",
     pointwise: Union[bool, str] = False,
-    ratio_numerator: str = "410",
-    ratio_denominator: str = "470",
+    **redox_params,
 ):
     if pointwise == "both":
         # recursively call this function for pointwise=T/F and concat the results
@@ -287,9 +286,7 @@ def summarize_over_regions(
 
     # Ensure that derived wavelengths are present
     try:
-        data = utils.add_derived_wavelengths(
-            data, numerator=ratio_numerator, denominator=ratio_denominator
-        )
+        data = utils.add_derived_wavelengths(data, **redox_params)
     except ValueError:
         pass
 
@@ -309,19 +306,19 @@ def summarize_over_regions(
     if not pointwise:
         try:
             region_data.loc[dict(wavelength="r")] = region_data.sel(
-                wavelength=ratio_numerator
-            ) / region_data.sel(wavelength=ratio_denominator)
+                wavelength=redox_params["ratio_numerator"]
+            ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
             region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
                 region_data.sel(wavelength="r"),
-                r_min=data.r_min,
-                r_max=data.r_max,
-                instrument_factor=data.instrument_factor,
+                r_min=redox_params["r_min"],
+                r_max=redox_params["r_max"],
+                instrument_factor=redox_params["instrument_factor"],
             )
             region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
                 region_data.sel(wavelength="oxd"),
-                midpoint_potential=data.midpoint_potential,
-                z=data.z,
-                temperature=data.temperature,
+                midpoint_potential=redox_params["midpoint_potential"],
+                z=redox_params["z"],
+                temperature=redox_params["temperature"],
             )
         except ValueError:
             pass
@@ -453,10 +450,9 @@ def _register_profiles_pop(
 
 def register_profiles_pop(
     profile_data: xr.DataArray,
+    redox_params,
     eng=None,
     progress_bar=False,
-    ratio_numerator="410",
-    ratio_denominator="470",
     **reg_kwargs,
 ) -> xr.DataArray:
     try:
@@ -481,9 +477,7 @@ def register_profiles_pop(
             )
             reg_profile_data.loc[selector] = reg_data
     reg_profile_data = reg_profile_data.assign_attrs(**reg_kwargs)
-    reg_profile_data = utils.add_derived_wavelengths(
-        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
-    )
+    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data, **redox_params)
     return reg_profile_data, warp_data
 
 

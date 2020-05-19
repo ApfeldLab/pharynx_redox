@@ -50,14 +50,6 @@ class Experiment:
     # PIPELINE PARAMETERS
     ###################################################################################
 
-    strategy: str = ""
-    reference_wavelength: str = "410"
-
-    # R Parameters
-    fl_wvls = ["410", "470"]
-    ratio_numerator: str = "410"
-    ratio_denominator: str = "470"
-
     # R -> OxD parameters
     r_min: float = 0.852
     r_max: float = 6.65
@@ -304,7 +296,6 @@ class Experiment:
                 )
             }
         )
-
         raw_image_data = self.add_experiment_metadata_to_data_array(raw_image_data)
 
         return raw_image_data
@@ -326,8 +317,13 @@ class Experiment:
 
     def get_analysis_dir(self) -> Path:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        strategy = self._config["PIPELINE"]["strategy"]
+        if len(strategy) > 0:
+            suffix = f"_{strategy}"
+        else:
+            suffix = ""
         analysis_dir_ = self.experiment_dir.joinpath(
-            "analyses", utils.get_valid_filename(f"{date_str}_{self.strategy}")
+            "analyses", utils.get_valid_filename(f"{date_str}{suffix}"),
         )
         # analysis_dir_.mkdir(parents=True, exist_ok=True)
         return analysis_dir_
@@ -341,8 +337,7 @@ class Experiment:
         df = profile_processing.summarize_over_regions(
             self.trimmed_profiles,
             regions=self.trimmed_regions,
-            ratio_numerator=self.ratio_numerator,
-            ratio_denominator=self.ratio_denominator,
+            **self.get_redox_params(),
         )
         return df
 
@@ -351,8 +346,7 @@ class Experiment:
         df = profile_processing.summarize_over_regions(
             self.untrimmed_profiles,
             regions=self.untrimmed_regions,
-            ratio_numerator=self.ratio_numerator,
-            ratio_denominator=self.ratio_denominator,
+            **self.get_redox_params(),
         )
         return df
 
@@ -420,7 +414,7 @@ class Experiment:
             self.images,
             self.seg_images,
             blur_seg_thresh=self.seg_threshold,
-            reference_wavelength=self.reference_wavelength,
+            reference_wavelength=self._config["PIPELINE"]["reference_wavelength"],
         )
 
         logging.info(f"Saving rotated FL images to {self.aligned_images_filepath}")
@@ -471,10 +465,7 @@ class Experiment:
                 self.untrimmed_profiles,
                 self.warps,
             ) = profile_processing.register_profiles_pop(
-                self.untrimmed_profiles,
-                ratio_numerator=self.ratio_numerator,
-                ratio_denominator=self.ratio_denominator,
-                **reg_param_dict,
+                self.untrimmed_profiles, self.get_redox_params(), **reg_param_dict,
             )
 
         if self.channel_register == 1:
@@ -484,8 +475,8 @@ class Experiment:
                 self.warps,
             ) = profile_processing.channel_register(
                 self.untrimmed_profiles,
-                ratio_numerator=self.ratio_numerator,
-                ratio_denominator=self.ratio_denominator,
+                ratio_numerator=self._config["REDOX"]["ratio_numerator"],
+                ratio_denominator=self._config["REDOX"]["ratio_denominator"],
                 **reg_param_dict,
             )
 
@@ -495,35 +486,26 @@ class Experiment:
             profile_processing.trim_profiles(
                 self.untrimmed_profiles,
                 self.seg_threshold,
-                ref_wvl=self.reference_wavelength,
+                ref_wvl=self._config["PIPELINE"]["reference_wavelength"],
             )
         )
 
     def calculate_redox(self):
         logging.info("Calculating redox measurements")
 
+        redox_params = self.get_redox_params()
+
         # Images
-        self.images = utils.add_derived_wavelengths(
-            self.images,
-            numerator=self.ratio_denominator,
-            denominator=self.ratio_denominator,
-        )
-        self.rot_fl = utils.add_derived_wavelengths(
-            self.rot_fl,
-            numerator=self.ratio_denominator,
-            denominator=self.ratio_denominator,
+        self.images = utils.add_derived_wavelengths(self.images, **redox_params)
+        self.rot_fl = utils.add_derived_wavelengths(self.rot_fl, **redox_params)
+
+        # profiles
+        self.trimmed_profiles = utils.add_derived_wavelengths(
+            self.trimmed_profiles, **redox_params
         )
 
-        # Expand the trimmed_intensity_data to include new wavelengths
-        self.trimmed_profiles = utils.add_derived_wavelengths(
-            self.trimmed_profiles,
-            numerator=self.ratio_numerator,
-            denominator=self.ratio_denominator,
-        )
         self.untrimmed_profiles = utils.add_derived_wavelengths(
-            self.untrimmed_profiles,
-            numerator=self.ratio_numerator,
-            denominator=self.ratio_denominator,
+            self.untrimmed_profiles, **redox_params
         )
 
     def do_manual_AP_flips(self):
@@ -626,7 +608,7 @@ class Experiment:
             mvmt_annotation_img_path = self.fig_dir.joinpath(
                 f"{self.experiment_id}-movement_annotation_imgs.pdf"
             )
-            imgs = utils.add_derived_wavelengths(self.images)
+            imgs = utils.add_derived_wavelengths(self.images, **self.get_redox_params())
             with PdfPages(mvmt_annotation_img_path) as pdf:
                 for i in tqdm(range(self.raw_images.animal.size)):
                     fig = plots.plot_pharynx_R_imgs(imgs[i], mask=self.seg_images[i])
@@ -650,18 +632,22 @@ class Experiment:
                             fig, ax = plt.subplots(dpi=300)
                             R = (
                                 self.rot_fl.sel(
-                                    wavelength=self.ratio_numerator,
+                                    wavelength=self._config["REDOX"]["ratio_numerator"],
                                     pair=pair,
                                     timepoint=tp,
                                 )
                                 / self.rot_fl.sel(
-                                    wavelength=self.ratio_denominator,
+                                    wavelength=self._config["REDOX"][
+                                        "ratio_denominator"
+                                    ],
                                     pair=pair,
                                     timepoint=tp,
                                 )
                             )[i]
                             I = self.rot_fl.sel(
-                                wavelength=self.ratio_numerator, pair=pair, timepoint=tp
+                                wavelength=self._config["REDOX"]["ratio_numerator"],
+                                pair=pair,
+                                timepoint=tp,
                             )[i]
                             im, cbar = plots.imshow_ratio_normed(
                                 R,
@@ -675,7 +661,9 @@ class Experiment:
                             )
                             ax.plot(
                                 *self.midlines.sel(
-                                    wavelength=self.ratio_numerator,
+                                    wavelength=self._config["PIPELINE"][
+                                        "reference_wavelength"
+                                    ],
                                     pair=pair,
                                     timepoint=tp,
                                 )[i]
@@ -769,36 +757,14 @@ class Experiment:
     # MISC / HELPER
     ####################################################################################
     def add_experiment_metadata_to_data_array(self, data_array: xr.DataArray):
-        metadata_keys = [
-            "strategy",
-            "reference_wavelength",
-            "r_min",
-            "r_max",
-            "ratio_numerator",
-            "ratio_denominator",
-            "instrument_factor",
-            "midpoint_potential",
-            "z",
-            "temperature",
-            "measurement_order",
-            "measure_thickness",
-            "channel_register",
-            "population_register",
-            "n_deriv",
-            "warp_n_basis",
-            "warp_order",
-            "warp_lambda",
-            "smooth_lambda",
-            "smooth_n_breaks",
-            "smooth_order",
-            "rough_lambda",
-            "rough_n_breaks",
-            "rough_order",
-        ]
+        return data_array.assign_attrs(**dict(self._config["PIPELINE"]))
 
-        metadata_dict = {k: getattr(self, k) for k in metadata_keys}
+    def get_redox_params(self):
+        params = {k: float(v) for k, v in dict(self._config["REDOX"]).items()}
+        params["ratio_numerator"] = str(int(params["ratio_numerator"]))
+        params["ratio_denominator"] = str(int(params["ratio_denominator"]))
 
-        return data_array.assign_attrs(**metadata_dict)
+        return params
 
 
 def run_analysis(experiment_dir, log_level):
