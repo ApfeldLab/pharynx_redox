@@ -17,6 +17,7 @@ import sys
 import traceback
 import yaml
 import warnings
+import configparser
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -26,6 +27,7 @@ import xarray as xr
 from numpy.polynomial import Polynomial
 import click
 from tqdm import tqdm
+from pprint import pprint
 
 from pharedox import constants
 from pharedox import image_processing as ip
@@ -48,7 +50,6 @@ class Experiment:
     # PIPELINE PARAMETERS
     ###################################################################################
 
-    channel_order: List[str] = None
     strategy: str = ""
     reference_wavelength: str = "410"
 
@@ -130,12 +131,14 @@ class Experiment:
     ####################################################################################
 
     def __post_init__(self):
+        self._config = configparser.ConfigParser()
+        self._config.read(self.experiment_dir.joinpath("settings.ini"))
+        print(self._config.sections())
+        self._pipeline_params = self._config["PIPELINE"]
+
         self.experiment_id = self.experiment_dir.stem
         self.settings_filepath = self.experiment_dir.joinpath("settings.yaml")
         self.try_to_load_from_config_file()
-
-        if self.channel_order is None:
-            raise (AttributeError("channel_order not specified"))
 
         # compute the filenames/paths for this experiment
         self.raw_img_stack_filepath = self.experiment_dir.joinpath(
@@ -290,7 +293,7 @@ class Experiment:
             img_stack_path=self.raw_img_stack_filepath,
             strain_map=self.strains,
             movement_path=self.movement_filepath,
-            channel_order=self.channel_order,
+            channel_order=self._config["PIPELINE"]["channel_order"].split("/"),
         )
 
         raw_image_data = raw_image_data.assign_coords(
