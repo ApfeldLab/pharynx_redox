@@ -18,7 +18,7 @@ from pharedox import constants
 from numba import vectorize, int64
 
 
-def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
+def to_dataframe(data: xr.DataArray, metadata={}, *args, **kwargs) -> pd.DataFrame:
     """
     Replacement for `xr.DataArray.to_dataframe` that adds the attrs for the given
     DataArray into the resultant DataFrame.
@@ -108,7 +108,6 @@ def align_pa(
         spatial.distance.cdist(ref_vecs, unflipped, "cosine")[0, :]
         > spatial.distance.cdist(ref_vecs, flipped, "cosine")[0, :]
     )
-    print(should_flip)
 
     # Do the actual flip
     # position needs to be reindexed, otherwise xarray freaks out
