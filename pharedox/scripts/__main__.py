@@ -30,11 +30,6 @@ def cli(debug):
     default=False,
     help="use a graphical user interface, or run the whole pipeline without intervention on the command-line",
 )
-@click.option(
-    "--tissue",
-    type=click.Choice(["pharynx", "gut", "neuron"], case_sensitive=False),
-    help="the tissue to analyze",
-)
 def analyze(dir, gui, tissue):
     """Analyze an experiment"""
     from pharedox import experiment
