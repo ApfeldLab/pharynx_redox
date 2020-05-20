@@ -482,9 +482,8 @@ def register_profiles_pop(
 
 def channel_register(
     profile_data: xr.DataArray,
+    redox_params: dict,
     eng=None,
-    ratio_numerator="410",
-    ratio_denominator="470",
     n_deriv: float = 2.0,
     rough_lambda: float = 0.01,
     rough_n_breaks: float = 300.0,
@@ -501,7 +500,7 @@ def channel_register(
         import matlab.engine
     except ImportError:
         logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data
+        return profile_data, None
 
     reg_params = dict(
         n_deriv=2.0,
@@ -530,9 +529,7 @@ def channel_register(
             reg_profile_data.loc[dict(pair=pair, timepoint=timepoint)] = reg
             warp_data.loc[dict(pair=pair, timepoint=timepoint)] = np.array(warp_).T
 
-    reg_profile_data = utils.add_derived_wavelengths(
-        reg_profile_data, numerator=ratio_numerator, denominator=ratio_denominator
-    )
+    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data, **redox_params)
 
     return reg_profile_data, warp_data
 

@@ -345,7 +345,6 @@ class Experiment:
             self.rot_fl,
             self.midlines,
             n_points=self._config["pipeline"]["untrimmed_profile_length"],
-            frame_specific=False,
             order=self._config["pipeline"]["measurement_order"],
             thickness=float(self._config["pipeline"]["measure_thickness"]),
         )
