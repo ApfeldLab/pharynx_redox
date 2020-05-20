@@ -188,7 +188,7 @@ class App:
                         self.experiment.images.sel(wavelength=wvl), name=wvl
                     )
             if self.experiment.seg_images is not None:
-                masks = self.experiment.seg_images
+                # masks = self.experiment.seg_images
                 self.viewer.add_labels(
                     self.experiment.seg_images.sel(
                         wavelength=self.experiment._config["pipeline"][

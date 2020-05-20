@@ -313,7 +313,7 @@ class Experiment:
         else:
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(
-                self.images, self._config["pipeline"]["seg_threshold"]
+                self.images, wvl=self._config["pipeline"]["reference_wavelength"]
             )
             self.save_masks()
 
@@ -325,10 +325,7 @@ class Experiment:
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
-            self.images,
-            self.seg_images,
-            blur_seg_thresh=self._config["pipeline"]["seg_threshold"],
-            reference_wavelength=self._config["pipeline"]["reference_wavelength"],
+            self.images, self.seg_images,
         )
 
         logging.info(f"Saving rotated FL images to {self.aligned_images_path}")

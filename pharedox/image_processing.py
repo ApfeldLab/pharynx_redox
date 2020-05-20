@@ -84,7 +84,7 @@ def measure_under_labels(
 
 def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
     """
-    Subtract the median from each image.
+    Subtract the median from each image, keeping the datatype the same.
 
     Parameters
     ----------
@@ -136,8 +136,9 @@ def center_and_rotate_pharynxes(
     fl_images: xr.DataArray, seg_images: xr.DataArray
 ) -> (xr.DataArray, xr.DataArray):
     """
-    Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
-    that the pharynx is in the center of the image, with its anterior on the left.
+    Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame
+    of both the FL and mask such that the pharynx is in the center of the image, with 
+    its anterior on the left.
 
     Parameters
     ----------
@@ -149,15 +150,8 @@ def center_and_rotate_pharynxes(
     Returns
     -------
     (rotated_fl_stack, rotated_seg_stack)
-        A 2-tuple where the first item is the rotated fluorescence stack and the second is the rotated mask stack
-
-    Notes
-    -----
-    This function uses the a reference wavelength to calculate the center of mass and angle of orientation, then applies
-    the according translation to all wavelengths for that animal/pair.
-
-    The current implementation uses a gaussian blur on the fluorescence images and segments that to calculate the
-    centroid and the orientation angle.
+        A 2-tuple where the first item is the rotated fluorescence stack and the second 
+        is the rotated mask stack
     """
     img_center_y, img_center_x = (
         fl_images.y.size // 2,
@@ -244,14 +238,45 @@ def extract_largest_binary_object(
     return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
 
-def get_area_of_largest_object(S):
+def get_area_of_largest_object(S: np.ndarray) -> int:
+    """Returns the area (px) of the largest object in a binary image
+
+    Parameters
+    ----------
+    S : np.ndarray
+        the binary image
+
+    Returns
+    -------
+    int
+        the area of the largest object 
+    """
     try:
         return measure.regionprops(measure.label(S))[0].area
     except IndexError:
         return 0
 
 
-def segment_pharynx(fl_img: xr.DataArray):
+def segment_pharynx(
+    fl_img: xr.DataArray, target_area: int = 450, area_range: int = 100
+) -> xr.DataArray:
+    """Generate a mask for the given image containing a pharynx.
+
+    Parameters
+    ----------
+    fl_img : xr.DataArray
+        a fluorescent image containing a single pharynx 
+    target_area : int, optional
+        the presumptive area (in px) of a pharynx, by default 450
+    area_range : int, optional
+        the acceptable range (in px) above/below the target_area, by default 100
+
+    Returns
+    -------
+    xr.DataArray
+        an image containing the segmented pharynx (dtype: np.uint8). Pixels of value=1
+        indicate the pharynx, pixels of value=0 indicate the background.
+    """
     target_area = 450  # experimentally derived
     area_range = 100
     min_area = target_area - area_range
@@ -295,8 +320,30 @@ def segment_pharynx(fl_img: xr.DataArray):
 
 
 def segment_pharynxes(
-    fl_stack, wvl="410", target_area: int = 450, area_range: int = 100,
+    fl_stack: xr.DataArray,
+    wvl: str = "410",
+    target_area: int = 450,
+    area_range: int = 100,
 ) -> xr.DataArray:
+    """Segment a hyperstack of pharynxes
+
+    Parameters
+    ----------
+    fl_stack : xr.DataArray
+        the fluorescent images to segment
+    wvl : str, optional
+        the wavelength to segment, by default "410"
+    target_area : int, optional
+        the presumptive area of a pharynx, in pixels, by default 450
+    area_range : int, optional
+        the acceptable range of pharyngeal areas, by default 100
+
+    Returns
+    -------
+    xr.DataArray
+        the masks for the specified wavelength
+    """
+
     to_segment = fl_stack.sel(wavelength=wvl)
     seg = xr.apply_ufunc(
         segment_pharynx,
@@ -765,7 +812,7 @@ def bspline_intra_modal_registration(
         point_width,
         point_width,
         point_width,
-    ]  # A control point every 50mm
+    ]
     image_physical_size = [
         size * spacing
         for size, spacing in zip(fixed_image.GetSize(), fixed_image.GetSpacing())
