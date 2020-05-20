@@ -133,10 +133,7 @@ def get_lr_bounds(
 
 
 def center_and_rotate_pharynxes(
-    fl_images: xr.DataArray,
-    seg_images: xr.DataArray,
-    reference_wavelength: str = "410",
-    blur_seg_thresh=1000,
+    fl_images: xr.DataArray, seg_images: xr.DataArray
 ) -> (xr.DataArray, xr.DataArray):
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame of both the FL and mask such
@@ -148,8 +145,6 @@ def center_and_rotate_pharynxes(
         The fluorescence images to rotate and align
     seg_images
         The segmented images to rotate and align
-    reference_wavelength
-        The wavelength to use for calculating center of mass and angle of orientation
 
     Returns
     -------
@@ -167,15 +162,10 @@ def center_and_rotate_pharynxes(
     img_center_y, img_center_x = (
         fl_images.y.size // 2,
         fl_images.x.size // 2,
-    )  # (y, x)
+    )
 
     fl_rotated_stack = fl_images.copy()
     seg_rotated_stack = seg_images.copy()
-
-    blurred_seg = fl_images.copy()
-    blurred_seg_data = ndi.gaussian_filter(fl_images, sigma=(0, 0, 0, 0, 6, 6))
-    blurred_seg_data = blurred_seg_data > blur_seg_thresh
-    blurred_seg.data = blurred_seg_data
 
     # STACK_ITERATION
     for img_idx in range(fl_images.animal.size):
@@ -184,18 +174,15 @@ def center_and_rotate_pharynxes(
                 for tp in fl_images.timepoint.values:
                     # Optimization potential here...
                     # this recalculates all region properties for the reference each time
-                    reference_seg = seg_images.isel(animal=img_idx).sel(
-                        wavelength=reference_wavelength, pair=pair, timepoint=tp
-                    )
                     img = fl_images.isel(animal=img_idx).sel(
                         wavelength=wvl, pair=pair, timepoint=tp
                     )
-                    seg = seg_rotated_stack.isel(animal=img_idx).sel(
-                        wavelength=wvl, pair=pair, timepoint=tp
+                    ref_seg = seg_images.isel(animal=img_idx).sel(
+                        pair=pair, timepoint=tp
                     )
 
                     try:
-                        props = measure.regionprops(measure.label(reference_seg))[0]
+                        props = measure.regionprops(measure.label(ref_seg))[0]
                     except IndexError:
                         raise ValueError(
                             f"No binary objects found in image @ [idx={img_idx} ; wvl={wvl} ; pair={pair}]"
@@ -203,7 +190,7 @@ def center_and_rotate_pharynxes(
 
                     # pharynx_center_y, pharynx_center_x = props.centroid
                     pharynx_center_y, pharynx_center_x = np.mean(
-                        np.nonzero(reference_seg), axis=1
+                        np.nonzero(ref_seg), axis=1
                     )
                     pharynx_orientation = props.orientation
 
@@ -218,16 +205,16 @@ def center_and_rotate_pharynxes(
                         img.data, translation_matrix, pharynx_orientation
                     )
                     rotated_seg = rotate(
-                        seg.data, translation_matrix, pharynx_orientation, order=0
+                        ref_seg.data, translation_matrix, pharynx_orientation, order=1
                     )
 
                     fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair, timepoint=tp)][
                         img_idx
                     ] = rotated_img
 
-                    seg_rotated_stack.loc[
-                        dict(wavelength=wvl, pair=pair, timepoint=tp)
-                    ][img_idx] = rotated_seg
+                    seg_rotated_stack.loc[dict(pair=pair, timepoint=tp)][
+                        img_idx
+                    ] = rotated_seg
 
     fl_rotated_stack.values = fl_rotated_stack.values.astype(fl_images.dtype)
     return fl_rotated_stack, seg_rotated_stack
@@ -265,8 +252,6 @@ def get_area_of_largest_object(S):
 
 
 def segment_pharynx(fl_img: xr.DataArray):
-    seg = fl_img.copy()
-
     target_area = 450  # experimentally derived
     area_range = 100
     min_area = target_area - area_range
@@ -310,18 +295,14 @@ def segment_pharynx(fl_img: xr.DataArray):
 
 
 def segment_pharynxes(
-    fl_stack,
-    wvl="410",
-    threshold: int = 2000,
-    target_area: int = 450,
-    area_range: int = 100,
+    fl_stack, wvl="410", target_area: int = 450, area_range: int = 100,
 ) -> xr.DataArray:
     to_segment = fl_stack.sel(wavelength=wvl)
     seg = xr.apply_ufunc(
         segment_pharynx,
         to_segment,
-        input_core_dims=[["x", "y"]],
-        output_core_dims=[["x", "y"]],
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["y", "x"]],
         vectorize=True,
     )
     return seg
@@ -357,9 +338,7 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
     )
 
 
-def calculate_midlines(
-    rot_seg_stack: xr.DataArray, degree: int = 4
-) -> List[Dict[str, List[Polynomial]]]:
+def calculate_midlines(rot_seg_stack: xr.DataArray, degree: int = 4) -> xr.DataArray:
     """
     Calculate a midline for each animal in the given stack
 
@@ -373,20 +352,8 @@ def calculate_midlines(
 
     Returns
     -------
-    list of dict
-        A list of dictionaries with the following structure::
-
-            [
-                {
-                    wavelength0: [midline_pair_0, midline_pair_1, ...],
-                    wavelength1: [midline_pair_0, midline_pair_1, ...]
-                },
-                ...
-            ]
-        
-        accessed like so::
-
-            midlines[img_idx][wvl][pair]
+    midlines
+        a DataArray containing the midline objects
 
     See Also
     --------
@@ -569,7 +536,6 @@ def measure_under_midlines(
     fl_stack: xr.DataArray,
     midlines: xr.DataArray,
     n_points: int = 300,
-    frame_specific: bool = False,
     order=1,
     thickness=0,
     flatten=True,
@@ -596,9 +562,6 @@ def measure_under_midlines(
     profile_data: xr.DataArray
         the intensity profiles for each image in the stack
     """
-    if not frame_specific:
-        midlines.loc[dict(wavelength="470")] = midlines.sel(wavelength="410")
-
     measurements = xr.apply_ufunc(
         measure_under_midline,
         fl_stack,
@@ -619,28 +582,6 @@ def measure_under_midlines(
         pass
 
     return measurements
-
-
-def center_of_mass_midline(rot_fl: xr.DataArray, s: float, ext: str):
-    """
-    Calculate the midline using the Center of Mass method
-
-    Parameters
-    ----------
-    ext
-    s
-    rot_fl
-
-    Returns
-    -------
-
-    """
-    ys = np.arange(rot_fl.shape[0])
-    midline_ys = []
-    xs = np.arange(rot_fl.shape[1])
-    for i in xs:
-        midline_ys.append(np.average(ys, weights=rot_fl[:, i].data))
-    return UnivariateSpline(xs, np.array(midline_ys), s=s, ext=ext)
 
 
 def shift(image: np.ndarray, vector: np.ndarray) -> np.ndarray:
@@ -840,51 +781,14 @@ def bspline_intra_modal_registration(
     registration_method.SetInitialTransform(initial_transform)
 
     registration_method.SetMetricAsMeanSquares()
-    # Settings for metric sampling, usage of a mask is optional. When given a mask the sample points will be
-    # generated inside that region. Also, this implicitly speeds things up as the mask is smaller than the
-    # whole image.
-    # registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
-    # registration_method.SetMetricSamplingPercentage(0.1)
+
     if fixed_image_mask:
         registration_method.SetMetricFixedMask(fixed_image_mask)
-
-    # Multi-resolution framework.
-    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [4,2,1])
-    # registration_method.SetShrinkFactorsPerLevel(shrinkFactors = [2,1])
-    # registration_method.SetSmoothingSigmasPerLevel(smoothingSigmas=[1,0])
-    # registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
 
     registration_method.SetInterpolator(sitk.sitkLinear)
     registration_method.SetOptimizerAsLBFGSB(
         gradientConvergenceTolerance=1e-5, numberOfIterations=10
     )
-    # registration_method.SetOptimizerAsGradientDescent(learningRate=1.0, numberOfIterations=50, convergenceMinimumValue=1e-6, convergenceWindowSize=10)
-    # registration_method.SetOptimizerAsAmoeba()
-    # registration_method.SetOptimizerAsAmoeba()
-    # registration_method.SetOptimizerAsLBFGS2(numberOfIterations=1000)
-
-    # registration_method.AddCommand(sitk.sitkStartEvent, start_plot)
-    # registration_method.AddCommand(sitk.sitkEndEvent, end_plot)
-    # registration_method.AddCommand(
-    #     sitk.sitkMultiResolutionIterationEvent, update_multires_iterations
-    # )
-    # registration_method.AddCommand(sitk.sitkIterationEvent, lambda: plot_values(registration_method, ylim=ylim))
-
-    # If corresponding points in the fixed and moving image are given then we display the similarity metric
-    # and the TRE during the registration.
-    # if fixed_points and moving_points:
-    #     registration_method.AddCommand(
-    #         sitk.sitkStartEvent, rc.metric_and_reference_start_plot
-    #     )
-    #     registration_method.AddCommand(
-    #         sitk.sitkEndEvent, rc.metric_and_reference_end_plot
-    #     )
-    #     registration_method.AddCommand(
-    #         sitk.sitkIterationEvent,
-    #         lambda: rc.metric_and_reference_plot_values(
-    #             registration_method, fixed_points, moving_points
-    #         ),
-    #     )
 
     return registration_method.Execute(fixed_image, moving_image)
 
