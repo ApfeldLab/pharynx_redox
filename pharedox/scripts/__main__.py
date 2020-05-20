@@ -30,7 +30,7 @@ def cli(debug):
     default=False,
     help="use a graphical user interface, or run the whole pipeline without intervention on the command-line",
 )
-def analyze(dir, gui, tissue):
+def analyze(dir, gui):
     """Analyze an experiment"""
     from pharedox import experiment
 
@@ -72,7 +72,7 @@ def create_settings():
 
     path_to_example_settings = os.path.join(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-        "defaule-settings.yaml",
+        "default-settings.yaml",
     )
     path_to_new_settings = os.path.join(os.getcwd(), "settings.yaml")
 
