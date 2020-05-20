@@ -547,36 +547,65 @@ def expand_dimension(
     return data
 
 
-def add_derived_wavelengths(data, numerator="410", denominator="470"):
-    """
+def add_derived_wavelengths(
+    data,
+    r_min=0.852,
+    r_max=6.65,
+    instrument_factor=0.171,
+    midpoint_potential=-265.0,
+    z=2,
+    temperature=22.0,
+    ratio_numerator="410",
+    ratio_denominator="470",
+):
+    """ 
     Add "derived" wavelengths to the given DataArray. These derived wavelengths are
     the ratio (`r`), the fraction oxidized (`oxd`), and the reduction potential (`e`).
-    
+
     Parameters
     ----------
     data : [type]
+        [description]
+    r_min : [type]
+        [description]
+    r_max : [type]
+        [description]
+    instrument_factor : [type]
+        [description]
+    midpoint_potential : [type]
+        [description]
+    z : [type]
+        [description]
+    temperature : [type]
         [description]
     numerator : str, optional
         [description], by default "410"
     denominator : str, optional
         [description], by default "470"
-    
+
     Returns
     -------
     [type]
         [description]
     """
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        r = data.sel(wavelength=numerator) / data.sel(wavelength=denominator)
-        oxd = pp.r_to_oxd(r)
-        e = pp.oxd_to_redox_potential(oxd)
+        r = data.sel(wavelength=ratio_numerator) / data.sel(
+            wavelength=ratio_denominator
+        )
+        oxd = pp.r_to_oxd(
+            r, r_min=r_min, r_max=r_max, instrument_factor=instrument_factor
+        )
+        e = pp.oxd_to_redox_potential(
+            oxd, midpoint_potential=midpoint_potential, z=z, temperature=temperature
+        )
 
     # Need to add time coordinates to these dimensions
     # time comes from avg(time(410), time(470))
     try:
-        t1 = data.sel(wavelength=numerator).time
-        t2 = data.sel(wavelength=denominator).time
+        t1 = data.sel(wavelength=ratio_numerator).time
+        t2 = data.sel(wavelength=ratio_denominator).time
         time = t1 + ((t1 - t2) / 2)
     except AttributeError:
         time = None

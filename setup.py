@@ -68,7 +68,7 @@ requirements = [
     "napari==0.3.1",
     "tqdm>=4.46",
     "click>=7.1.2,<8",
-    "PyYAML>=5.3.1",
+    "strictyaml>=1.0.6",
     "sphinx>=3.0.3",
     "sphinx_rtd_theme>=0.4.3",
     "sphinx-autodoc-typehints>=1.10.3",

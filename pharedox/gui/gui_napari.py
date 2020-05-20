@@ -142,7 +142,7 @@ class App:
         )
 
         layer.data = self.experiment.seg_images.sel(
-            wavelength=self.experiment.reference_wavelength
+            wavelength=self.experiment._config["pipeline"]["reference_wavelength"]
         ).values
         layer.refresh()
 
@@ -154,7 +154,9 @@ class App:
             self.experiment.seg_images = masks
             self.viewer.add_labels(
                 self.experiment.seg_images.sel(
-                    wavelength=self.experiment.reference_wavelength
+                    wavelength=self.experiment._config["pipeline"][
+                        "reference_wavelength"
+                    ]
                 ),
                 name="masks",
             )
@@ -172,7 +174,7 @@ class App:
         else:
             self.experiment.seg_images = masks
             self.get_layer("masks").data = masks.sel(
-                wavelength=self.experiment.reference_wavelength
+                wavelength=self.experiment._config["pipeline"]["reference_wavelength"]
             )
             self.get_layer("masks").refresh()
 
@@ -189,7 +191,9 @@ class App:
                 masks = self.experiment.seg_images
                 self.viewer.add_labels(
                     self.experiment.seg_images.sel(
-                        wavelength=self.experiment.reference_wavelength
+                        wavelength=self.experiment._config["pipeline"][
+                            "reference_wavelength"
+                        ]
                     ),
                     name="masks",
                 )
