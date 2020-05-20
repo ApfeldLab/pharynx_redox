@@ -32,21 +32,6 @@ class TestExperiment:
         )
         exp.full_pipeline()
 
-    def test_experiment_loads_parameters_from_settings_file(self, shared_datadir):
-        exp = experiment.Experiment(
-            shared_datadir / "experiments" / "2017_02_22-HD233_SAY47"
-        )
-
-        from yaml import load
-
-        with open(
-            shared_datadir / "experiments" / "2017_02_22-HD233_SAY47" / "settings.yaml"
-        ) as f:
-            settings = load(f)
-
-        for k, v in settings["pipeline"].items():
-            assert getattr(exp, k) == v
-
     @patch.object(ip, "segment_pharynxes")
     def test_experiment_loads_masks_if_they_exist(
         self, mock_segment_pharynxes, shared_datadir
