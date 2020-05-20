@@ -264,32 +264,8 @@ def get_area_of_largest_object(S):
         return 0
 
 
-# def segment_pharynx(fl_img: xr.DataArray, min_area=1000, t_step=100):
-#     """
-#     Segment the pharynx.
-
-#     Parameters
-#     ----------
-#     fl_img : xr.DataArray
-#         the fluorescent image (must contain only one pharynx)
-#     min_area : int, optional
-#         the minimum area of the pharynx (in px), by default 500
-#     t_step : int, optional
-#         the amount by which the intensity may change in estimating the threshold,
-#         by default 100
-#     """
-#     I = exposure.rescale_intensity(img_as_float(fl_img))
-#     t = filters.threshold_otsu(I)
-
-#     return I > t
-
-
 def segment_pharynx(fl_img: xr.DataArray):
     seg = fl_img.copy()
-
-    if "tl" in seg.wavelength.values[()].lower():
-        seg[:] = 0
-        return seg
 
     target_area = 450  # experimentally derived
     area_range = 100
@@ -328,106 +304,32 @@ def segment_pharynx(fl_img: xr.DataArray):
             logging.warn("Caught infinite loop")
             return fl_img > (fl_img.max() * 0.15)
 
+    S = extract_largest_binary_object(S).astype(np.uint8)
+
     return S
 
 
-def segment_pharynxes_ufunc(fl_stack) -> xr.DataArray:
-    # seg = xr.apply_ufunc(
-    #     segment_pharynx,
-    #     fl_stack,
-    #     input_core_dims=[["x", "y"]],
-    #     output_core_dims=[["x", "y"]],
-    #     vectorize=True,
-    # )
-    # return seg
-    # TODO: somehow need to skip TL coordinate
-    raise NotImplementedError
-
-
-# noinspection PyUnresolvedReferences
-def segment_pharynxes(fl_stack: xr.DataArray, threshold: int = 2000) -> xr.DataArray:
-    """
-    Segment the pharynxes in the given fluorescence image stack
-
-    Parameters
-    ----------
-    fl_stack
-        the images to segment
-    threshold
-        pixels with brightness above this intensity are considered to be in the pharynx
-
-    Returns
-    -------
-    seg
-        the image stack containing the segmented masks of the pharynxes in the input fl_stack
-
-    Notes
-    -----
-    This function currently uses a static threshold to segment, then extracts the largest binary object. More
-    sophisticated segmentation strategies should be tried in the future.
-    """
-
-    target_area = 450
-    area_range = 100
-
-    seg = fl_stack.copy()
-    i = 0
-    # STACK_ITERATION
-    for img_idx in range(fl_stack.animal.size):
-        for wvl_idx in range(fl_stack.wavelength.size):
-            for pair in range(fl_stack.pair.size):
-                for tp in fl_stack.timepoint.values:
-                    selector = dict(
-                        animal=img_idx, wavelength=wvl_idx, pair=pair, timepoint=tp
-                    )
-                    logging.debug(
-                        f"Segmenting ({i}/{fl_stack.animal.size * fl_stack.wavelength.size * fl_stack.pair.size}) {selector}"
-                    )
-                    if fl_stack.wavelength.values[wvl_idx].lower() == "tl":
-                        logging.debug("skipping TL")
-                        continue
-                    I = fl_stack.isel(selector)
-                    S = segment_pharynx(I)
-                    seg[selector] = extract_largest_binary_object(S)
-                    i = i + 1
-    # seg = 255 * seg.astype(np.uint8)
-    seg = seg.astype(np.uint8)
-    seg.loc[dict(wavelength="TL")] = 0
-    return seg
-
-
-def get_centroids(fl_stack: xr.DataArray, threshold=1000, gaussian_sigma=6):
-    """
-    Obtain the centers-of-mass for each pharynx in the given fluorescence image stack
-
-    Parameters
-    ----------
-    fl_stack
-        the fluorescence image stack to measure
-    threshold
-        the segmentation threshold for the blurred pharynx images
-    gaussian_sigma
-        the degree to blur the pharynxes before segmentation
-
-    Returns
-    -------
-    centroids
-        the centers-of-mass of each pharynx in the given stack
-
-    """
-    image_data = fl_stack.copy()
-    image_data.data = ndi.gaussian_filter(
-        image_data.data, sigma=(0, 0, 0, gaussian_sigma, gaussian_sigma)
+def segment_pharynxes(
+    fl_stack,
+    wvl="410",
+    threshold: int = 2000,
+    target_area: int = 450,
+    area_range: int = 100,
+) -> xr.DataArray:
+    to_segment = fl_stack.sel(wavelength=wvl)
+    seg = xr.apply_ufunc(
+        segment_pharynx,
+        to_segment,
+        input_core_dims=[["x", "y"]],
+        output_core_dims=[["x", "y"]],
+        vectorize=True,
     )
-    image_data.data[image_data.data < threshold] = 0
-    image_data.data[image_data.data > threshold] = 1
-
-    # TODO finish implementation
+    return seg
 
 
 def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
     """
-    Rotate the
+    Rotate the given image with the given translation matrix and orientation angle
 
     Parameters
     ----------
@@ -436,7 +338,7 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
     tform
         the translation matrix to apply
     orientation
-        the angle of orientation (in radians)
+        the angle of orientation (radians)
     order
         the order of the interpolation
 
