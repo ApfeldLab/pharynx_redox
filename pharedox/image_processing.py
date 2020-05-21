@@ -1,61 +1,54 @@
 import logging
-from typing import Dict, List, Union
+from typing import Union
 
+import SimpleITK as sITK
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
-import SimpleITK as sitk
 import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
-from scipy.interpolate import UnivariateSpline
 from scipy.stats import norm, zscore
-from skimage import exposure, filters, img_as_float, measure, transform
 from skimage import io
+from skimage import measure, transform
 from skimage.measure import label, regionprops
 from skimage.transform import AffineTransform, warp
 
-from pharedox import profile_processing
-
 
 def measure_under_labels(
-    I: xr.DataArray,
-    S: xr.DataArray,
+    imgs: xr.DataArray,
+    masks: xr.DataArray,
     ref_wvl: str = "410",
     ratio_numerator="410",
     ratio_denominator="470",
-    measurements: List[str] = ["label", "mean_intensity", "area"],
 ):
     """Measure the intensities of each channel under the label image"""
     df = []
-    I = I.where(I.wavelength != "TL", drop=True)
+    imgs = imgs.where(imgs.wavelength != "TL", drop=True)
 
-    for a in I.animal.values:
-        for tp in I.timepoint.values:
-            for p in I.pair.values:
-                for wvl in I.wavelength.values:
+    for a in imgs.animal.values:
+        for tp in imgs.timepoint.values:
+            for p in imgs.pair.values:
+                for wvl in imgs.wavelength.values:
                     img_selector = dict(animal=a, timepoint=tp, pair=p, wavelength=wvl)
-                    seg_selector = dict(
-                        animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
-                    )
 
-                    if "wavelength" in S.dims:
-                        seg_frame = S.sel(
+                    if "wavelength" in masks.dims:
+                        seg_frame = masks.sel(
                             animal=a, timepoint=tp, pair=p, wavelength=ref_wvl
                         )
                     else:
                         # single wavelength was passed
-                        seg_frame = S.sel(animal=a, timepoint=tp, pair=p)
+                        seg_frame = masks.sel(animal=a, timepoint=tp, pair=p)
 
-                    L = measure.label(seg_frame)
+                    labels = measure.label(seg_frame)
 
                     sub_df = pd.DataFrame(
                         measure.regionprops_table(
-                            L,
-                            intensity_image=I.sel(**img_selector).values,
-                            properties=measurements,
+                            labels,
+                            intensity_image=imgs.sel(**img_selector).values,
+                            properties=["label", "mean_intensity", "area"],
                         )
                     )
 
@@ -63,7 +56,7 @@ def measure_under_labels(
                     sub_df["timepoint"] = tp
                     sub_df["pair"] = p
                     sub_df["wavelength"] = wvl
-                    sub_df["strain"] = I.sel(**img_selector).strain.values
+                    sub_df["strain"] = imgs.sel(**img_selector).strain.values
 
                     df.append(sub_df)
 
@@ -90,8 +83,6 @@ def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
     ----------
     imgs
         the images to subtract the median from. May be a high-dimensional array.
-    img_dims
-        the dimensions that the images are stored in the `imgs` array. 
     """
 
     submed = imgs.copy()
@@ -235,15 +226,16 @@ def extract_largest_binary_object(
     if labels.max() == 0:
         # If there are no objects in the image... simply return the image
         return bin_img
+
     return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
 
-def get_area_of_largest_object(S: np.ndarray) -> int:
+def get_area_of_largest_object(mask: np.ndarray) -> int:
     """Returns the area (px) of the largest object in a binary image
 
     Parameters
     ----------
-    S : np.ndarray
+    mask : np.ndarray
         the binary image
 
     Returns
@@ -252,7 +244,7 @@ def get_area_of_largest_object(S: np.ndarray) -> int:
         the area of the largest object 
     """
     try:
-        return measure.regionprops(measure.label(S))[0].area
+        return measure.regionprops(measure.label(mask))[0].area
     except IndexError:
         return 0
 
@@ -277,8 +269,8 @@ def segment_pharynx(
         an image containing the segmented pharynx (dtype: np.uint8). Pixels of value=1
         indicate the pharynx, pixels of value=0 indicate the background.
     """
-    target_area = 450  # experimentally derived
-    area_range = 100
+    # target_area = 450  # experimentally derived
+    # area_range = 100
     min_area = target_area - area_range
     max_area = target_area + area_range
 
@@ -286,15 +278,15 @@ def segment_pharynx(
 
     p = 0.15
     t = fl_img.max() * p
-    S = fl_img > t
+    mask = fl_img > t
 
-    area = get_area_of_largest_object(S)
+    area = get_area_of_largest_object(mask)
 
     i = 0
     while (min_area > area) or (area > max_area):
         if i >= max_iter:
-            return S
-        area = get_area_of_largest_object(S)
+            return mask
+        area = get_area_of_largest_object(mask)
 
         logging.debug(f"Setting p={p}")
         if area > max_area:
@@ -304,19 +296,19 @@ def segment_pharynx(
         i = i + 1
 
         t = fl_img.max() * p
-        S = fl_img > t
+        mask = fl_img > t
 
         if p < 0:
             # break out if loop gets stuck w/ sensible default
-            logging.warn("Caught infinite loop")
+            logging.warning("Caught infinite loop")
             return fl_img > (fl_img.max() * 0.15)
         if p > 0.9:
-            logging.warn("Caught infinite loop")
+            logging.warning("Caught infinite loop")
             return fl_img > (fl_img.max() * 0.15)
 
-    S = extract_largest_binary_object(S).astype(np.uint8)
+    mask = extract_largest_binary_object(mask).astype(np.uint8)
 
-    return S
+    return mask
 
 
 def segment_pharynxes(
@@ -351,6 +343,7 @@ def segment_pharynxes(
         input_core_dims=[["y", "x"]],
         output_core_dims=[["y", "x"]],
         vectorize=True,
+        kwargs={"target_area": target_area, "area_range": area_range},
     )
     return seg
 
@@ -376,7 +369,7 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
         the translated and rotated image
 
     """
-    # noinspection PyTypeChecker
+
     return transform.rotate(
         transform.warp(img, tform, preserve_range=True, mode="wrap", order=order),
         np.degrees(np.pi / 2 - orientation),
@@ -412,6 +405,7 @@ def calculate_midlines(rot_seg_stack: xr.DataArray, degree: int = 4) -> xr.DataA
         input_core_dims=[["y", "x"]],
         vectorize=True,
         keep_attrs=True,
+        kwargs={"degree": degree},
     )
 
 
@@ -450,7 +444,7 @@ def calculate_midline(
             rp = measure.regionprops(measure.label(rot_seg_img))[0]
             xs, ys = rp.coords[:, 1], rp.coords[:, 0]
             left_bound, _, _, right_bound = rp.bbox
-            # noinspection PyTypeChecker
+
             return Polynomial.fit(
                 xs, ys, degree, domain=[left_bound - pad, right_bound + pad]
             )
@@ -473,6 +467,10 @@ def measure_under_midline(
 
     Parameters
     ----------
+    flatten
+    norm_scale
+    order
+        the interpolation order
     fl
         The fluorescence image to measure
     mid
@@ -506,7 +504,7 @@ def measure_under_midline(
         if thickness == 0:
             xs, ys = mid.linspace(n=n_points)
             fl = np.asarray(fl)
-            return ndi.map_coordinates(fl, np.stack([xs, ys]), order=1)
+            return ndi.map_coordinates(fl, np.stack([xs, ys]), order=order)
         else:
             # Gets a bit wonky, but makes sense
 
@@ -553,7 +551,7 @@ def measure_under_midline(
             all_xs = np.linspace(xs0, xs1, n_line_pts)
             all_ys = np.linspace(ys0, ys1, n_line_pts)
 
-            straightened = ndi.map_coordinates(fl, [all_xs, all_ys])
+            straightened = ndi.map_coordinates(fl, [all_xs, all_ys], order=order)
 
             if flatten:
                 # Create a normal distribution centered around 0 with the given scale (see scipy.norm.pdf)
@@ -574,7 +572,7 @@ def measure_under_midline(
         pass
     except Exception as e:
         # Here, something actually went wrong
-        logging.warn(f"measuring under midline failed with error {e}")
+        logging.warning(f"measuring under midline failed with error {e}")
 
     return np.zeros((1, n_points))
 
@@ -585,22 +583,19 @@ def measure_under_midlines(
     n_points: int = 300,
     order=1,
     thickness=0,
-    flatten=True,
 ) -> xr.DataArray:
     """
     Measure under all midlines in stack
 
     Parameters
     ----------
+    order
     fl_stack
         The fluorescence stack under which to measure
     midlines: dict
         A DataArray containing the midlines 
     n_points: int
         the number of points to sample under the midline
-    frame_specific: bool
-        whether to use a different midline for each frame. if False, a single midline
-        will be used within all wavelengths in a pair
     thickness: float
         the thickness of the midline to measure under
 
@@ -617,7 +612,12 @@ def measure_under_midlines(
         output_core_dims=[["position"]],
         vectorize=True,
         keep_attrs=True,
-        kwargs={"n_points": n_points, "thickness": thickness, "order": order},
+        kwargs={
+            "n_points": n_points,
+            "thickness": thickness,
+            "order": order,
+            "flatten": True,
+        },
     )
 
     measurements = measurements.assign_coords(
@@ -745,12 +745,15 @@ def normalize_images_single_wvl(
 
 def z_normalize_with_masks(imgs, masks):
     """
-    Perform z-normalization [0] on the entire image (relative to the content within the masks).
+    Perform z-normalization [0] on the entire image (relative to the content within the
+    masks).
 
-    That is to say, we center the pixels (within the mask) such that their mean is 0, and ensure their standard deviation is ~1.
+    That is to say, we center the pixels (within the mask) such that their mean is 0,
+    and ensure their standard deviation is ~1.
 
-    This allows us to see spatial patterns within the masked region (even if pixels outside of the masked region
-    fall very far above or below those inside) by setting the colormap center around 0.
+    This allows us to see spatial patterns within the masked region (even if pixels
+    outside of the masked region fall very far above or below those inside) by setting
+    the colormap center around 0.
 
     [0] - https://jmotif.github.io/sax-vsm_site/morea/algorithm/znorm.html
     """
@@ -765,9 +768,11 @@ def create_normed_rgb_ratio_stack(
     r_imgs, seg_imgs, vmin=-7, vmax=7, cmap="coolwarm", output_filename=None
 ):
     """
-    Z-normalize the images (relative to the masks), then transform them into RGB with the given colormap
+    Z-normalize the images (relative to the masks), then transform them into RGB with
+    the given colormap
     """
     r_znormed = z_normalize_with_masks(r_imgs, seg_imgs)
+    # noinspection PyUnresolvedReferences
     normalizer = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     if isinstance(cmap, str):
         cmap = plt.get_cmap(cmap)
@@ -775,8 +780,7 @@ def create_normed_rgb_ratio_stack(
     rgb_img = cmap(normalizer(r_znormed))[:, :, :, :3].astype(np.float16)
 
     if output_filename is not None:
-        with open(output_filename, "wb") as f:
-            io.imsave(f, rgb_img)
+        io.imsave(output_filename, rgb_img)
 
     return rgb_img
 
@@ -796,18 +800,13 @@ def get_bbox(m, pad=5):
 
 
 def bspline_intra_modal_registration(
-    fixed_image,
-    moving_image,
-    fixed_image_mask=None,
-    fixed_points=None,
-    moving_points=None,
-    ylim=None,
-    point_width=5.0,
+    fixed_image, moving_image, fixed_image_mask=None, point_width=5.0,
 ):
 
-    registration_method = sitk.ImageRegistrationMethod()
+    registration_method = sITK.ImageRegistrationMethod()
 
-    # Determine the number of BSpline control points using the physical spacing we want for the control grid.
+    # Determine the number of BSpline control points using the physical spacing we want
+    # for the control grid.
     grid_physical_spacing = [
         point_width,
         point_width,
@@ -822,7 +821,7 @@ def bspline_intra_modal_registration(
         for image_size, grid_spacing in zip(image_physical_size, grid_physical_spacing)
     ]
 
-    initial_transform = sitk.BSplineTransformInitializer(
+    initial_transform = sITK.BSplineTransformInitializer(
         image1=fixed_image, transformDomainMeshSize=mesh_size, order=2
     )
     registration_method.SetInitialTransform(initial_transform)
@@ -832,7 +831,7 @@ def bspline_intra_modal_registration(
     if fixed_image_mask:
         registration_method.SetMetricFixedMask(fixed_image_mask)
 
-    registration_method.SetInterpolator(sitk.sitkLinear)
+    registration_method.SetInterpolator(sITK.sitkLinear)
     registration_method.SetOptimizerAsLBFGSB(
         gradientConvergenceTolerance=1e-5, numberOfIterations=10
     )
@@ -845,21 +844,21 @@ def register_image(fixed, moving, mask=None, point_width=5.0):
     z_moving = zscore(moving.values)
 
     if mask is not None:
-        mask = sitk.GetImageFromArray(mask * 255)
+        mask = sITK.GetImageFromArray(mask * 255)
 
     tx = bspline_intra_modal_registration(
-        sitk.GetImageFromArray(z_fixed),
-        sitk.GetImageFromArray(z_moving),
+        sITK.GetImageFromArray(z_fixed),
+        sITK.GetImageFromArray(z_moving),
         fixed_image_mask=mask,
         point_width=point_width,
     )
 
-    reg_moving = sitk.GetArrayFromImage(
-        sitk.Resample(
-            sitk.GetImageFromArray(moving),
-            sitk.GetImageFromArray(fixed),
+    reg_moving = sITK.GetArrayFromImage(
+        sITK.Resample(
+            sITK.GetImageFromArray(moving),
+            sITK.GetImageFromArray(fixed),
             tx,
-            sitk.sitkLinear,
+            sITK.sitkLinear,
         )
     )
 
