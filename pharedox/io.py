@@ -142,16 +142,17 @@ def get_metadata_from_tiff(image_path: Path) -> List[Dict]:
                 metadata[label] = val
             all_metadata.append(metadata)
 
-    md = {}
-    md["data"] = all_metadata
-    md["types"] = {
-        "stage_x": np.int16,
-        "stage_y": np.int16,
-        "stage_z": np.int16,
-        "time": "datetime64[ns]",
-        "bin_x": np.uint8,
-        "bin_y": np.uint8,
-        "exposure": np.uint8,
+    md = {
+        "data": all_metadata,
+        "types": {
+            "stage_x": np.int16,
+            "stage_y": np.int16,
+            "stage_z": np.int16,
+            "time": "datetime64[ns]",
+            "bin_x": np.uint8,
+            "bin_y": np.uint8,
+            "exposure": np.uint8,
+        },
     }
     return md
 
@@ -303,6 +304,9 @@ def load_images(
     )
 
     # Set up empty metadata coords if necessary
+    all_coords = {}
+    metadata_df = pd.DataFrame()
+
     if metadata:
         metadata_df = pd.DataFrame(metadata["data"])
         all_coords = {
@@ -380,7 +384,7 @@ def load_images(
         logging.info(f"Loaded movement file from {movement_path}")
 
     except IOError:
-        logging.warn(
+        logging.warning(
             f"A movement file path ({movement_path}) was supplied but could not be found. All movement ({default_mvmt_regions}) assigned to 0."
         )
         mvmt_metadata = default_mvmt_metadata
@@ -391,7 +395,7 @@ def load_images(
                 f"No movement path specified. All movement ({default_mvmt_regions}) assigned to 0."
             )
         else:
-            logging.warn(
+            logging.warning(
                 f"Movement file incorrectly specified. All movement ({default_mvmt_regions}) assigned to 0."
             )
         mvmt_metadata = default_mvmt_metadata
