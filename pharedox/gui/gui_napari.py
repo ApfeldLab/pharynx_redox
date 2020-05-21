@@ -9,7 +9,7 @@ from skimage import morphology
 import xarray as xr
 
 from pathlib import Path
-from pharedox import image_processing as ip
+from pharedox import image_processing as ip, plots
 from qtpy.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtCore import pyqtSignal
 from qtpy.QtWidgets import QApplication, QSplashScreen
@@ -183,12 +183,17 @@ class App:
             self.set_up_viewer()
 
             if self.experiment.images is not None:
+                self.viewer.add_image(
+                    plots.imgs_to_rgb(
+                        self.experiment.images, r_min=0.9, r_max=1.9, i_max=1500
+                    )
+                )
                 for wvl in self.experiment.images.wavelength.values:
                     self.viewer.add_image(
                         self.experiment.images.sel(wavelength=wvl), name=wvl
                     )
+
             if self.experiment.seg_images is not None:
-                # masks = self.experiment.seg_images
                 self.viewer.add_labels(
                     self.experiment.seg_images.sel(
                         wavelength=self.experiment._config["pipeline"][

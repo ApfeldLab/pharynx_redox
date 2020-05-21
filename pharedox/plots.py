@@ -2,33 +2,24 @@
 Miscellaneous and sundry plotting functions for to please your visual cortex 
 """
 
-import logging
-from pprint import pformat
-from typing import Dict, Tuple, Union
-from pathlib import Path
 import warnings
+from pathlib import Path
+from typing import Dict, Union
 
-from tqdm.auto import tqdm
-
-from pharedox import profile_processing as pp
-from pharedox import data_analysis as da
-from pharedox import utils
-from pharedox import constants
-
-import matplotlib.colors
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib import cm, gridspec, colors, image
-from matplotlib.gridspec import GridSpec
-import statsmodels.api as sm
-from scipy import stats
-from statsmodels.stats.weightstats import DescrStatsW
 from matplotlib.backends.backend_pdf import PdfPages
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import stats
 from skimage.measure import label, regionprops
+from statsmodels.stats.weightstats import DescrStatsW
+from tqdm.auto import tqdm
+
+from pharedox import data_analysis as da
 
 
 def imshow_r_stack(
@@ -429,6 +420,37 @@ def plot_profile_avg(data, ax=None, label=None, xs=None, **kwargs):
         ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
 
     return ax
+
+
+def imgs_to_rgb(
+    imgs,
+    r_min,
+    r_max,
+    cmap="coolwarm",
+    i_min=0,
+    i_max=None,
+    i_wvls=["410", "470"],
+    ratio_numerator="410",
+    ratio_denominator="470",
+):
+    if i_max is None:
+        i_max = np.max(imgs.sel(wavelength=["410", "470"]))
+
+    try:
+        R = imgs.sel(wavelength="R")
+    except KeyError:
+        R = imgs.sel(wavelength=ratio_numerator) / imgs.sel(
+            wavelength=ratio_denominator
+        )
+
+    norm_ratio = colors.Normalize(vmin=r_min, vmax=r_max)
+    cmap = cm.get_cmap(cmap)
+    img_rgba = cmap(norm_ratio(R))
+    norm_fl = colors.Normalize(vmin=i_min, vmax=i_max, clip=True)
+    hsv_img = colors.rgb_to_hsv(img_rgba[..., :3])  # ignore the "alpha" channel
+    hsv_img[..., -1] = norm_fl(imgs.sel(wavelength=i_wvls).max(dim="wavelength"))
+    img_rgba = colors.hsv_to_rgb(hsv_img)
+    return img_rgba
 
 
 def imshow_ratio_normed(
@@ -866,7 +888,7 @@ def plot_multiple_pop_errors(
         The DPI of the plot, by default 100
     regions : dict, optional
         The regions to plot, if enabled, by default constants.untrimmed_regions
-    
+
     Returns
     -------
     fig, ax
