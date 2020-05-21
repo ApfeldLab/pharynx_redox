@@ -1,24 +1,18 @@
-import collections
-from dataclasses import dataclass
-from typing import Union, Dict, Tuple
 import logging
 import warnings
+from typing import Union, Dict, Tuple
 
-import scipy
 import numpy as np
-import xarray as xr
 import pandas as pd
+import xarray as xr
+from numba import vectorize
 from scipy import spatial, signal
-from sklearn.preprocessing import scale
 from tqdm.auto import tqdm
 
 from pharedox import utils
-from pharedox import constants
-
-from numba import vectorize, int64
 
 
-def to_dataframe(data: xr.DataArray, metadata={}, *args, **kwargs) -> pd.DataFrame:
+def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
     """
     Replacement for `xr.DataArray.to_dataframe` that adds the attrs for the given
     DataArray into the resultant DataFrame.
@@ -54,10 +48,12 @@ def align_pa(
     ----------
     intensity_data
         the data to align
-    reference_pair: optional
-        the pair to calculate the alignment for
     reference_wavelength: optional
         the wavelength to calculate the alignment for
+    reference_pair: optional
+        the pair to calculate the alignment for
+    reference_timepoint
+        the timepoint to calculate the alignment for
 
     Returns
     -------
@@ -150,113 +146,12 @@ def align_pa(
 
 @vectorize
 def get_mvmt(a, b):
-    if a == False:
+    if not a:
         return b
-    if b == False:
+    if not b:
         return a
     else:
         return np.nan
-
-
-def summarize_over_regions_old(
-    data: xr.DataArray,
-    regions: dict,
-    value_name: str = None,
-    rescale: bool = False,
-    add_attrs: bool = True,
-):
-    """
-    Summarize the profile data over region boundaries, storing the resultant data in a 
-    pandas DataFrame.
-
-    The functional observations stored as profile data is difficult to analyze with
-    traditional statistical methods. To make it easier, we can average the values within
-    regions of the profile which correspond to salient biological regions (different
-    muscle cells, etc).
-
-    This image demonstrates the idea, where averages would be taken inside the shaded
-    areas, and the value assigned to the label of that shaded region.
-
-    .. image:: _static/ex_i410.png
-
-    Parameters
-    ----------
-    data
-        the profile data to be summarized. maximally 2-dimensional where the shape is
-        (observation, position)
-    regions
-        a dictionary mapping region name to [left_boundary, right_boundary]. This can be
-        unscaled (where boundaries are expressed as percentages) or scaled (where
-        boundaries are expressed as integer indices of the profile vector). If unscaled,
-        the ``rescale`` parameter should be set to ``True``.
-    value_name
-        the name of the value being measured (e.g. "410", "E", "OxD"). If left as None,
-        defaults to "value". This will be the heading of the column storing the
-        measurements in the resultant DataFrame
-    rescale
-        whether the regions should be rescaled, see the ``regions`` parameter for more
-        info
-    add_attrs
-        add attributes from each observation to the table
-
-    Returns
-    -------
-    pd.DataFrame
-        a pandas DataFrame containing the mean value of each profile within the given
-        region boundaries
-
-        ====  =======  ========  ========
-          ..  value    region      animal
-        ====  =======  ========  ========
-           0  7856.16  pm3              0
-           1  7598.52  pm3              1
-           2  9302.02  pm3              2
-        ...   ...      ...       ...
-        ====  =======  ========  ========
-
-    """
-
-    if rescale:
-        regions = utils.scale_region_boundaries(regions, data.shape[-1])
-    if value_name is None:
-        value_name = "value"
-
-    dfs = []
-    for region, bounds in regions.items():
-        reg_df = data[dict(position=range(bounds[0], bounds[1]))].mean(
-            dim="position", skipna=True
-        )
-        try:
-            reg_df = reg_df.to_pandas().to_frame()
-        except:
-            reg_df = pd.DataFrame({value_name: [reg_df.values[()]]})
-
-        reg_df["region"] = region
-        reg_df.rename({0: value_name}, inplace=True, axis="columns")
-        reg_df = reg_df.reset_index()
-
-        try:
-            reg_df["strain"] = data.strain.values
-        except AttributeError:
-            logging.warning("No strain info in data, not adding to summarization table")
-
-        try:
-            reg_df["time"] = data.time.values
-        except AttributeError:
-            logging.warning("No timestamp in data, not adding to summarization table")
-
-        if add_attrs:
-            for attr, val in data.attrs.items():
-                reg_df[attr] = val
-
-        for region in ["posterior", "anterior", "sides_of_tip", "tip"]:
-            try:
-                reg_df[f"mvmt-{region}"] = data[f"mvmt-{region}"]
-            except KeyError:
-                pass
-
-        dfs.append(reg_df)
-    return pd.concat(dfs)
 
 
 def summarize_over_regions(
@@ -326,27 +221,16 @@ def summarize_over_regions(
     df["pointwise"] = pointwise
 
     try:
-        df.set_index(["experiment_id",], append=True, inplace=True)
+        df.set_index(["experiment_id"], append=True, inplace=True)
     except ValueError:
         pass
 
     return df
 
 
-def summarize_over_pts(
-    data: xr.DataArray,
-    regions: Dict,
-    rescale: bool = True,
-    value_name: str = "value",
-    ratio_numerator: str = "410",
-    ratio_denominator: str = "470",
-):
-    pass
-
-
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
-    l: float = 1.12,
+    lambda_: float = 1.12,
     order: float = 4.0,
     n_basis: float = 200,
     n_eval_pts: int = 1000,
@@ -363,7 +247,7 @@ def smooth_profile_data(
         logging.warn("MATLAB engine not installed. Skipping smoothing.")
         return profile_data
 
-    smooth_profile_data = xr.DataArray(
+    smoothed_data = xr.DataArray(
         0,
         dims=profile_data.dims,
         coords={
@@ -383,10 +267,10 @@ def smooth_profile_data(
 
             eng = matlab.engine.start_matlab()
             sm_data = np.array(
-                eng.smooth_profiles(raw_data, l, order, n_basis, n_eval_pts)
+                eng.smooth_profiles(raw_data, lambda_, order, n_basis, n_eval_pts)
             ).T
-            smooth_profile_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
-    return smooth_profile_data
+            smoothed_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
+    return smoothed_data
 
 
 def _register_profiles_pop(
@@ -415,7 +299,6 @@ def _register_profiles_pop(
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
-    warp_data = []
 
     i410 = matlab.double(profile_data.sel(wavelength=ratio_numerator).values.tolist())
     i470 = matlab.double(profile_data.sel(wavelength=ratio_denominator).values.tolist())
@@ -481,19 +364,7 @@ def register_profiles_pop(
 
 
 def channel_register(
-    profile_data: xr.DataArray,
-    redox_params: dict,
-    eng=None,
-    n_deriv: float = 2.0,
-    rough_lambda: float = 0.01,
-    rough_n_breaks: float = 300.0,
-    rough_order: float = 4.0,
-    smooth_lambda: float = 10.0 ** 2,
-    smooth_n_breaks: float = 100.0,
-    smooth_order: float = 4.0,
-    warp_lambda: float = 5.0e3,
-    warp_n_basis: float = 30.0,
-    warp_order: float = 4.0,
+    profile_data: xr.DataArray, redox_params: dict, reg_params: dict, eng=None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
 
     try:
@@ -501,19 +372,6 @@ def channel_register(
     except ImportError:
         logging.warn("MATLAB engine not installed! Skipping registration.")
         return profile_data, None
-
-    reg_params = dict(
-        n_deriv=2.0,
-        rough_lambda=0.01,
-        rough_n_breaks=300.0,
-        rough_order=4.0,
-        smooth_lambda=10.0 ** 2,
-        smooth_n_breaks=100.0,
-        smooth_order=4.0,
-        warp_lambda=5.0e3,
-        warp_n_basis=30.0,
-        warp_order=4.0,
-    )
 
     if eng is None:
         eng = matlab.engine.start_matlab()
@@ -719,7 +577,7 @@ def trim_profiles(
 
                             trimmed_intensity_data.loc[selector] = resized
                         except ValueError:
-                            logging.warn(
+                            logging.warning(
                                 f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
                             )
 
@@ -778,33 +636,3 @@ def oxd_to_redox_potential(
         return midpoint_potential - (
             8314.462 * (273.15 + temperature) / (z * 96485.3415)
         ) * np.log((1 - oxd) / oxd)
-
-
-def find_optimal_regions(initial_regions, err_data, min_width=10, rescale_regions=True):
-    try:
-        err_data = err_data.values
-    except AttributeError:
-        pass
-
-    def avg_err_for_bounds(region_bounds):
-        l, r = int(region_bounds[0]), int(region_bounds[1])
-        if np.abs(r - l) < min_width:
-            return np.inf
-        if r < l:
-            l, r = r, l
-        return np.nanmean(err_data[:, int(l) : int(r)])
-
-    if rescale_regions:
-        initial_regions = utils.scale_region_boundaries(
-            initial_regions, err_data.shape[-1]
-        )
-
-    opt_regions = {}
-    for region, bounds in initial_regions.items():
-        opt_bounds = scipy.optimize.brute(
-            avg_err_for_bounds,
-            ranges=(slice(bounds[0], bounds[1], 1), slice(bounds[0], bounds[1], 1)),
-            finish=None,
-        )
-        opt_regions[region] = opt_bounds.astype(np.int)
-    return opt_regions
