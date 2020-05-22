@@ -24,6 +24,7 @@ from strictyaml import (
     load,
 )
 from tqdm import tqdm
+from yaml import YAMLError
 
 from pharedox import image_processing as ip
 from pharedox import io as pio
@@ -105,8 +106,11 @@ class Experiment:
     def __init__(self, exp_dir):
         self.experiment_dir = Path(exp_dir)
         self.settings_path = self.experiment_dir.joinpath("settings.yaml")
-        with open(self.settings_path, "r") as f:
-            self.config = load(f.read(), self.experiment_schema).data
+        try:
+            with open(self.settings_path, "r") as f:
+                self.config = load(f.read(), self.experiment_schema).data
+        except YAMLError:
+            raise ValueError("Incorrectly specified config file.")
 
         self.experiment_id = self.experiment_dir.stem
 
