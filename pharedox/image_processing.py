@@ -162,7 +162,7 @@ def center_and_rotate_pharynxes(
                     img = fl_images.isel(animal=img_idx).sel(
                         wavelength=wvl, pair=pair, timepoint=tp
                     )
-                    ref_seg = seg_images.isel(animal=img_idx).sel(
+                    ref_seg = seg_images.isel(animal=img_idx, wavelength=0).sel(
                         pair=pair, timepoint=tp
                     )
 

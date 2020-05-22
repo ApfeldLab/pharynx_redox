@@ -19,7 +19,7 @@ from skimage.measure import label, regionprops
 from statsmodels.stats.weightstats import DescrStatsW
 from tqdm.auto import tqdm
 
-from pharedox import data_analysis as da
+from pharedox import data_analysis as da, constants
 
 
 def imshow_r_stack(
@@ -230,7 +230,7 @@ def plot_stage_layout(
     
     See Also
     --------
-    io.load_images
+    io.load_tiff_as_hyperstack
     seaborn.lmplot
     """
     df = pd.DataFrame(

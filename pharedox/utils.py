@@ -655,3 +655,15 @@ def git_version() -> str:
         GIT_REVISION = "Unknown"
 
     return GIT_REVISION
+
+
+def setup_logging(loglevel="info"):
+    import logging
+
+    logmap = {"info": logging.INFO, "debug": logging.DEBUG}
+
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(message)s",
+        level=logmap[loglevel],
+        datefmt="%I:%M:%S",
+    )

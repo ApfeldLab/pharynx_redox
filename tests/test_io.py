@@ -10,7 +10,7 @@ from pharedox import io
 class TestIO:
     @pytest.fixture(scope="function")
     def paired_imgs(self, shared_datadir):
-        return io.load_images(
+        return io.load_tiff_as_hyperstack(
             (
                 shared_datadir
                 / "experiments"
@@ -40,7 +40,7 @@ class TestIO:
         assert paired_imgs.dtype == np.uint16
 
     def test_load_images_no_metadata(self, shared_datadir):
-        paired_imgs = io.load_images(
+        paired_imgs = io.load_tiff_as_hyperstack(
             (shared_datadir / "misc_imgs" / "processed_2017_02_22-HD233_SAY47.tif"),
             indexer_path=(
                 shared_datadir
@@ -135,7 +135,7 @@ class TestIO:
         assert len(strain_map) == 123
 
     def test_save_images_xarray_to_disk(self, paired_imgs, shared_datadir):
-        io.save_images_xarray_to_disk(
+        io.save_images_xarray_to_tiffs(
             paired_imgs, shared_datadir / "test_save_imgs_dir", z_axis="animal"
         )
 
@@ -148,7 +148,7 @@ class TestIO:
         )
 
     def test_save_images_xarray_to_disk_pair_zaxis(self, paired_imgs, shared_datadir):
-        io.save_images_xarray_to_disk(
+        io.save_images_xarray_to_tiffs(
             paired_imgs, shared_datadir / "test_save_imgs_dir", z_axis="pair"
         )
 

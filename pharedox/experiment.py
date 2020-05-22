@@ -7,14 +7,12 @@ import datetime
 import logging
 import warnings
 from pathlib import Path
-from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib.backends.backend_pdf import PdfPages
-from numpy.polynomial import Polynomial
 from strictyaml import (
     Bool,
     Float,
@@ -23,7 +21,6 @@ from strictyaml import (
     MapPattern,
     CommaSeparated,
     Str,
-    YAMLError,
     load,
 )
 from tqdm import tqdm
@@ -97,16 +94,19 @@ class Experiment:
     rot_fl: xr.DataArray = None
     rot_seg: xr.DataArray = None
 
-    midlines: List[Dict[str, List[Polynomial]]] = None
+    midlines: xr.DataArray = None
 
     untrimmed_profiles: xr.DataArray = None
     trimmed_profiles: xr.DataArray = None
 
-    def __init__(self, dir):
-        self.experiment_dir = Path(dir)
+    channel_warps: xr.DataArray = None
+    std_warps: xr.DataArray = None
+
+    def __init__(self, exp_dir):
+        self.experiment_dir = Path(exp_dir)
         self.settings_path = self.experiment_dir.joinpath("settings.yaml")
         with open(self.settings_path, "r") as f:
-            self._config = load(f.read(), self.experiment_schema).data
+            self.config = load(f.read(), self.experiment_schema).data
 
         self.experiment_id = self.experiment_dir.stem
 
@@ -164,8 +164,12 @@ class Experiment:
         )
 
     @property
-    def warp_data_path(self):
-        return self.analysis_dir.joinpath(self.experiment_id + "-warp_data.npy")
+    def channel_warp_data_path(self):
+        return self.analysis_dir.joinpath(self.experiment_id + "-channel_warps.nc")
+
+    @property
+    def std_warp_data_path(self):
+        return self.analysis_dir.joinpath(self.experiment_id + "-std_warps.nc")
 
     @property
     def untrimmed_profile_data_csv_path(self):
@@ -194,7 +198,7 @@ class Experiment:
     @property
     def analysis_dir(self) -> Path:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        strategy = self._config["pipeline"]["strategy"]
+        strategy = self.config["pipeline"]["strategy"]
         if len(strategy) > 0:
             suffix = f"_{strategy}"
         else:
@@ -210,11 +214,11 @@ class Experiment:
         This returns the raw (non-median-subtracted) images
         """
         logging.info(f"Loading image data from {self.raw_img_stack_path}")
-        raw_image_data = pio.load_images(
+        raw_image_data = pio.load_tiff_as_hyperstack(
             img_stack_path=self.raw_img_stack_path,
             strain_map=self.strains,
             movement_path=self.movement_path,
-            channel_order=self._config["pipeline"]["channel_order"],
+            channel_order=self.config["pipeline"]["channel_order"],
         )
 
         raw_image_data = raw_image_data.assign_coords(
@@ -250,8 +254,8 @@ class Experiment:
     def trimmed_summary_table(self):
         df = profile_processing.summarize_over_regions(
             self.trimmed_profiles,
-            regions=self._config["pipeline"]["trimmed_regions"],
-            **self._config["redox"],
+            regions=self.config["pipeline"]["trimmed_regions"],
+            **self.config["redox"],
         )
         return df
 
@@ -259,8 +263,8 @@ class Experiment:
     def untrimmed_summary_table(self):
         df = profile_processing.summarize_over_regions(
             self.untrimmed_profiles,
-            regions=self._config["pipeline"]["untrimmed_regions"],
-            **self._config["redox"],
+            regions=self.config["pipeline"]["untrimmed_regions"],
+            **self.config["redox"],
         )
         return df
 
@@ -274,7 +278,7 @@ class Experiment:
         self.make_analysis_dir()
 
         logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
-        pio.save_images_xarray_to_disk(
+        pio.save_images_xarray_to_tiffs(
             self.raw_images, self.fl_imgs_dir, prefix=self.experiment_id
         )
 
@@ -286,7 +290,7 @@ class Experiment:
         self.register_profiles()
         self.trim_data()
         self.calculate_redox()
-        self.do_manual_AP_flips()
+        self.do_manual_ap_flips()
         self.persist_to_disk()
 
         logging.info(f"Finished full pipeline run for {self.experiment_dir}")
@@ -302,9 +306,6 @@ class Experiment:
 
         df.to_csv(self.analysis_dir / (self.experiment_id + "-neuron_analysis.csv"))
 
-    def load_seg_imgs_from_disk(self, path):
-        logging.info(f"Skipping segmentation; loading from {path}")
-
     def segment_pharynxes(self):
         if self.seg_images is not None:
             logging.info("masks have been specified. skipping mask generation")
@@ -313,12 +314,12 @@ class Experiment:
         else:
             logging.info("Generating masks")
             self.seg_images = ip.segment_pharynxes(
-                self.images, wvl=self._config["pipeline"]["reference_wavelength"]
+                self.images, wvl=self.config["pipeline"]["reference_wavelength"]
             )
             self.save_masks()
 
     def register_images(self):
-        if self._config["pipeline"]["image_register"]:
+        if self.config["pipeline"]["image_register"]:
             logging.info("Registering Images")
             self.images = ip.register_all_images(self.images, self.seg_images)
 
@@ -336,7 +337,6 @@ class Experiment:
 
     def calculate_midlines(self):
         logging.info("Calculating midlines")
-        # noinspection PyTypeChecker
         self.midlines = ip.calculate_midlines(self.rot_seg, degree=4)
 
     def measure_under_midlines(self):
@@ -344,9 +344,9 @@ class Experiment:
         self.untrimmed_profiles = ip.measure_under_midlines(
             self.rot_fl,
             self.midlines,
-            n_points=self._config["pipeline"]["untrimmed_profile_length"],
-            order=self._config["pipeline"]["measurement_order"],
-            thickness=float(self._config["pipeline"]["measure_thickness"]),
+            n_points=self.config["pipeline"]["untrimmed_profile_length"],
+            order=self.config["pipeline"]["measurement_order"],
+            thickness=float(self.config["pipeline"]["measure_thickness"]),
         )
         self.untrimmed_profiles = profile_processing.align_pa(self.untrimmed_profiles)
         self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
@@ -354,21 +354,24 @@ class Experiment:
         )
 
     def register_profiles(self):
-        reg_param_dict = self._config["registration"]
+        reg_param_dict = self.config["registration"]
 
-        if self._config["pipeline"]["population_register"]:
+        if self.config["pipeline"]["population_register"]:
             logging.info("Standardizing profiles")
             (
                 self.untrimmed_profiles,
-                self.warps,
+                self.std_warps,
             ) = profile_processing.register_profiles_pop(
-                self.untrimmed_profiles, self._config["redox"], **reg_param_dict,
+                self.untrimmed_profiles, self.config["redox"], **reg_param_dict,
             )
 
-        if self._config["pipeline"]["channel_register"]:
+        if self.config["pipeline"]["channel_register"]:
             logging.info("Channel-Registering profiles")
-            self.untrimmed_profiles, self.warps, = profile_processing.channel_register(
-                self.untrimmed_profiles, **reg_param_dict
+            (
+                self.untrimmed_profiles,
+                self.channel_warps,
+            ) = profile_processing.channel_register(
+                self.untrimmed_profiles, self.config["redox"], **reg_param_dict
             )
 
     def trim_data(self):
@@ -376,15 +379,15 @@ class Experiment:
         self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
             profile_processing.trim_profiles(
                 self.untrimmed_profiles,
-                self._config["pipeline"]["seg_threshold"],
-                ref_wvl=self._config["pipeline"]["reference_wavelength"],
+                self.config["pipeline"]["seg_threshold"],
+                ref_wvl=self.config["pipeline"]["reference_wavelength"],
             )
         )
 
     def calculate_redox(self):
         logging.info("Calculating redox measurements")
 
-        redox_params = self._config["redox"]
+        redox_params = self.config["redox"]
 
         # Images
         self.images = utils.add_derived_wavelengths(self.images, **redox_params)
@@ -399,7 +402,7 @@ class Experiment:
             self.untrimmed_profiles, **redox_params
         )
 
-    def do_manual_AP_flips(self):
+    def do_manual_ap_flips(self):
         # TODO finish implementation
         logging.info("skipping manual AP flips - not implemented")
 
@@ -428,7 +431,7 @@ class Experiment:
                 logging.info(f"Saving images to {path}")
                 img.to_netcdf(path)
 
-    # def load_images(self):
+    # def load_tiff_as_hyperstack(self):
     # pass
 
     def make_fig_dir(self):
@@ -480,7 +483,7 @@ class Experiment:
             mvmt_annotation_img_path = self.fig_dir.joinpath(
                 f"{self.experiment_id}-movement_annotation_imgs.pdf"
             )
-            imgs = utils.add_derived_wavelengths(self.images, **self._config["redox"])
+            imgs = utils.add_derived_wavelengths(self.images, **self.config["redox"])
             with PdfPages(mvmt_annotation_img_path) as pdf:
                 for i in tqdm(range(self.raw_images.animal.size)):
                     fig = plots.plot_pharynx_R_imgs(imgs[i], mask=self.seg_images[i])
@@ -504,12 +507,12 @@ class Experiment:
                             fig, ax = plt.subplots(dpi=300)
                             R = (
                                 self.rot_fl.sel(
-                                    wavelength=self._config["redox"]["ratio_numerator"],
+                                    wavelength=self.config["redox"]["ratio_numerator"],
                                     pair=pair,
                                     timepoint=tp,
                                 )
                                 / self.rot_fl.sel(
-                                    wavelength=self._config["redox"][
+                                    wavelength=self.config["redox"][
                                         "ratio_denominator"
                                     ],
                                     pair=pair,
@@ -517,7 +520,7 @@ class Experiment:
                                 )
                             )[i]
                             I = self.rot_fl.sel(
-                                wavelength=self._config["redox"]["ratio_numerator"],
+                                wavelength=self.config["redox"]["ratio_numerator"],
                                 pair=pair,
                                 timepoint=tp,
                             )[i]
@@ -533,7 +536,7 @@ class Experiment:
                             )
                             ax.plot(
                                 *self.midlines.sel(
-                                    wavelength=self._config["pipeline"][
+                                    wavelength=self.config["pipeline"][
                                         "reference_wavelength"
                                     ],
                                     pair=pair,
@@ -576,10 +579,13 @@ class Experiment:
         pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_path)
 
         # Warps, if necessary
-        if self._config["pipeline"]["channel_register"]:
-            logging.info(f"Saving warp data to {self.warp_data_path}")
-            with open(self.warp_data_path, "wb") as f:
-                np.save(f, self.warps)
+        if self.config["pipeline"]["channel_register"]:
+            logging.info(f"Saving channel warp data to {self.channel_warp_data_path}")
+            self.channel_warps.to_netcdf(self.channel_warp_data_path)
+
+        if self.config["pipeline"]["population_register"]:
+            logging.info(f"Saving channel warp data to {self.std_warp_data_path}")
+            self.std_warps.to_netcdf(self.std_warp_data_path)
 
         # Now, save the profile data in "tidy" format as CSV
         profile_processing.to_dataframe(self.trimmed_profiles, "value").to_csv(
@@ -610,13 +616,13 @@ class Experiment:
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
 
-        if self._config["output"]["should_save_summary_data"]:
+        if self.config["output"]["should_save_summary_data"]:
             self.save_summary_data()
 
-        if self._config["output"]["should_save_profile_data"]:
+        if self.config["output"]["should_save_profile_data"]:
             self.persist_profile_data()
 
-        if self._config["output"]["should_save_plots"]:
+        if self.config["output"]["should_save_plots"]:
             self.save_plots()
 
     ####################################################################################
@@ -624,9 +630,9 @@ class Experiment:
     ####################################################################################
     def add_experiment_metadata_to_data_array(self, data_array: xr.DataArray):
         params = {}
-        params.update(self._config["pipeline"])
-        params.update(self._config["redox"])
-        params.update(self._config["registration"])
+        params.update(self.config["pipeline"])
+        params.update(self.config["redox"])
+        params.update(self.config["registration"])
 
         to_remove = ["channel_order", "trimmed_regions", "untrimmed_regions"]
         for k in to_remove:

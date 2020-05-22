@@ -9,7 +9,7 @@ from pharedox import io, experiment, image_processing as ip
 class TestExperiment:
     @pytest.fixture(scope="function")
     def paired_imgs(self, shared_datadir):
-        return io.load_images(
+        return io.load_tiff_as_hyperstack(
             (
                 shared_datadir
                 / "experiments"

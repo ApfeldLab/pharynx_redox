@@ -187,7 +187,7 @@ def load_tiff_from_disk(image_path: Path) -> (np.ndarray, dict):
     return img_data, metadata
 
 
-def save_images_xarray_to_disk(
+def save_images_xarray_to_tiffs(
     imgs: xr.DataArray,
     dir_path: str,
     prefix: str = None,
@@ -195,17 +195,19 @@ def save_images_xarray_to_disk(
     z_axis: str = "animal",
 ) -> None:
     """
-    Save the given image stack to disk inside the given directory, separated by each axis except for
-    the given z-axis.
+    Save the given image stack to disk inside the given directory, separated by each
+    axis except for the given z-axis.
 
-    For example, say you've imaged 60 animals, each with 3 timepoints and 2 pairs. In this case,
-    you will most likely want to scroll through the animals in FIJI/etc. So you would use `z_axis='animal'`
-    to output stacks with 60 frames - one frame per animal. You would have each combination of (timepoint, pair, wavelength)
-    in its own stack.
+    For example, say you've imaged 60 animals, each with 3 timepoints and 2 pairs. In
+    this case, you will most likely want to scroll through the animals in FIJI/etc. So
+    you would use `z_axis='animal'` to output stacks with 60 frames - one frame per
+    animal. You would have each combination of (timepoint, pair, wavelength) in its own
+    stack.
 
-    However, say you've imaged 6 animals, each with 100 timepoints and 2 pairs. In this case, you would
-    use `z_axis='timepoint'`. This would result in each each stack getting 100 frames - one per timepoint. Each
-    (animal, pair, wavelength) combination would get its own file.
+    However, say you've imaged 6 animals, each with 100 timepoints and 2 pairs. In this
+    case, you would use `z_axis='timepoint'`. This would result in each each stack
+    getting 100 frames - one per timepoint. Each (animal, pair, wavelength) combination
+     would get its own file.
 
     Parameters
     ----------
@@ -223,7 +225,6 @@ def save_images_xarray_to_disk(
     Returns
     -------
     """
-    # TODO: test
     dir_path = Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -252,7 +253,7 @@ def save_images_xarray_to_disk(
         tifffile.imsave(str(path), data)
 
 
-def load_images(
+def load_tiff_as_hyperstack(
     img_stack_path: Union[Path, str],
     channel_order: [str],
     strain_map: [str] = None,

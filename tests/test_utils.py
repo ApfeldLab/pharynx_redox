@@ -13,7 +13,7 @@ test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 class TestUtils:
     @pytest.fixture(scope="function")
     def paired_imgs(self, shared_datadir):
-        return io.load_images(
+        return io.load_tiff_as_hyperstack(
             (
                 shared_datadir
                 / "experiments"

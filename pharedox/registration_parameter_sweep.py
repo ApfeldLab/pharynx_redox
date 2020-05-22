@@ -1,16 +1,12 @@
-from . import io as pio
-from . import image_processing as ip
-from . import experiment
-from . import plots
-from . import profile_processing as pp
-from . import utils
-from . import data_analysis as da
+from sklearn.model_selection import ParameterGrid
+
+from pharedox import io as pio
+from pharedox import profile_processing as pp
 import numpy as np
-from matlab import engine
 import logging
 from pathlib import Path
 import xarray as xr
-import sys
+from matlab import engine
 
 
 LOG_FILE = "/Users/sean/Desktop/registration_log.log"
@@ -40,18 +36,22 @@ warp_n_basis = np.linspace(10, 50, 15)
 smooth_lambda = np.linspace(0.01, 1, 10)
 
 
-all_params = list(ParameterGrid({
-    "n_deriv": [1.0,],
-    "rough_lambda": [1e-2,],
-    "rough_n_breaks": [200.0,],
-    "rough_order": [4.0,],
-    "smooth_lambda": smooth_lambda,
-    "smooth_n_breaks": [50.0,],
-    "smooth_order": [4.0,],
-    "warp_lambda": warp_lambdas, 10.0, 100.0, 1000.0, 10000.0],
-    "warp_n_basis": warp_n_basis,
-    "warp_order": [4.0,],
-}))
+all_params = list(
+    ParameterGrid(
+        {
+            "n_deriv": [1.0,],
+            "rough_lambda": [1e-2,],
+            "rough_n_breaks": [200.0,],
+            "rough_order": [4.0,],
+            "smooth_lambda": smooth_lambda,
+            "smooth_n_breaks": [50.0,],
+            "smooth_order": [4.0,],
+            "warp_lambda": warp_lambdas,
+            "warp_n_basis": warp_n_basis,
+            "warp_order": [4.0,],
+        }
+    )
+)
 
 eng = engine.connect_matlab()
 i = 0
@@ -59,7 +59,7 @@ for reg_params in all_params:
     param_string = "-".join([f"{k}={v}" for k, v in reg_params.items()])
     logging.info(f"Starting Registration ({i}/{len(all_params)})")
     try:
-        reg_data, _ = pp.register_profiles_pairs(prof_raw, eng=eng, **reg_params)
+        reg_data, _ = pp.channel_register(prof_raw, eng=eng, **reg_params)
         pio.save_profile_data(reg_data, OUTPUT_FOLDER + param_string + ".nc")
     except Exception as e:
         logging.error(f"Failed to register {param_string}")

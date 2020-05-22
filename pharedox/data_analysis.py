@@ -1,14 +1,10 @@
-from pathlib import Path
-from typing import Union, List
+from typing import List
 
 import numpy as np
 import pandas as pd
 import typing
 import xarray as xr
 from scipy import ndimage as ndi
-from functools import reduce
-
-from pandas.core.indexes.base import InvalidIndexError
 
 from pharedox import profile_processing
 from pharedox import io as pio
@@ -112,44 +108,36 @@ def fold_v_point_table(
     return df
 
 
-def get_mvmt_codes(data: xr.DataArray, regions: typing.Union[str, typing.List[str]]):
-    mvmts = np.repeat(-1, len(data))
-    mv, st = get_moving_idx(data, regions)
-    mvmts[mv] = 1
-    mvmts[st] = 0
-
-    return mvmts
-
-
-def get_moving_idx(
+def select_by_mvmt(
     data: xr.DataArray,
     regions: typing.Union[str, typing.List[str]],
     mvmt_thresh: int = 2,
-) -> typing.Tuple[xr.DataArray, xr.DataArray]:
+) -> typing.Union[xr.DataArray, xr.DataArray]:
     """
-    Returns a boolean indexing array to select the moving animals from the data array.
+    Return the data in the given DataArray, filtered according to movement in the
+    specified region.
 
-    The resultant array will be the same length as the `animal` index of the input
-    array, allowing one to use it to select the moving (or stationary) animals from the
-    original array by using traditional numpy boolean indexing.
-    
+    Stationary animals are those that are labelled as stationary in both pair 0 and pair
+    1.
+
+    Moving animals are those that are labelled as stationary in pair 0 and moving in
+    pair 1.
+
     Parameters
     ----------
-    data : xr.DataArray
-        The data
-    regions : typing.Union[str, typing.List[str]]
-        which region(s) should be considered for movement stratification
-    
+    data: xr.DataArray
+        the profile data to filter
+    regions
+        the regions to filter movement on
+    mvmt_thresh: int
+        the movement level that counts as movement
+
     Returns
     -------
     moving: xr.DataArray
-        A boolean array where `True` indicates that the animal was moving at that index
-        and `False` indicates that the animal was either stationary or unacceptable (as
-        in the case where the animal moves in both the 0th and 1st pair)
+        the moving animals
     stationary: xr.DataArray
-        A boolean array where `True` indicates that the animal was stationary at that index
-        and `False` indicates that the animal was either moving or unacceptable (as
-        in the case where the animal moves in both the 0th and 1st pair)
+        the stationary animals
     """
     if type(regions) == str:
         regions = [regions]
@@ -187,40 +175,7 @@ def get_moving_idx(
         for k, v in st_df[st_df].index.to_frame().to_dict(orient="list").items()
     }
 
-    return mv_idx, st_idx  # , mv_both_idx, mv_first_idx
-
-
-def select_by_mvmt(
-    prof_data: xr.DataArray, regions: typing.Union[str, typing.List[str]]
-) -> typing.Union[xr.DataArray, xr.DataArray]:
-    """
-    Return the data in the given DataArray, filtered according to movement in the 
-    specified region.
-
-    Stationary animals are those that are labelled as stationary in both pair 0 and pair
-    1.
-
-    Moving animals are those that are labelled as stationary in pair 0 and moving in 
-    pair 1.
-    
-    Parameters
-    ----------
-    prof_data : xr.DataArray
-        the profile data to filter
-    region: str
-        the region to filter movement on
-    moving : bool
-        if True, returns moving animals. If False, returns stationary animals.
-    
-    Returns
-    -------
-    moving: xr.DataArray
-        [description]
-    stationary: xr.DataArray
-    """
-    mv_idx, st_idx = get_moving_idx(prof_data, regions)
-
-    return prof_data[mv_idx], prof_data[st_idx]
+    return data[mv_idx], data[st_idx]
 
 
 def load_all_cached_profile_data(meta_dir, glob_pattern):
@@ -228,34 +183,6 @@ def load_all_cached_profile_data(meta_dir, glob_pattern):
         (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
         dim="animal",
     )
-
-
-def get_resid_rr_pairs(
-    pair0, pair1, summarize=False, **summarize_kwargs
-) -> Union[xr.DataArray, typing.Tuple[xr.DataArray, pd.DataFrame]]:
-    with np.errstate(divide="ignore"):
-        # prof_data = np.power(np.e, np.abs(np.log((pair0 / pair1)))) - 1
-        prof_data = 1 - (pair0 / pair1)
-    if summarize:
-        summary_table = profile_processing.summarize_over_regions(
-            prof_data, **summarize_kwargs
-        )
-        return prof_data, summary_table
-    else:
-        return prof_data
-
-
-def get_resid_rr(
-    data: xr.DataArray, summarize=False, **summarize_kwargs
-) -> Union[xr.DataArray, typing.Tuple[xr.DataArray, pd.DataFrame]]:
-    try:
-        pair0 = data.sel(wavelength="r", pair=0)
-        pair1 = data.sel(wavelength="r", pair=1)
-    except KeyError:
-        pair0 = data.sel(wavelength="410", pair=0) / data.sel(wavelength="470", pair=0)
-        pair1 = data.sel(wavelength="410", pair=1) / data.sel(wavelength="470", pair=1)
-
-    return get_resid_rr_pairs(pair0, pair1, summarize=summarize, **summarize_kwargs)
 
 
 def relative_error(data):
@@ -322,61 +249,6 @@ def fold_error_pairs(pair0: xr.DataArray, pair1: xr.DataArray):
         return prof_data
 
     return prof_data
-
-
-def filter_only_moving_roi(df, pair, roi):
-    """
-    [summary]
-    
-    Parameters
-    ----------
-    df : [type]
-        [description]
-    pair : [type]
-        [description]
-    roi : [type]
-        [description]
-    
-    Returns
-    -------
-    [type]
-        [description]
-    """
-    other_pair = (pair - 1) % 2
-    return df[
-        (df["movement"].loc[:, pair][roi] > 0)
-        & (df["movement"].loc[:, pair].drop(roi, axis=1).sum(axis=1) == 0)
-        & (df["movement"].loc[:, other_pair].sum(axis=1) == 0)
-    ]
-
-
-def mvmt_long_to_wide(mvmt_df):
-    """
-    Pivot the given dataframe from the following structure::
-
-                       experiment  animal  movement  pair    region
-        0  2017_02_22-HD233_SAY47       0         0     0  anterior
-        1  2017_02_22-HD233_SAY47       1         0     0  anterior
-        2  2017_02_22-HD233_SAY47       2         0     0  anterior
-        3  2017_02_22-HD233_SAY47       3         0     0  anterior
-        4  2017_02_22-HD233_SAY47       4         0     0  anterior
-
-    to the following structure::
-
-                                    movement                                       
-        region                      anterior      posterior       sides_of_tip    tip   
-        pair                                 0  1         0  1            0  1   0  1
-        experiment             animal                                                
-        2017_02_22-HD233_SAY47 0             0  0         0  0            0  0   1  0
-                               1             0  1         0  1            1  1   0  1
-                               2             0  0         0  0            0  0   0  0
-                               3             0  0         0  0            0  0   0  0
-                               4             0  0         0  0            0  0   0  0
-    """
-
-    return mvmt_df.pivot_table(
-        index=["experiment", "animal"], columns=["region", "pair"], values=["movement"]
-    )
 
 
 def synthetic_shift(

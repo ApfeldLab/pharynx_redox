@@ -207,7 +207,7 @@ class ImageStackWidget(QtWidgets.QWidget):
 
 
 if __name__ == "__main__":
-    imgs = pio.load_images(
+    imgs = pio.load_tiff_as_hyperstack(
         "/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47.tif",
         indexer_path="/Users/sean/code/pharedox/data/paired_ratio/2017_02_22-HD233_SAY47/2017_02_22-HD233_SAY47-indexer.csv",
     )
