@@ -1,6 +1,6 @@
 pipeline:
     strategy: ""
-    channel_order: TL, 470, 410
+    channel_order: TL, 470, 410, 470, 410
     trimmed_profile_length: 200
     untrimmed_profile_length: 200
     seg_threshold: 2000
@@ -35,18 +35,18 @@ redox:
     temperature: 22.0
 
 registration:
-    n_deriv: 0.0
+    n_deriv: 2.0
 
-    warp_n_basis: 20.0
+    warp_n_basis: 30.0
     warp_order: 4.0
-    warp_lambda: 10.0
+    warp_lambda: 5000.0
 
-    smooth_lambda: 0.001
-    smooth_n_breaks: 50.0
+    smooth_lambda: 100.0
+    smooth_n_breaks: 100.0
     smooth_order: 4.0
 
-    rough_lambda: 0.001
-    rough_n_breaks: 200.0
+    rough_lambda: 0.01
+    rough_n_breaks: 300.0
     rough_order: 4.0
 
 output:
