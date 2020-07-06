@@ -147,3 +147,4 @@ venv.bak/
 
 # VSCODE
 .vscode/
+.Rproj.user
