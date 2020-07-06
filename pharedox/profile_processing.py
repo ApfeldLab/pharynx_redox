@@ -230,10 +230,11 @@ def summarize_over_regions(
 
 def smooth_profile_data(
     profile_data: Union[np.ndarray, xr.DataArray],
-    lambda_: float = 1.12,
+    lambda_: float = 100.0,
     order: float = 4.0,
-    n_basis: float = 200,
-    n_eval_pts: int = 1000,
+    n_basis: float = 100.0,
+    n_deriv=0.0,
+    eng=None
 ):
     """
     Smooth profile data by fitting smoothing B-splines
@@ -247,30 +248,20 @@ def smooth_profile_data(
         logging.warn("MATLAB engine not installed. Skipping smoothing.")
         return profile_data
 
-    smoothed_data = xr.DataArray(
-        0,
-        dims=profile_data.dims,
-        coords={
-            "animal": profile_data.animal,
-            "wavelength": profile_data.wavelength,
-            "pair": profile_data.pair,
-            "position": np.arange(n_eval_pts),
-        },
-    )
-    for wvl in profile_data.wavelength.values:
-        for pair in profile_data.pair.values:
-            raw_data = matlab.double(
-                profile_data.sel(wavelength=wvl, pair=pair)
-                .values.astype(np.float)
-                .T.tolist()
-            )
+    if eng is None:
+        eng = matlab.engine.start_matlab()
 
-            eng = matlab.engine.start_matlab()
-            sm_data = np.array(
-                eng.smooth_profiles(raw_data, lambda_, order, n_basis, n_eval_pts)
-            ).T
-            smoothed_data.loc[dict(pair=pair, wavelength=wvl)] = sm_data
-    return smoothed_data
+    resample_resolution = profile_data.position.size
+
+    return xr.apply_ufunc(
+        lambda x: np.array(
+            eng.smooth_profiles(matlab.double(x.tolist()), resample_resolution, n_basis, order, lambda_,
+                                n_deriv)).T,
+        profile_data,
+        input_core_dims=[['position']],
+        output_core_dims=[['position']],
+        vectorize=True
+    )
 
 
 def _register_profiles_pop(
@@ -399,13 +390,13 @@ def _channel_register(
     rough_lambda: float = 0.01,
     rough_n_breaks: float = 300.0,
     rough_order: float = 4.0,
-    smooth_lambda: float = 10.0 ** 2,
+    smooth_lambda: float = 100.0,
     smooth_n_breaks: float = 100.0,
     smooth_order: float = 4.0,
     warp_lambda: float = 5.0e3,
     warp_n_basis: float = 30.0,
     warp_order: float = 4.0,
-) -> xr.DataArray:
+) -> (np.ndarray, np.ndarray):
     """
     Register the 470nm channel into the 410nm channel profile data
     
@@ -521,11 +512,12 @@ def get_trim_boundaries(
     """
     prof_len = data.position.size
     # axis=3 b/c that is where `position` is after selecting wavelength
-    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=3).data - 1
+    axis_num = data.sel(wavelength=ref_wvl).get_axis_num('position')
+    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=axis_num).data - 1
     r_bound = (
         prof_len
         - np.argmax(
-            np.flip(data.sel(wavelength=ref_wvl), axis=2) >= thresh, axis=3
+            np.flip(data.sel(wavelength=ref_wvl), axis=axis_num) >= thresh, axis=axis_num
         ).data
     )
     return l_bound, r_bound
