@@ -25,7 +25,7 @@ class TestExperiment:
             channel_order=["TL", "470", "410", "470", "410"],
         )
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     def test_full_experiment_run_paired_single_timepoint(self, shared_datadir):
         exp = experiment.Experiment(
             shared_datadir / "experiments" / "2017_02_22-HD233_SAY47"

@@ -140,8 +140,7 @@ class Experiment:
         self.strains = pio.load_strain_map_from_disk(self.indexer_path)
 
         # load images
-        self.raw_images = self._load_raw_images()
-        self.images = ip.subtract_medians(self.raw_images)
+        self.images = self._load_raw_images()
 
         # try to load masks
         try:
@@ -283,7 +282,7 @@ class Experiment:
 
         logging.info(f"Saving fluorescent images to {self.fl_imgs_dir}")
         pio.save_images_xarray_to_tiffs(
-            self.raw_images, self.fl_imgs_dir, prefix=self.experiment_id
+            self.images, self.fl_imgs_dir, prefix=self.experiment_id
         )
 
         self.segment_pharynxes()
@@ -357,8 +356,11 @@ class Experiment:
             self.untrimmed_profiles
         )
 
+        # subtract the image medians from the profile data
+        logging.info("Subtracting image medians from profile data")
+        self.untrimmed_profiles = ip.subtract_medians(self.untrimmed_profiles, self.images)
+
     def register_profiles(self):
-        reg_param_dict = self.config["registration"]
 
         if self.config["pipeline"]["population_register"]:
             logging.info("Standardizing profiles")
@@ -366,7 +368,7 @@ class Experiment:
                 self.untrimmed_profiles,
                 self.std_warps,
             ) = profile_processing.register_profiles_pop(
-                self.untrimmed_profiles, self.config["redox"], **reg_param_dict,
+                self.untrimmed_profiles, self.config["redox"], **self.config['registration'],
             )
 
         if self.config["pipeline"]["channel_register"]:
@@ -375,7 +377,9 @@ class Experiment:
                 self.untrimmed_profiles,
                 self.channel_warps,
             ) = profile_processing.channel_register(
-                self.untrimmed_profiles, self.config["redox"], **reg_param_dict
+                self.untrimmed_profiles,
+                redox_params=self.config["redox"],
+                reg_params=self.config["registration"],
             )
 
     def trim_data(self):
@@ -489,7 +493,7 @@ class Experiment:
             )
             imgs = utils.add_derived_wavelengths(self.images, **self.config["redox"])
             with PdfPages(mvmt_annotation_img_path) as pdf:
-                for i in tqdm(range(self.raw_images.animal.size)):
+                for i in tqdm(range(self.images.animal.size)):
                     fig = plots.plot_pharynx_R_imgs(imgs[i], mask=self.seg_images[i])
                     fig.suptitle(f"animal = {i}")
                     pdf.savefig(fig)

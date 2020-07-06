@@ -75,20 +75,31 @@ def measure_under_labels(
     return df
 
 
-def subtract_medians(imgs: xr.DataArray) -> xr.DataArray:
+def subtract_medians(
+    data: xr.DataArray, image_data: xr.DataArray = None
+) -> xr.DataArray:
     """
-    Subtract the median from each image, keeping the datatype the same.
+    Subtract medians from data, optionally calculating them from a separate piece of
+    data.
 
     Parameters
     ----------
-    imgs
-        the images to subtract the median from. May be a high-dimensional array.
+    data
+        the data to subtract the median from.
+    image_data
+        the data to calculate the median with. Must include the dimensions `x` and `y`.
+        If specified, all other dimensions must be identical to those in `data`. If
+        not specified, the medians will be calculated with `data`.
     """
 
-    submed = imgs.copy()
-    submed.values = np.maximum(imgs - imgs.median(dim=["x", "y"]), 0)
-    submed.loc[dict(wavelength="TL")] = imgs.sel(wavelength="TL")
-    submed = submed.astype(imgs.dtype)
+    if image_data is None:
+        image_data = data
+
+    submed = data.copy()
+    submed.values = np.maximum(data - image_data.median(dim=["x", "y"]), 0)
+    if "TL" in data.wavelength.values:
+        submed.loc[dict(wavelength="TL")] = data.sel(wavelength="TL")
+    submed = submed.astype(data.dtype)
     return submed
 
 
@@ -162,9 +173,16 @@ def center_and_rotate_pharynxes(
                     img = fl_images.isel(animal=img_idx).sel(
                         wavelength=wvl, pair=pair, timepoint=tp
                     )
-                    ref_seg = seg_images.isel(animal=img_idx, wavelength=0).sel(
-                        pair=pair, timepoint=tp
-                    )
+
+                    try:
+                        # Old data, had wavelength attached
+                        ref_seg = seg_images.isel(animal=img_idx, wavelength=0).sel(
+                            pair=pair, timepoint=tp
+                        )
+                    except ValueError:
+                        ref_seg = seg_images.isel(animal=img_idx).sel(
+                            pair=pair, timepoint=tp
+                        )
 
                     try:
                         props = measure.regionprops(measure.label(ref_seg))[0]
