@@ -109,4 +109,3 @@ def main():
                 setup.seek(0)
                 setup.truncate()
                 setup.write("import fastentrypoints\n" + setup_content)
-
