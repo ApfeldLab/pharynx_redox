@@ -16,8 +16,9 @@ Before moving forward, I would suggest that you use a virtual environments. Virt
 pharedox needs separate from your system's global python environment. See the instructions `here <https://python-guide-cn.readthedocs.io/en/latest/dev/virtualenvs.html>`_.
 Note that this is *not required*, but is helpful in the long run.
 
-If you think that you will want to edit the source code, follow the instructions on `how to set up your development environment`_. Otherwise,
-after you have set up a virtual environment (or if you skipped that), simply execute the following line::
+If you think that you will want to edit the source code, follow the instructions on
+:ref:`How to set up your development environment`_. Otherwise, after you have set up a
+virtual environment (or if you skipped that), simply execute the following line::
 
     pip install pharedox
 
@@ -60,5 +61,28 @@ In a system prompt, execute the following commands (replace ``<matlabroot>`` wit
 output of the above command)::
 
     $ cd <matlabroot>/extern/engines/python
-    $ conda activate pharedox
     $ python setup.py install
+
+
+#######################################
+How to set up a development environment
+#######################################
+
+Ensure that git is installed on your system. Git is software that helps us manage the
+source code versions.
+
+Once git is installed, download the source code. The easiest way is to issue the
+following command::
+
+    git clone https://github.com/ApfeldLab/pharynx_redox.git
+
+This will download a new folder on your desktop called `pharedox`.
+
+
+Run the following command::
+
+    pip install -e .
+
+This will install PharRedox on your system such that when you change the source code,
+the installed library itself will change. Finally, follow the instructions under the
+`MATLAB`_ heading.
