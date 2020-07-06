@@ -17,7 +17,7 @@ pharedox needs separate from your system's global python environment. See the in
 Note that this is *not required*, but is helpful in the long run.
 
 If you think that you will want to edit the source code, follow the instructions on
-:ref:`How to set up your development environment`_. Otherwise, after you have set up a
+`How to set up a development environment`_. Otherwise, after you have set up a
 virtual environment (or if you skipped that), simply execute the following line::
 
     pip install pharedox
@@ -64,9 +64,13 @@ output of the above command)::
     $ python setup.py install
 
 
-#######################################
 How to set up a development environment
-#######################################
+=======================================
+If you'd like to work on the pipeline, you need to set up a few things on your computer
+so you'll be as productive as possible.
+
+Installing the development version of the code
+**********************************************
 
 Ensure that git is installed on your system. Git is software that helps us manage the
 source code versions.
@@ -86,3 +90,12 @@ Run the following command::
 This will install PharRedox on your system such that when you change the source code,
 the installed library itself will change. Finally, follow the instructions under the
 `MATLAB`_ heading.
+
+Text Editors
+************
+
+Of course, if you'd like to write code, you need something to write code *in*. If you
+don't already have a preffered code editor, I would recommend downloading
+`Pycharm https://www.jetbrains.com/pycharm/`_ (the free version works just fine, but
+you can also get a free "professional" license by following the directions
+`here https://www.jetbrains.com/community/education/#students`_.
