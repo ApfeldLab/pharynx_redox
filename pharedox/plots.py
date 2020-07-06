@@ -67,7 +67,7 @@ def imshow_r_stack(
                     i += 1
 
 
-def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
     """
     For each wavelength and pair in the given data, this function plots a line plot with
     each color representing a unique strain. The line is the mean value across animals
@@ -84,7 +84,10 @@ def generate_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
 
     wvls = list(map(lambda x: x.lower(), data.wavelength.values))
     for wvl in ignored_wvls:
-        wvls.remove(wvl.lower())
+        try:
+            wvls.remove(wvl.lower())
+        except ValueError:
+            continue
 
     for wvl in wvls:
         for pair in data.pair.values:
@@ -837,7 +840,7 @@ def plot_pharynx_R_imgs(
 
             R = img.sel(wavelength="r", timepoint=tp, pair=pair).values
             I = img.sel(wavelength="410", timepoint=tp, pair=pair).values
-            M = mask.sel(wavelength="410", timepoint=tp, pair=pair).astype(bool).values
+            M = mask.sel(timepoint=tp, pair=pair).astype(bool).values
 
             P_r = R[M]
 

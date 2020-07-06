@@ -358,7 +358,9 @@ class Experiment:
 
         # subtract the image medians from the profile data
         logging.info("Subtracting image medians from profile data")
-        self.untrimmed_profiles = ip.subtract_medians(self.untrimmed_profiles, self.images)
+        self.untrimmed_profiles = ip.subtract_medians(
+            self.untrimmed_profiles, self.images
+        )
 
     def register_profiles(self):
 
@@ -368,7 +370,9 @@ class Experiment:
                 self.untrimmed_profiles,
                 self.std_warps,
             ) = profile_processing.register_profiles_pop(
-                self.untrimmed_profiles, self.config["redox"], **self.config['registration'],
+                self.untrimmed_profiles,
+                self.config["redox"],
+                **self.config["registration"],
             )
 
         if self.config["pipeline"]["channel_register"]:
@@ -466,7 +470,7 @@ class Experiment:
                 # individual data
                 individual_data_fig_dir = profile_data_fig_dir.joinpath("individual")
                 individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
-                for title, fig in plots.generate_wvl_pair_profile_plots(data):
+                for title, fig in plots.generate_wvl_pair_timepoint_profile_plots(data):
                     title = title.replace(" ", "")
                     fig.savefig(
                         individual_data_fig_dir.joinpath(
@@ -543,13 +547,7 @@ class Experiment:
                                 ax=ax,
                             )
                             ax.plot(
-                                *self.midlines.sel(
-                                    wavelength=self.config["pipeline"][
-                                        "reference_wavelength"
-                                    ],
-                                    pair=pair,
-                                    timepoint=tp,
-                                )[i]
+                                *self.midlines.sel(pair=pair, timepoint=tp,)[i]
                                 .values[()]
                                 .linspace(),
                                 color="green",
