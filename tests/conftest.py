@@ -50,13 +50,14 @@ def pytest_sessionstart(session):
         logging.info(
             f"Test data found. Not downloading. To force download, delete {dir_dest}"
         )
+        return
     else:
         logging.info("no test data found. downloading.")
 
         download_from_url(
             "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
             zip_dest,
-            overwrite=False,
+            overwrite=True,
             desc="Downloading Test Data",
         )
         with zipfile.ZipFile(zip_dest, "r") as zip_ref:

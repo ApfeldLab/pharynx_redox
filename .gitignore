@@ -2,6 +2,7 @@
 matlab/compiled_project/
 data/
 tests/test_data/all_rot_fl.nc
+tests/data
 
 .idea/
 
