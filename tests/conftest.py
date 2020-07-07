@@ -43,15 +43,15 @@ def pytest_sessionstart(session):
     Called after the Session object has been created and
     before performing collection and entering the run test loop.
     """
-    if os.path.exists("data"):
+    zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
+    dir_dest = os.path.join(os.path.dirname(__file__), "data")
+
+    if os.path.exists(dir_dest):
         logging.info(
             f"Test data found. Not downloading. To force download, delete {os.path.abspath('data')}"
         )
     else:
         logging.info("no test data found. downloading.")
-
-        zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
-        dir_dest = os.path.join(os.path.dirname(__file__), "data")
 
         download_from_url(
             "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
