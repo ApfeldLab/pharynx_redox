@@ -6,6 +6,7 @@ before_install:
   - sudo apt-get install -y xvfb libqt5x11extras5
 
 install:
+  - pip3 install --upgrade pip
   - pip install -e .[test]
 
 script:
