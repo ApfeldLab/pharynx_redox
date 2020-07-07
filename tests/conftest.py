@@ -46,9 +46,9 @@ def pytest_sessionstart(session):
     zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
     dir_dest = os.path.join(os.path.dirname(__file__), "data")
 
-    if os.path.exists(dir_dest):
+    if os.path.isdir(dir_dest):
         logging.info(
-            f"Test data found. Not downloading. To force download, delete {os.path.abspath('data')}"
+            f"Test data found. Not downloading. To force download, delete {dir_dest}"
         )
     else:
         logging.info("no test data found. downloading.")
