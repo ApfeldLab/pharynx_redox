@@ -1,0 +1,4 @@
+-r base.txt
+-r testing.txt
+-r docs.txt
+black

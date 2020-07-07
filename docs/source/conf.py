@@ -13,10 +13,7 @@
 import os
 import sys
 
-pharynx_path = os.path.join(os.path.dirname(__file__), "../../")
-sys.path.insert(0, pharynx_path)
-# sys.path.insert(0, os.path.abspath("../../pharedox"))
-# sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath("../../"))
 
 
 # -- Project information -----------------------------------------------------
@@ -41,8 +38,6 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
-    "nbsphinx",
-    "sphinx_gallery.gen_gallery",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -76,7 +71,7 @@ html_static_path = ["_static"]
 
 
 # -- Sphinx Gallery ----------------------------------------------------------
-sphinx_gallery_conf = {
-    "examples_dirs": "examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-}
+# sphinx_gallery_conf = {
+#     "examples_dirs": "examples",  # path to your example scripts
+#     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+# }
