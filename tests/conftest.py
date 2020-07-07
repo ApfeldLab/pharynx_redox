@@ -1,6 +1,62 @@
+import logging
+
 import pytest
 import sys
 import os
+import zipfile
+
+
+import requests
+from tqdm import tqdm
+
+
+def download_from_url(url, dst, desc=None, overwrite=False):
+    file_size = int(requests.head(url).headers["Content-Length"])
+    if overwrite:
+        logging.info(f"overwriting {dst}")
+        first_byte = 0
+    elif os.path.exists(dst):
+        first_byte = os.path.getsize(dst)
+    else:
+        first_byte = 0
+    if first_byte >= file_size:
+        return file_size
+    header = {"Range": "bytes=%s-%s" % (first_byte, file_size)}
+    if desc is None:
+        desc = url.split("/")[-1]
+    pbar = tqdm(
+        total=file_size, initial=first_byte, unit="B", unit_scale=True, desc=desc
+    )
+    req = requests.get(url, headers=header, stream=True)
+    with (open(dst, "ab")) as f:
+        for chunk in req.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+                pbar.update(1024)
+    pbar.close()
+
+    return file_size
+
+
+def pytest_sessionstart(session):
+    """
+    Called after the Session object has been created and
+    before performing collection and entering the run test loop.
+    """
+    if os.path.exists("data"):
+        logging.info(
+            f"Test data found. Not downloading. To force download, delete {os.path.abspath('data')}"
+        )
+    else:
+        logging.info("no test data found. downloading.")
+        download_from_url(
+            "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
+            "data.zip",
+            overwrite=False,
+        )
+        with zipfile.ZipFile("data.zip", "r") as zip_ref:
+            zip_ref.extractall("data")
+        os.remove("data.zip")
 
 
 def pytest_load_initial_conftests(args):

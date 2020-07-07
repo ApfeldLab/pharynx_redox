@@ -4,7 +4,14 @@ import sys
 
 # Speed up entrypoints
 # see https://github.com/ninjaaron/fast-entry_points
-import fastentrypoints
+try:
+    import fastentrypoints
+except (ImportError, ModuleNotFoundError):
+    from setuptools.command import easy_install
+    import pkg_resources
+    easy_install.main(['fastentrypoints'])
+    pkg_resources.require('fastentrypoints')
+    import fastentrypoints
 
 here = path.abspath(path.dirname(__file__))
 
@@ -73,9 +80,10 @@ requirements = [
     "sphinx_rtd_theme>=0.4.3",
     "sphinx-autodoc-typehints>=1.10.3",
     "numpydoc>=0.9.2",
+    "requests>2",
+    "isort<5",
     "jupyter",
     "pylint",
-    "isort",
     "black",
 ]
 

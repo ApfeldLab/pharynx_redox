@@ -1,9 +1,10 @@
+import logging
 import os
 from pathlib import Path
-import pickle
 import numpy as np
-import xarray as xr
 import pytest
+import requests
+from tqdm import tqdm
 
 from pharedox import profile_processing as pp, utils, io
 
