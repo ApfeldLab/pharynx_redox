@@ -10,7 +10,7 @@ install:
   - pip install -e .[test]
 
 script:
-  - pytest --cov=pharedox
+  - pytest
 
-after_success:
-  - coveralls
+#after_success:
+#  - coveralls
