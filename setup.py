@@ -65,7 +65,7 @@ requirements = [
     "matplotlib>=3.2.1",
     "seaborn>=0.10.1",
     "PyQt5>=5.14.2",
-    "napari==0.3.1",
+    "napari>=0.3.1",
     "tqdm>=4.46",
     "click>=7.1.2,<8",
     "strictyaml>=1.0.6",

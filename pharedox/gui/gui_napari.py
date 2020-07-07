@@ -19,13 +19,8 @@ from pharedox import experiment, utils
 import logging
 
 
-def segment_pharynxes(imgs, t, skip_wvl=["TL"], ref_wvl="410"):
-    segs = imgs > t
-    for wvl in skip_wvl:
-        try:
-            segs.loc[dict(wavelength=wvl)] = False
-        except:
-            continue
+def segment_pharynxes(imgs, t, wvl):
+    segs = imgs.sel(wavelength=wvl) > t
 
     segs = xr.apply_ufunc(
         lambda x: label(x),
@@ -120,9 +115,13 @@ class App:
         if return_value == QMessageBox.Open:
             utils.open_folder(self.experiment.analysis_dir)
 
-    # def on_layers_change(self, event):
-    #     if self.get_layer("masks") is None:
-    #         self.experiment.seg_images = None
+    def showSimpleDialog(self, message, title=""):
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setText(message)
+        msg_box.setWindowTitle(title)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec()
 
     def get_layer(self, name):
         for layer in self.viewer.layers:
@@ -141,25 +140,52 @@ class App:
             self.experiment.seg_images, min_obj_size
         )
 
-        layer.data = self.experiment.seg_images.sel(
-            wavelength=self.experiment.config["pipeline"]["reference_wavelength"]
-        ).values
+        layer.data = self.experiment.seg_images.values
         layer.refresh()
+
+    def get_current_wvl(self) -> str:
+        """
+        Get the wavelength of the active layer in Napari, or `None` if the active layer
+        name does not correspond to a wavelength in the experiment's images.
+        """
+        wvl_candidate = self.viewer.active_layer.name
+        true_wvls = self.experiment.images.wavelength.values
+        if wvl_candidate in true_wvls:
+            return wvl_candidate
+        else:
+            return None
+
+    def segment_pharynxes(self, t) -> xr.DataArray:
+        wvl = self.get_current_wvl()
+        if wvl is None:
+            self.showSimpleDialog(
+                message="The active layer does not correspond to a wavelength in the data set.",
+                title="Invalid Wavelength Selected",
+            )
+            return
+
+        masks = self.experiment.images.sel(wavelength=wvl) > t
+
+        masks = xr.apply_ufunc(
+            lambda x: label(x),
+            masks,
+            vectorize=True,
+            input_core_dims=[["y", "x"]],
+            output_core_dims=[["y", "x"]],
+        )
+
+        return masks
 
     def handle_segment_pressed(self):
         t = self.buttons.ui.thresholdSpinBox.value()
-        masks = segment_pharynxes(self.experiment.images, t)
+
+        masks = self.segment_pharynxes(t)
+        if masks is None:
+            return
 
         if self.experiment.seg_images is None:
             self.experiment.seg_images = masks
-            self.viewer.add_labels(
-                self.experiment.seg_images.sel(
-                    wavelength=self.experiment.config["pipeline"][
-                        "reference_wavelength"
-                    ]
-                ),
-                name="masks",
-            )
+            self.viewer.add_labels(self.experiment.seg_images, name="masks")
         else:
             self.update_threshold(t)
 
@@ -168,14 +194,14 @@ class App:
         self.update_threshold(t)
 
     def update_threshold(self, t):
-        masks = segment_pharynxes(self.experiment.images, t)
         if self.experiment.seg_images is None:
             return
         else:
+            masks = self.segment_pharynxes(t)
+            if masks is None:
+                return
             self.experiment.seg_images = masks
-            self.get_layer("masks").data = masks.sel(
-                wavelength=self.experiment.config["pipeline"]["reference_wavelength"]
-            )
+            self.get_layer("masks").data = masks
             self.get_layer("masks").refresh()
 
     def run(self):
@@ -195,12 +221,7 @@ class App:
 
             if self.experiment.seg_images is not None:
                 self.viewer.add_labels(
-                    self.experiment.seg_images.sel(
-                        wavelength=self.experiment.config["pipeline"][
-                            "reference_wavelength"
-                        ]
-                    ),
-                    name="masks",
+                    self.experiment.seg_images, name="masks",
                 )
 
 

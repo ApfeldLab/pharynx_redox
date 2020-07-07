@@ -234,7 +234,7 @@ def smooth_profile_data(
     order: float = 4.0,
     n_basis: float = 100.0,
     n_deriv=0.0,
-    eng=None
+    eng=None,
 ):
     """
     Smooth profile data by fitting smoothing B-splines
@@ -255,12 +255,19 @@ def smooth_profile_data(
 
     return xr.apply_ufunc(
         lambda x: np.array(
-            eng.smooth_profiles(matlab.double(x.tolist()), resample_resolution, n_basis, order, lambda_,
-                                n_deriv)).T,
+            eng.smooth_profiles(
+                matlab.double(x.tolist()),
+                resample_resolution,
+                n_basis,
+                order,
+                lambda_,
+                n_deriv,
+            )
+        ).T,
         profile_data,
-        input_core_dims=[['position']],
-        output_core_dims=[['position']],
-        vectorize=True
+        input_core_dims=[["position"]],
+        output_core_dims=[["position"]],
+        vectorize=True,
     )
 
 
@@ -512,12 +519,13 @@ def get_trim_boundaries(
     """
     prof_len = data.position.size
     # axis=3 b/c that is where `position` is after selecting wavelength
-    axis_num = data.sel(wavelength=ref_wvl).get_axis_num('position')
+    axis_num = data.sel(wavelength=ref_wvl).get_axis_num("position")
     l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=axis_num).data - 1
     r_bound = (
         prof_len
         - np.argmax(
-            np.flip(data.sel(wavelength=ref_wvl), axis=axis_num) >= thresh, axis=axis_num
+            np.flip(data.sel(wavelength=ref_wvl), axis=axis_num) >= thresh,
+            axis=axis_num,
         ).data
     )
     return l_bound, r_bound
