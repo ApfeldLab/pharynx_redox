@@ -15,9 +15,21 @@ Ensure that you have python installed on your system.::
 .. warning::
     Pharedox is not tested for Python < 3.7
 
-Before moving forward, I would suggest that you use a virtual environments. Virtual environments keep packages that 
-pharedox needs separate from your system's global python environment. See the instructions `here <https://python-guide-cn.readthedocs.io/en/latest/dev/virtualenvs.html>`_.
-Note that this is *not required*, but is helpful in the long run.
+
+Before moving forward, I would suggest that you use a virtual environments. Virtual
+environments keep packages that PhaRedox needs separate from your system's global
+python environment. See the instructions `here <https://python-guide-cn.readthedocs
+.io/en/latest/dev/virtualenvs.html>`_. Note that this is *not required*, but is
+helpful in the long run.
+
+.. note::
+    Make sure to call your virtual environment something meaningful, like ``pharedox``.
+
+If you did set up a virtual environment, make sure to activate it whenever you want
+to use PhaRedox. The process should look something like this::
+
+    $ workon pharedox
+    (pharedox) $
 
 If you think that you will want to edit the source code, follow the instructions on
 `How to set up a development environment`_. Otherwise, after you have set up a
@@ -28,8 +40,9 @@ virtual environment (or if you skipped that), simply execute the following line:
 MATLAB
 ======
 
-If you would like to use the `1D Profile Registration` features, you will need to set up the MATLAB python engine. Ensure that MATLAB is
-installed before continuing (your university probably has instructions on how to do this).
+If you would like to use the `1D Profile Registration` features, you will need to
+set up the MATLAB python engine. Ensure that MATLAB is installed before continuing
+(your university probably has instructions on how to do this).
 
 .. warning::
     PhaRedox was developed using ``MATLAB_R2019a``. Other versions are not guaranteed
@@ -38,7 +51,7 @@ installed before continuing (your university probably has instructions on how to
 
 Add PhaRedox files to MATLAB path
 *********************************
-In MATLAB, look for ``Set Path`` in the ``Home`` tab. Click it, then in the dialog,
+Open up MATLAB. Look for ``Set Path`` in the ``Home`` tab. Click it, then in the dialog,
 click ``Add with subfolders``, and navigate to the PhaRedox source directory and select
 the ``matlab`` folder.
 
@@ -83,7 +96,7 @@ following command::
 
     git clone https://github.com/ApfeldLab/pharynx_redox.git
 
-This will download a new folder on your desktop called `pharedox`.
+This will download a new folder on your desktop called ``pharedox``.
 
 
 Run the following command::
@@ -99,6 +112,27 @@ Text Editors
 
 Of course, if you'd like to write code, you need something to write code *in*. If you
 don't already have a preffered code editor, I would recommend downloading
-`Pycharm https://www.jetbrains.com/pycharm/`_ (the free version works just fine, but
+`Pycharm <https://www.jetbrains.com/pycharm/>`_ (the free version works just fine, but
 you can also get a free "professional" license by following the directions
-`here https://www.jetbrains.com/community/education/#students`_.
+`here <https://www.jetbrains.com/community/education/#students>`_. PyCharm is nice
+because it has built-in auto-complete while you're typing, and has a very nice
+debugger, which is critical for code development.
+
+Configuring Code Formatting
+---------------------------
+
+This project uses the `Black <https://black.readthedocs.io/en/stable/index.html>`_
+package to format all code automatically. This is so that all of our code "looks" the
+same. We'll set up your editor so that it formats the file using Black every time you
+save. Follow the instructions `here <https://black.readthedocs
+.io/en/stable/editor_integration.html#editor-integration>`_ to configure ``black`` to
+work with your text editor.
+
+Configure Pycharm Project Interpreter
+-------------------------------------
+
+In order to do it's fancy auto-complete and other features, PyCharm needs to know
+which Python environment you will be using. Follow their directions `here
+<https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_ to set
+this up. If you are using virtual environments, use the location of that virtual
+environment for this step.

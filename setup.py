@@ -9,8 +9,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from setuptools.command import easy_install
     import pkg_resources
-    easy_install.main(['fastentrypoints'])
-    pkg_resources.require('fastentrypoints')
+
+    easy_install.main(["fastentrypoints"])
+    pkg_resources.require("fastentrypoints")
     import fastentrypoints
 
 here = path.abspath(path.dirname(__file__))
@@ -72,18 +73,17 @@ requirements = [
     "matplotlib>=3.2.1",
     "seaborn>=0.10.1",
     "PyQt5>=5.14.2",
-    "napari>=0.3.1",
+    "napari==0.3.1",
     "tqdm>=4.46",
     "click>=7.1.2,<8",
-    "strictyaml>=1.0.6",
+    "PyYAML>=5.3.1",
     "sphinx>=3.0.3",
     "sphinx_rtd_theme>=0.4.3",
     "sphinx-autodoc-typehints>=1.10.3",
     "numpydoc>=0.9.2",
-    "requests>2",
-    "isort<5",
     "jupyter",
     "pylint",
+    "isort",
     "black",
 ]
 
