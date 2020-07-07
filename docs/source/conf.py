@@ -15,9 +15,10 @@ import sys
 
 # pharynx_path = os.path.join(os.path.dirname(__file__), "../../")
 # sys.path.insert(0, pharynx_path)
-sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath("../../"))
 sys.path.insert(0, os.path.abspath("../../pharedox"))
 
+import pharedox
 
 # -- Project information -----------------------------------------------------
 
