@@ -4,6 +4,9 @@
 Installation
 ############
 
+Basic Installation
+==================
+
 Ensure that you have python installed on your system.::
 
     $ python --version
