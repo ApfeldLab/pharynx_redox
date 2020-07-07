@@ -49,14 +49,19 @@ def pytest_sessionstart(session):
         )
     else:
         logging.info("no test data found. downloading.")
+
+        zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
+        dir_dest = os.path.join(os.path.dirname(__file__), "data")
+
         download_from_url(
             "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
-            "data.zip",
+            zip_dest,
             overwrite=False,
+            desc="Downloading Test Data",
         )
-        with zipfile.ZipFile("data.zip", "r") as zip_ref:
-            zip_ref.extractall("data")
-        os.remove("data.zip")
+        with zipfile.ZipFile(zip_dest, "r") as zip_ref:
+            zip_ref.extractall(dir_dest)
+        os.remove(zip_dest)
 
 
 def pytest_load_initial_conftests(args):
