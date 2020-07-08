@@ -2,3 +2,5 @@
 -r testing.txt
 -r docs.txt
 black
+pylint
+isort
