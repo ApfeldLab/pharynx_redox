@@ -8,7 +8,7 @@ python:
 install:
 #  - pip install -e .
   - pip3 install --upgrade pip
-  - pip install poetry
+  - pip install poetry tox
 
 script:
   - tox
