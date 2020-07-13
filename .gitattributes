@@ -23,6 +23,12 @@
 # Jupyter notebook
 *.ipynb  text
 
+# vendored code
+matlab/lib/* linguist-vendored
+
+# documentation
+docs/* linguist-documentation
+
 # Note: .db, .p, and .pkl files are associated
 # with the python modules ``pickle``, ``dbm.*``,
 # ``shelve``, ``marshal``, ``anydbm``, & ``bsddb``
