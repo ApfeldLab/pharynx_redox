@@ -71,7 +71,7 @@ requirements = [
     "simpleITK==1.2.4",
     "matplotlib>=3.2.1",
     "seaborn>=0.10.1",
-    "PyQt5>=5.12.3,<5.15.0",
+    "PyQt5==5.14",
     "napari==0.3.1",
     "tqdm>=4.46",
     "click>=7.1.2,<8",
