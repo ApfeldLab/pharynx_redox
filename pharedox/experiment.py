@@ -5,6 +5,7 @@ the analysis pipeline for redox imaging experiments.
 
 import datetime
 import logging
+import pickle
 import warnings
 from pathlib import Path
 
@@ -150,6 +151,20 @@ class Experiment:
             pass
 
     # Computed Filepaths
+
+    @property
+    def midlines_path(self) -> Path:
+        return self.analysis_dir.joinpath("midlines.pickle")
+
+    @property
+    def _raw_image_stack_path(self) -> Path:
+        accepted_extensions = [".tif", ".tiff", ".stk"]
+
+        for ext in accepted_extensions:
+            self.analysis_dir.glob(self.experiment_id)
+
+        return ""
+
     @property
     def fig_dir(self):
         return self.analysis_dir.joinpath("figs")
@@ -611,16 +626,23 @@ class Experiment:
         self.trimmed_summary_table.to_csv(self.trimmed_region_data_path)
 
     def save_masks(self):
-        logging.info(f"writing masks to {self.seg_images_path}")
+        logging.info(f"saving masks to {self.seg_images_path}")
         pio.save_profile_data(self.seg_images, self.seg_images_path)
-        logging.info(f"Saved masks to {self.seg_images_path}")
 
     def load_masks(self):
         self.seg_images = pio.load_profile_data(self.seg_images_path)
         logging.info(f"Loaded masks from {self.seg_images_path}")
 
+    def save_midlines(self):
+        pio.save_midlines(self.midlines_path, self.midlines)
+
+    def load_midlines(self):
+        return pio.load_midlines(self.midlines_path)
+
     def persist_to_disk(self):
         logging.info(f"Saving {self.experiment_id} inside {self.experiment_dir}")
+
+        self.save_midlines()
 
         if self.config["output"]["should_save_summary_data"]:
             self.save_summary_data()

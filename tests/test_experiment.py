@@ -1,9 +1,13 @@
 import os
-import pytest
 from unittest.mock import patch
-import xarray as xr
+
 import numpy as np
-from pharedox import io, experiment, image_processing as ip
+import pytest
+import xarray as xr
+
+from pharedox import experiment
+from pharedox import image_processing as ip
+from pharedox import io
 
 
 class TestExperiment:
@@ -25,7 +29,7 @@ class TestExperiment:
             channel_order=["TL", "470", "410", "470", "410"],
         )
 
-    # @pytest.mark.slow
+    @pytest.mark.slow
     def test_full_experiment_run_paired_single_timepoint(self, shared_datadir):
         exp = experiment.Experiment(
             shared_datadir / "experiments" / "2017_02_22-HD233_SAY47"

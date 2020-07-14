@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -178,7 +179,8 @@ def select_by_mvmt(
     return data[mv_idx], data[st_idx]
 
 
-def load_all_cached_profile_data(meta_dir, glob_pattern):
+def load_all_cached_profile_data(meta_dir: Path, glob_pattern: typing.Union[Path, str]):
+    glob_pattern = str(glob_pattern)
     return xr.concat(
         (pio.load_profile_data(p) for p in sorted(meta_dir.glob(glob_pattern))),
         dim="animal",

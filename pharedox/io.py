@@ -1,5 +1,6 @@
 import itertools
 import logging
+import pickle
 import re
 from datetime import datetime
 from pathlib import Path
@@ -9,9 +10,37 @@ import numpy as np
 import pandas as pd
 import tifffile
 import xarray as xr
-
 from skimage import io as skio
+
 from pharedox import utils
+
+
+def save_midlines(path: Union[Path, str], midlines: xr.DataArray):
+    """
+    Save the midlines to the given path
+
+    Parameters
+    ----------
+    path
+        the path to save the midlines
+    midlines
+        the midlines to save
+
+    Returns
+    -------
+    None
+
+    """
+    logging.info(f"saving midlines to {path}")
+    with open(path, "wb") as f:
+        pickle.dump(midlines, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_midlines(path: Union[Path, str]) -> xr.DataArray:
+    with open(path, "rb") as f:
+        midlines = pickle.load(f)
+    logging.info(f"loaded midlines from {path}")
+    return midlines
 
 
 def load_profile_data(path: Union[Path, str]) -> xr.DataArray:

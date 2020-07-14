@@ -364,6 +364,28 @@ def register_profiles_pop(
 def channel_register(
     profile_data: xr.DataArray, redox_params: dict, reg_params: dict, eng=None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
+    """
+    Perform channel-registration on the given profile data
+
+    Parameters
+    ----------
+    profile_data
+        the data to register
+    redox_params
+        the redox parameters
+    reg_params
+        the registration parameters
+    eng
+        the MATLAB engine (optional)
+
+    Returns
+    -------
+    reg_data: xr.DataArray
+        the registered data
+    warp_data: xr.DataArray
+        the warp functions used to register the data
+
+    """
 
     try:
         import matlab.engine
@@ -375,6 +397,7 @@ def channel_register(
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
+    # get rid of the wavelength dimension for warp data
     warp_data = profile_data.copy().isel(wavelength=0)
 
     for pair in profile_data.pair:
@@ -518,16 +541,13 @@ def get_trim_boundaries(
 
     """
     prof_len = data.position.size
-    # axis=3 b/c that is where `position` is after selecting wavelength
+    data_reversed = data.reindex(position=list(reversed(data.position)))
     axis_num = data.sel(wavelength=ref_wvl).get_axis_num("position")
-    l_bound = np.argmax(data.sel(wavelength=ref_wvl) >= thresh, axis=axis_num).data - 1
+    l_bound = (data.sel(wavelength=ref_wvl) >= thresh).argmax(dim="position").data - 1
     r_bound = (
         prof_len
-        - np.argmax(
-            np.flip(data.sel(wavelength=ref_wvl), axis=axis_num) >= thresh,
-            axis=axis_num,
-        ).data
-    )
+        - (data_reversed.sel(wavelength=ref_wvl) >= thresh).argmax(dim="position").data
+    ) - 1
     return l_bound, r_bound
 
 
