@@ -8,7 +8,6 @@ before_install:
 install:
   - pip3 install --upgrade pip
   - pip install tox
-#  - pip install -e .
 
 script:
   - tox
