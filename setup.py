@@ -58,14 +58,13 @@ if sys.version_info < (MIN_PY_MAJOR_VER, MIN_PY_MINOR_VER):
     sys.exit(1)
 
 requirements = [
-    "numpy>=1.18",
+    "numpy>=1.19",
     "xarray>=0.16.0",
     "netCDF4==1.5.3",
-    "scikit-image==0.17.2",
-    "tifffile==2020.5.11",
+    "scikit-image>0.17,<0.18",
+    "tifffile>=2020.5.11",
     "scipy>=1.4.1",
     "numba>=0.49.1",
-    "scikit-learn>=0.23.0",
     "pandas>=1.0.3,<2",
     "statsmodels==0.11.1",
     "simpleITK==1.2.4",
