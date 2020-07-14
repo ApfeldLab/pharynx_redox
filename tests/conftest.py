@@ -43,26 +43,26 @@ def pytest_sessionstart(session):
     Called after the Session object has been created and
     before performing collection and entering the run test loop.
     """
-    zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
-    dir_dest = os.path.join(os.path.dirname(__file__), "data")
-
-    if os.path.isdir(dir_dest):
-        logging.info(
-            f"Test data found. Not downloading. To force download, delete {dir_dest}"
-        )
-        return
-    else:
-        logging.info("no test data found. downloading.")
-
-        download_from_url(
-            "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
-            zip_dest,
-            overwrite=True,
-            desc="Downloading Test Data",
-        )
-        with zipfile.ZipFile(zip_dest, "r") as zip_ref:
-            zip_ref.extractall(dir_dest)
-        os.remove(zip_dest)
+    # zip_dest = os.path.join(os.path.dirname(__file__), "data.zip")
+    # dir_dest = os.path.join(os.path.dirname(__file__), "data")
+    #
+    # if os.path.isdir(dir_dest):
+    #     logging.info(
+    #         f"Test data found. Not downloading. To force download, delete {dir_dest}"
+    #     )
+    #     return
+    # else:
+    #     logging.info("no test data found. downloading.")
+    #
+    #     download_from_url(
+    #         "https://ucc28400d85c5cc3ad392656f954.dl.dropboxusercontent.com/zip_download_get/Aedl8JwZHiq_trPNj0ad27K2Q4qQFqOJUalz6RmDS_TpbOYerd4giEyHQSnAL7pEHPDP2p8UqLXT_v89XWfoYkgiHtb47BflKfL9kUvr74pW6Q",
+    #         zip_dest,
+    #         overwrite=True,
+    #         desc="Downloading Test Data",
+    #     )
+    #     with zipfile.ZipFile(zip_dest, "r") as zip_ref:
+    #         zip_ref.extractall(dir_dest)
+    #     os.remove(zip_dest)
 
 
 def pytest_load_initial_conftests(args):

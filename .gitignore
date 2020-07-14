@@ -1,9 +1,6 @@
 # Project-Specific
 matlab/compiled_project/
-data/
-tests/test_data/all_rot_fl.nc
-tests/data
-
+/data/
 .idea/
 
 # Created by https://www.gitignore.io/api/macos,python,jupyternotebook

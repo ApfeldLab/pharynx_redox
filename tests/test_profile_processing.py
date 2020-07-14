@@ -13,8 +13,8 @@ from pharedox import profile_processing as pp
 class TestProfileProcessing:
 
     redox_params = {
-        "ratio_numerator": 410,
-        "ratio_denominator": 470,
+        "ratio_numerator": "410",
+        "ratio_denominator": "470",
         "r_min": 0.852,
         "r_max": 6.65,
         "instrument_factor": 0.171,
