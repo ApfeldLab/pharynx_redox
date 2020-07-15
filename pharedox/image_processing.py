@@ -208,7 +208,11 @@ def center_and_rotate_pharynxes(
                         img.data, translation_matrix, pharynx_orientation
                     )
                     rotated_seg = rotate(
-                        ref_seg.data, translation_matrix, pharynx_orientation, order=1
+                        ref_seg.data,
+                        translation_matrix,
+                        pharynx_orientation,
+                        order=0,
+                        preserve_range=True,
                     )
 
                     fl_rotated_stack.loc[dict(wavelength=wvl, pair=pair, timepoint=tp)][
@@ -366,7 +370,13 @@ def segment_pharynxes(
     return seg
 
 
-def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
+def rotate(
+    img: Union[np.ndarray, xr.DataArray],
+    tform,
+    orientation,
+    order=1,
+    preserve_range=True,
+):
     """
     Rotate the given image with the given translation matrix and orientation angle
 
@@ -380,6 +390,8 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
         the angle of orientation (radians)
     order
         the order of the interpolation
+    preserve_range
+        preserve the input data range
 
     Returns
     -------
@@ -389,7 +401,9 @@ def rotate(img: Union[np.ndarray, xr.DataArray], tform, orientation, order=1):
     """
 
     return transform.rotate(
-        transform.warp(img, tform, preserve_range=True, mode="wrap", order=order),
+        transform.warp(
+            img, tform, preserve_range=preserve_range, mode="wrap", order=order
+        ),
         np.degrees(np.pi / 2 - orientation),
         mode="edge",
         order=order,
