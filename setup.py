@@ -58,36 +58,28 @@ if sys.version_info < (MIN_PY_MAJOR_VER, MIN_PY_MINOR_VER):
     sys.exit(1)
 
 requirements = [
-    "numpy>=1.19",
-    "xarray>=0.16.0",
-    "netCDF4==1.5.3",
-    "scikit-image>0.17,<0.18",
+    "numpy>=1.19,<1.20",
+    "xarray>=0.16.0,<0.17",
+    "netCDF4==1.5.3,<1.6",
+    "scikit-image>=0.17,<0.18",
     "tifffile>=2020.5.11",
-    "scipy>=1.4.1",
-    "numba>=0.49.1",
+    "scipy>=1.5.1,<2",
     "pandas>=1.0.3,<2",
-    "statsmodels==0.11.1",
-    "simpleITK==1.2.4",
+    "statsmodels>=0.11.1,<0.12",
+    "simpleITK>=1.2.4,<2",
     "matplotlib>=3.2.1",
     "seaborn>=0.10.1",
-    "PyQt5==5.14",
-    "napari==0.3.1",
+    "PyQt5>=5.15",
+    "napari>=0.3.5,<0.4",
     "tqdm>=4.46",
     "click>=7.1.2,<8",
-    "PyYAML>=5.3.1",
+    "strictyaml>=1.0.6,<2",
     "sphinx>=3.0.3",
     "sphinx_rtd_theme>=0.4.3",
     "sphinx-autodoc-typehints>=1.10.3",
     "numpydoc>=0.9.2",
-    "requests",
-    "jupyter",
-    "pylint",
-    "isort",
-    "black",
-    "strictyaml"
+    "jupyter>=1.0.0,<2",
 ]
-
-test_requirements = ["pytest", "pytest-xdist", "pytest-cov", "pytest-datadir"]
 
 
 class InstallMatlabEngineMixin:

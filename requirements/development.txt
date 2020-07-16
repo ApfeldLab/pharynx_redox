@@ -1,0 +1,7 @@
+pre-commit>=1.16.1
+black==19.10b0
+check-manifest>=0.42
+isort
+pylint
+-r test.txt
+-r docs.txt
