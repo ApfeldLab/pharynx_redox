@@ -5,7 +5,6 @@ from typing import Union, Dict, Tuple
 import numpy as np
 import pandas as pd
 import xarray as xr
-from numba import vectorize
 from scipy import spatial, signal
 from tqdm.auto import tqdm
 
@@ -142,16 +141,6 @@ def align_pa(
         )
 
     return intensity_data
-
-
-@vectorize
-def get_mvmt(a, b):
-    if not a:
-        return b
-    if not b:
-        return a
-    else:
-        return np.nan
 
 
 def summarize_over_regions(

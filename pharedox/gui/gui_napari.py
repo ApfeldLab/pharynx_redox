@@ -95,7 +95,9 @@ class App:
         self.buttons.ui.runPharynxButton.pressed.connect(self.run_pharynx_analysis)
 
     def run_pharynx_analysis(self):
-        if self.experiment.seg_images is not None:
+        mask_layer = self.get_layer('masks')
+        if mask_layer is not None:
+            self.experiment.seg_images.values = mask_layer.data
             self.experiment.full_pipeline()
             self.showDialog("Analysis finished!")
 
@@ -194,15 +196,15 @@ class App:
         self.update_threshold(t)
 
     def update_threshold(self, t):
-        if self.experiment.seg_images is None:
+        # if self.experiment.seg_images is None:
+        #     return
+        # else:
+        masks = self.segment_pharynxes(t)
+        if masks is None:
             return
-        else:
-            masks = self.segment_pharynxes(t)
-            if masks is None:
-                return
-            self.experiment.seg_images = masks
-            self.get_layer("masks").data = masks
-            self.get_layer("masks").refresh()
+        self.experiment.seg_images = masks
+        self.get_layer("masks").data = masks
+        self.get_layer("masks").refresh()
 
     def run(self):
         with napari.gui_qt():

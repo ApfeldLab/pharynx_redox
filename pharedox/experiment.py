@@ -23,9 +23,9 @@ from strictyaml import (
     CommaSeparated,
     Str,
     load,
+    YAMLError,
 )
 from tqdm import tqdm
-from yaml import YAMLError
 
 from pharedox import image_processing as ip
 from pharedox import io as pio
