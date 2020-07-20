@@ -61,33 +61,52 @@ Running the Analysis
 
 Once all of the files are in place, running the analysis is easy.
 
-Open a terminal, and execute the following command (make sure to include the quotation marks)::
+Automated
+---------
+
+If you are confident in the segmentation, you can run the analysis without loading up
+the GUI. To do this, simply execute the following command::
+
+    $ pharedox analyze --no-gui "path/to/experiment directory"
+
+GUI
+---
+
+The GUI (Graphical User Interface) can be helpful to make sure that your masks are
+correct. To launch the GUI, open a terminal, and execute the following command (make
+sure to include the quotation marks)::
 
     $ pharedox analyze "path/to/experiment directory"
 
-This command will open a user interface with your images. We will use this interface to generate masks,
-which indicate where in each image the objects of interest are. You can hide/show each channel by clicking on the
-eye icon in the appropriate channel pane.
+This command will open a user interface with your images. We will use this interface
+to generate masks, which indicate where in each image the objects of interest are.
+You can hide/show each channel by clicking on the eye icon in the appropriate
+channel pane.
 
 .. image:: _static/gui_initial.png
 
-Set the threshold to a reasonable value based on your data. You can use the slider or type in the threshold box 
-to update the threshold interactively. If your images contain small bright objects, you can use the ``Remove Objects <`` button
-to remove objects smaller than the given number.
+Set the threshold to a reasonable value based on your data. You can use the slider
+or type in the threshold box to update the threshold interactively. If your images
+contain small bright objects, you can use the ``Remove Objects <`` button to remove
+objects smaller than the given number.
 
-Once you are satisfied with the masks, simply press either ``Analyze Pharynxes`` or ``Analyze Blobs``, depending on your experiment.
-``Analyze Blobs`` is meant for measuring neurons, the gut, or any other structure with non-stereotypical geometry.
+Once you are satisfied with the masks, simply press either ``Analyze Pharynxes`` or
+``Analyze Blobs``, depending on your experiment. ``Analyze Blobs`` is meant for
+measuring neurons, the gut, or any other structure with non-stereotypical geometry.
 
-You can monitor the status of the pipeline through the terminal with which you launched PhaRedox. If everything went well, 
-there will be a pop-up window indicating that the pipeline has finished running. When you click ``Open`` you will be taken to
+You can monitor the status of the pipeline through the terminal with which you
+launched PhaRedox. If everything went well, there will be a pop-up window indicating
+that the pipeline has finished running. When you click ``Open`` you will be taken to
 the analysis directory containing the data from your experiment.
 
 
 Getting at the Data
 ===================
-Each time you run an analysis, you will generate a directory within the ``analyses`` directory. These subdirectories
-are named starting with the date on which the analysis was run, and include a "strategy", which was specified in your
-settings file (this if for your reference, if you changed this or that setting you can come up with a name to reflect that).
+Each time you run an analysis, you will generate a directory within the ``analyses``
+directory. These subdirectories are named starting with the date on which the
+analysis was run, and include a "strategy", which was specified in your settings
+file (this if for your reference, if you changed this or that setting you can come
+up with a name to reflect that).
 
 After running a single analysis, the directory structure will look something like this::
 
