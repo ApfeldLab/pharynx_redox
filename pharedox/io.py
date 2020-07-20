@@ -2,6 +2,9 @@ import itertools
 import logging
 import pickle
 import re
+import uuid
+import xml.etree.ElementTree as ET
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
@@ -13,6 +16,61 @@ import xarray as xr
 from skimage import io as skio
 
 from pharedox import utils
+
+
+def extract_metadata_metamorph(img_path: Union[Path, str]) -> pd.DataFrame:
+    """
+    Return a DataFrame of the image stack's metdata where each row is indexed by the
+    frame number. The columns come from MetaMorph's metadata XML.
+
+    Parameters
+    ----------
+    img_path
+        the location of the image
+
+    Returns
+    -------
+    metadata
+        a DataFrame containing the image metadata, indexed by frame
+
+    """
+    type_lookup = {
+        "string": str,
+        "int": int,
+        "bool": bool,
+        "float": float,
+        "guid": uuid.UUID,
+        "colorref": str,
+        "float-array": np.ndarray,
+        "time": lambda t: datetime.strptime(t, "%Y%m%d %H:%M:%S.%f"),
+    }
+    metadata = defaultdict(list)
+    with tifffile.TiffFile(str(img_path)) as tif:
+        for page in tif.pages:
+            xml_string = page.tags["ImageDescription"].value
+            root = ET.fromstring(xml_string)
+
+            for prop in root.findall("prop"):
+                if prop.get("id") == "Description":
+                    descr_strings = prop.get("value").splitlines()
+                    for s in descr_strings:
+                        try:
+                            k, v = s.split(": ")
+                            metadata[k].append(v)
+                        except ValueError:
+                            pass
+                else:
+                    metadata[prop.get("id")].append(
+                        type_lookup[prop.get("type")](prop.get("value"))
+                    )
+
+            for x in root.find("PlaneInfo"):
+                metadata[x.get("id")].append(type_lookup[x.get("type")](x.get("value")))
+
+    metadata = pd.DataFrame(metadata)
+    metadata.index.name = "frame"
+
+    return metadata
 
 
 def save_midlines(path: Union[Path, str], midlines: xr.DataArray):
