@@ -56,6 +56,11 @@ the config file. To create a config file, navigate to your directory, then run t
 
 This will create a template configuration file, which you can customize to your liking.
 
+Parameters
+----------
+
+Here is an overview of
+
 Running the Analysis
 ====================
 
@@ -67,7 +72,7 @@ Automated
 If you are confident in the segmentation, you can run the analysis without loading up
 the GUI. To do this, simply execute the following command::
 
-    $ pharedox analyze --no-gui "path/to/experiment directory"
+    $ pharedox analyze --command-line "path/to/experiment directory"
 
 GUI
 ---
