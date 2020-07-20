@@ -38,7 +38,7 @@ def analyze(dir, gui):
     if gui:
         from pharedox.gui.gui_napari import App
 
-        app = App(experiment=exp)
+        app = App(exp_=exp)
         app.run()
     else:
         exp.full_pipeline()

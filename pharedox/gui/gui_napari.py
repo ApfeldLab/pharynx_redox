@@ -1,22 +1,21 @@
 """
 A Basic GUI based on napari
 """
-import sys
-import numpy as np
-import napari
-from skimage.measure import label
-from skimage import morphology
-import xarray as xr
-
-from pathlib import Path
-from pharedox import image_processing as ip, plots
-from qtpy.QtWidgets import QWidget, QMessageBox
-from PyQt5.QtCore import pyqtSignal
-from qtpy.QtWidgets import QApplication, QSplashScreen
-from pharedox.gui.qt_py_files.pipeline_buttons import Ui_Form
-from pharedox import experiment, utils
-
 import logging
+import sys
+from pathlib import Path
+from typing import Optional
+
+import napari
+import numpy as np
+import xarray as xr
+from PyQt5.QtCore import pyqtSignal
+from qtpy.QtWidgets import QMessageBox, QWidget
+from skimage import morphology
+from skimage.measure import label
+
+from pharedox import experiment, plots, utils
+from pharedox.gui.qt_py_files.pipeline_buttons import Ui_Form
 
 
 def segment_pharynxes(imgs, t, wvl):
@@ -32,7 +31,7 @@ def segment_pharynxes(imgs, t, wvl):
     return segs
 
 
-def remove_small_objects(label_data, min_obj_size=5):
+def remove_small_objects(label_data, min_obj_size):
     return xr.apply_ufunc(
         lambda x: morphology.remove_small_objects(x, min_obj_size),
         label_data,
@@ -44,7 +43,6 @@ def remove_small_objects(label_data, min_obj_size=5):
 
 class PipelineButtonsWidget(QWidget):
 
-    segment_sig = pyqtSignal()
     t_slider_changed = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -56,18 +54,16 @@ class PipelineButtonsWidget(QWidget):
         self.ui.thresholdSlider.setMinimum(np.iinfo(np.uint16).min)
         self.ui.thresholdSlider.setMaximum(np.iinfo(np.uint16).max)
 
-        self.ui.segmentButton.pressed.connect(self.segment_sig.emit)
-
         self.ui.thresholdSlider.valueChanged.connect(self.handle_t_slider_changed)
         self.ui.thresholdSpinBox.valueChanged.connect(
-            self.handle_thresholdSpinBox_changed
+            self.handle_threshold_spin_box_changed
         )
 
     def handle_t_slider_changed(self):
         self.ui.thresholdSpinBox.setValue(self.ui.thresholdSlider.value())
         self.t_slider_changed.emit()
 
-    def handle_thresholdSpinBox_changed(self):
+    def handle_threshold_spin_box_changed(self):
         self.ui.thresholdSlider.setValue(self.ui.thresholdSpinBox.value())
 
 
@@ -76,8 +72,8 @@ class App:
     viewer = None
     buttons = None
 
-    def __init__(self, experiment):
-        self.experiment = experiment
+    def __init__(self, exp_):
+        self.experiment = exp_
 
     def set_up_viewer(self):
         self.viewer = napari.Viewer()
@@ -85,26 +81,26 @@ class App:
         self.viewer.window.add_dock_widget(self.buttons, name="pipeline", area="left")
 
         # connect signals/slots
-        self.buttons.segment_sig.connect(self.handle_segment_pressed)
         self.buttons.t_slider_changed.connect(self.handle_t_slider_changed)
         self.buttons.ui.removeObjectsButton.pressed.connect(
             self.handle_remove_objects_pressed
         )
-        # self.viewer.layers.events.changed.connect(self.on_layers_change)
         self.buttons.ui.runNeuronsButton.pressed.connect(self.run_neuron_analysis)
         self.buttons.ui.runPharynxButton.pressed.connect(self.run_pharynx_analysis)
 
     def run_pharynx_analysis(self):
-        if self.experiment.seg_images is not None:
+        if self.experiment.seg_images is None:
+            self.show_simple_dialog("no masks")
+        else:
             self.experiment.full_pipeline()
-            self.showDialog("Analysis finished!")
+            self.show_dialog("Analysis finished!")
 
     def run_neuron_analysis(self):
         if self.experiment.seg_images is not None:
             self.experiment.run_neuron_pipeline()
-            self.showDialog("Analysis finished!")
+            self.show_dialog("Analysis finished!")
 
-    def showDialog(self, message, title=""):
+    def show_dialog(self, message, title=""):
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText(message)
@@ -115,7 +111,8 @@ class App:
         if return_value == QMessageBox.Open:
             utils.open_folder(self.experiment.analysis_dir)
 
-    def showSimpleDialog(self, message, title=""):
+    @staticmethod
+    def show_simple_dialog(message, title=""):
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setText(message)
@@ -143,7 +140,7 @@ class App:
         layer.data = self.experiment.seg_images.values
         layer.refresh()
 
-    def get_current_wvl(self) -> str:
+    def get_current_wvl(self) -> Optional[str]:
         """
         Get the wavelength of the active layer in Napari, or `None` if the active layer
         name does not correspond to a wavelength in the experiment's images.
@@ -158,7 +155,7 @@ class App:
     def segment_pharynxes(self, t) -> xr.DataArray:
         wvl = self.get_current_wvl()
         if wvl is None:
-            self.showSimpleDialog(
+            self.show_simple_dialog(
                 message="The active layer does not correspond to a wavelength in the data set.",
                 title="Invalid Wavelength Selected",
             )
@@ -176,33 +173,17 @@ class App:
 
         return masks
 
-    def handle_segment_pressed(self):
-        t = self.buttons.ui.thresholdSpinBox.value()
-
-        masks = self.segment_pharynxes(t)
-        if masks is None:
-            return
-
-        if self.experiment.seg_images is None:
-            self.experiment.seg_images = masks
-            self.viewer.add_labels(self.experiment.seg_images, name="masks")
-        else:
-            self.update_threshold(t)
-
     def handle_t_slider_changed(self):
         t = self.buttons.ui.thresholdSlider.value()
         self.update_threshold(t)
 
     def update_threshold(self, t):
-        if self.experiment.seg_images is None:
+        masks = self.segment_pharynxes(t)
+        if masks is None:
             return
-        else:
-            masks = self.segment_pharynxes(t)
-            if masks is None:
-                return
-            self.experiment.seg_images = masks
-            self.get_layer("masks").data = masks
-            self.get_layer("masks").refresh()
+        self.experiment.seg_images = masks
+        self.get_layer("masks").data = masks
+        self.get_layer("masks").refresh()
 
     def run(self):
         with napari.gui_qt():
@@ -236,5 +217,5 @@ if __name__ == "__main__":
     exp_dir = sys.argv[1]
     exp = experiment.Experiment(Path(exp_dir))
 
-    app = App(experiment=exp)
+    app = App(exp_=exp)
     app.run()
