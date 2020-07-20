@@ -44,6 +44,18 @@ strain indexer as ``experiment_id-indexer.csv`` in that folder.
 So in our example, we would save our image stack as ``2019_02_26-HD233_SAY47_4mm_lev.tiff`` and our strain
 indexer as ``2019_02_26-HD233_SAY47_4mm_lev-indexer.csv``.
 
+Settings File
+=============
+
+The pipeline requires multiple paramters be set. These parameters are specified in
+the config file. To create a config file, navigate to your directory, then run the
+`pharedox create-settings` command, like so::
+
+    $ cd /path/to/experiment/directory
+    $ pharedox create-settings
+
+This will create a template configuration file, which you can customize to your liking.
+
 Running the Analysis
 ====================
 
@@ -51,7 +63,7 @@ Once all of the files are in place, running the analysis is easy.
 
 Open a terminal, and execute the following command (make sure to include the quotation marks)::
 
-    $ pharedox "path/to/experiment directory"
+    $ pharedox analyze "path/to/experiment directory"
 
 This command will open a user interface with your images. We will use this interface to generate masks,
 which indicate where in each image the objects of interest are. You can hide/show each channel by clicking on the
