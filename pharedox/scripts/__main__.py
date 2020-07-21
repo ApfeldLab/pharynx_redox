@@ -1,6 +1,10 @@
-import click
-from pathlib import Path
 import logging
+import multiprocessing as mp
+from pathlib import Path
+
+import click
+
+mp.set_start_method("spawn")
 
 
 @click.group()
@@ -36,7 +40,7 @@ def analyze(dir, gui):
 
     exp = experiment.Experiment(Path(dir))
     if gui:
-        from pharedox.gui.gui_napari import App
+        from pharedox.gui.gui import App
 
         app = App(exp_=exp)
         app.run()
