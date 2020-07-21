@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import typing
 import xarray as xr
 from matplotlib import cm, gridspec, colors, image, transforms
 from matplotlib.backends.backend_pdf import PdfPages
@@ -23,16 +24,16 @@ from pharedox import data_analysis as da, constants
 
 
 def imshow_r_stack(
-        imgs: xr.DataArray,
-        profile_data: xr.DataArray,
-        output_dir: Union[str, Path],
-        per_animal_cmap: bool = True,
-        fl_wvl: str = "410",
-        cmap: str = "coolwarm",
-        width: int = 80,
-        height: int = 30,
-        progress_bar: bool = True,
-        colorbar=True,
+    imgs: xr.DataArray,
+    profile_data: xr.DataArray,
+    output_dir: Union[str, Path],
+    per_animal_cmap: bool = True,
+    fl_wvl: str = "410",
+    cmap: str = "coolwarm",
+    width: int = 80,
+    height: int = 30,
+    progress_bar: bool = True,
+    colorbar=True,
 ):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +114,9 @@ def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=[
                 yield title, fig
 
 
-def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+def generate_avg_wvl_pair_profile_plots(
+    data: xr.DataArray, ignored_wvls: typing.List[str] = ["TL"]
+):
     """
     For each wavelength and pair in the given data, this function plots a line plot with
     each color representing a unique strain. The line is the mean value across animals
@@ -121,6 +124,7 @@ def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"])
     
     Parameters
     ----------
+    ignored_wvls
     data : [type]
         [description]
     """
@@ -129,7 +133,10 @@ def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"])
     colormap = dict(zip(strains, cmap.colors))
     wvls = list(map(lambda x: x.lower(), data.wavelength.values))
     for wvl in ignored_wvls:
-        wvls.remove(wvl.lower())
+        try:
+            wvls.remove(wvl.lower())
+        except ValueError:
+            continue
     for wvl in wvls:
         for pair in data.pair.values:
             for tp in data.timepoint.values:
@@ -149,12 +156,12 @@ def generate_avg_wvl_pair_profile_plots(data: xr.DataArray, ignored_wvls=["TL"])
 
 
 def plot_err_with_region_summaries(
-        data: xr.DataArray,
-        measure_regions: Dict,
-        display_regions=None,
-        ax=None,
-        profile_color="black",
-        label=None,
+    data: xr.DataArray,
+    measure_regions: Dict,
+    display_regions=None,
+    ax=None,
+    profile_color="black",
+    label=None,
 ):
     st_color = "k"
     mv_color = "tab:red"
@@ -175,9 +182,9 @@ def plot_err_with_region_summaries(
     )
 
     for region, region_err_mean, region_err_sem in zip(
-            df_avgs["region"],
-            df_avgs["fold_error_region"][1]["mean"],
-            df_avgs["fold_error_region"][1]["sem"],
+        df_avgs["region"],
+        df_avgs["fold_error_region"][1]["mean"],
+        df_avgs["fold_error_region"][1]["sem"],
     ):
         try:
             ax.axhline(
@@ -209,7 +216,7 @@ def plot_err_with_region_summaries(
 
 
 def plot_stage_layout(
-        image_data: xr.DataArray, pair: int = 0
+    image_data: xr.DataArray, pair: int = 0
 ) -> sns.axisgrid.FacetGrid:
     """
     Shows a scatter plot where each point is an animal located on the imaging stage and
@@ -277,16 +284,16 @@ def cdf_plot(data, *args, **kwargs):
 
 
 def add_regions_to_axis(
-        ax,
-        regions: dict,
-        skip=None,
-        label_dist_bottom_percent: float = 0.03,
-        label_x_offset_percent: float = 0.005,
-        alpha: float = 0.03,
-        hide_labels: bool = False,
-        xs=None,
-        color="black",
-        **kwargs,
+    ax,
+    regions: dict,
+    skip=None,
+    label_dist_bottom_percent: float = 0.03,
+    label_x_offset_percent: float = 0.005,
+    alpha: float = 0.03,
+    hide_labels: bool = False,
+    xs=None,
+    color="black",
+    **kwargs,
 ):
     """
     TODO: Documentation
@@ -336,7 +343,9 @@ def add_regions_to_axis(
             ax.annotate(region, xy=(bounds[0] + text_x_offset, text_y))
 
 
-def add_region_bars_to_axis(ax, regions, skip=None, bar_height=8, bar_width=1, fontsize=3):
+def add_region_bars_to_axis(
+    ax, regions, skip=None, bar_height=8, bar_width=1, fontsize=3
+):
     if skip is None:
         skip = []
 
@@ -350,30 +359,30 @@ def add_region_bars_to_axis(ax, regions, skip=None, bar_height=8, bar_width=1, f
             "",
             xy=(region_bounds[0], yy),
             xycoords=("data", "axes fraction"),
-            xytext=(region_bounds[1], yy), textcoords=("data", "axes fraction"),
+            xytext=(region_bounds[1], yy),
+            textcoords=("data", "axes fraction"),
             arrowprops=dict(
                 arrowstyle="-",
                 connectionstyle=f"bar,armA=-{bar_height},armB=-{bar_height},fraction=0.0",
-                capstyle='butt',
-                joinstyle='miter',
+                capstyle="butt",
+                joinstyle="miter",
                 lw=bar_width,
             ),
-            annotation_clip=False
+            annotation_clip=False,
         )
         ax.annotate(
             region,
             xy=((region_bounds[0] + region_bounds[1]) / 2, yy - 0.08),
             xycoords=("data", "axes fraction"),
-            ha='center',
-            fontsize=fontsize
-
+            ha="center",
+            fontsize=fontsize,
         )
 
     ax.xaxis.labelpad = 25
 
 
 def plot_profile_avg_with_bounds(
-        data, ax=None, confint_alpha=0.05, label=None, xs=None, **kwargs
+    data, ax=None, confint_alpha=0.05, label=None, xs=None, **kwargs
 ):
     """
     TODO: Documentation
@@ -467,15 +476,15 @@ def plot_profile_avg(data, ax=None, label=None, xs=None, **kwargs):
 
 
 def imgs_to_rgb(
-        imgs,
-        r_min,
-        r_max,
-        cmap="coolwarm",
-        i_min=0,
-        i_max=None,
-        i_wvls=["410", "470"],
-        ratio_numerator="410",
-        ratio_denominator="470",
+    imgs,
+    r_min,
+    r_max,
+    cmap="coolwarm",
+    i_min=0,
+    i_max=None,
+    i_wvls=["410", "470"],
+    ratio_numerator="410",
+    ratio_denominator="470",
 ):
     if i_max is None:
         i_max = np.max(imgs.sel(wavelength=["410", "470"]))
@@ -498,20 +507,20 @@ def imgs_to_rgb(
 
 
 def imshow_ratio_normed(
-        ratio_img,
-        fl_img,
-        profile_data=None,
-        prob=0.999,
-        cmap="coolwarm",
-        r_min=None,
-        r_max=None,
-        i_min=0,
-        i_max=None,
-        clip=True,
-        ax=None,
-        colorbar=False,
-        colorbar_kwargs_dict={},
-        **imshow_kwargs,
+    ratio_img,
+    fl_img,
+    profile_data=None,
+    prob=0.999,
+    cmap="coolwarm",
+    r_min=None,
+    r_max=None,
+    i_min=0,
+    i_max=None,
+    clip=True,
+    ax=None,
+    colorbar=False,
+    colorbar_kwargs_dict={},
+    **imshow_kwargs,
 ):
     """
     Show the given ratio image, first converting to HSV and setting the "V" (value) 
@@ -662,8 +671,8 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
             fl.sel(wavelength="r", pair=pair)[idx],
             fl.sel(wavelength="410", pair=pair)[idx],
             profile_data=raw_prof.sel(wavelength="r", pair=pair)[idx][
-                         colormap_profile_buffer:-colormap_profile_buffer
-                         ],
+                colormap_profile_buffer:-colormap_profile_buffer
+            ],
             prob=0.999,
             i_max=2000,
             colorbar=True,
@@ -817,13 +826,13 @@ def registration_diagnostic_plot(fl, raw_prof, reg_prof, idx, **params) -> plt.F
 
 
 def plot_pharynx_R_imgs(
-        img: xr.DataArray,
-        mask: xr.DataArray,
-        crop: bool = True,
-        crop_pad: int = 10,
-        cmap_normalization: str = "frame",
-        cmap: str = "coolwarm",
-        fig_kwargs=None,
+    img: xr.DataArray,
+    mask: xr.DataArray,
+    crop: bool = True,
+    crop_pad: int = 10,
+    cmap_normalization: str = "frame",
+    cmap: str = "coolwarm",
+    fig_kwargs=None,
 ):
     """
     Generate a figure which has ratio images broken up by timepoint and pair
@@ -906,13 +915,13 @@ def plot_pharynx_R_imgs(
 
 
 def plot_multiple_pop_errors(
-        data_and_labels,
-        ylim=None,
-        xlim=None,
-        add_regions=True,
-        figsize=(20, 10),
-        dpi=100,
-        regions=constants.untrimmed_regions,
+    data_and_labels,
+    ylim=None,
+    xlim=None,
+    add_regions=True,
+    figsize=(20, 10),
+    dpi=100,
+    regions=constants.untrimmed_regions,
 ):
     """Plot multiple error profiles and their corresponding labels
 
@@ -964,14 +973,14 @@ def plot_multiple_pop_errors(
 
 
 def plot_multiple_pop_wvl(
-        data_and_labels,
-        wvl="r",
-        ylim=None,
-        xlim=None,
-        add_regions=True,
-        figsize=(20, 10),
-        dpi=100,
-        regions=constants.untrimmed_regions,
+    data_and_labels,
+    wvl="r",
+    ylim=None,
+    xlim=None,
+    add_regions=True,
+    figsize=(20, 10),
+    dpi=100,
+    regions=constants.untrimmed_regions,
 ):
     """Plot multiple error profiles and their corresponding labels
 
