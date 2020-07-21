@@ -49,7 +49,7 @@ Settings File
 
 The pipeline requires multiple paramters be set. These parameters are specified in
 the config file. To create a config file, navigate to your directory, then run the
-`pharedox create-settings` command, like so::
+``pharedox create-settings`` command, like so::
 
     $ cd /path/to/experiment/directory
     $ pharedox create-settings
@@ -59,7 +59,136 @@ This will create a template configuration file, which you can customize to your 
 Parameters
 ----------
 
-Here is an overview of
+Here is an overview of the parameters used in analysis
+
+pipeline
+++++++++
+These parameters have to do with the image analysis
+
+strategy
+    a string that will help you identify which parameters you chose (for example,
+    ``reg``). This will be appended to the date that you ran the experiment to create
+    the name of the analysis directory.
+channel_order
+    The order in which the images were taken. Should be a comma-separated list like so:
+    ``TL, 470, 410, 470, 410``.
+trimmed_profile_length
+    The vector length of the trimmed profiles
+untrimmed_profile_length
+    The vector length of the untrimmed profiles (how many points to be sampled along
+    the midline)
+seg_threshold
+    The threshold used for segmentation. If ``seg_images.nc`` is present in the
+    ``processed_images`` directory, this is ignored.
+measurement_order
+    The order of the spline for interpolation to use when measuring the images. The
+    order has to be in the range [0, 5].
+measure_thickness
+    The width of the midline to measure under (pixels)
+reference_wavelength
+    The wavelength to use as a reference for rotation, midline generation, etc.
+image_register
+    Whether or not to register the images (experimental). 0=no, 1=yes
+channel_register
+    Whether or not to perform 1D channel registration on the profiles after
+    measurement. 0=no, 1=yes
+population_register
+    Whether or not to perform 1D position standardization on the profiles after
+    measurement. 0=no, 1=yes.
+trimmed_regions:
+    a mapping from region name to region boundaries. The trimmed profile data will be
+    averaged within these boundaries for the summary statistics. Should look like this::
+
+        pm3: 0.07, 0.28
+        pm4: 0.33, 0.45
+        pm5: 0.53, 0.70
+        pm6: 0.80, 0.86
+        pm7: 0.88, 0.96
+
+untrimmed_regions:
+    a mapping from region name to region boundaries. The untrimmed profile data will be
+    averaged within these boundaries for the summary statistics. Should look like this::
+
+        pm3: 0.18, 0.33
+        pm4: 0.38, 0.46
+        pm5: 0.52, 0.65
+        pm6: 0.70, 0.75
+        pm7: 0.76, 0.82
+
+redox
++++++
+
+These parameters are used to map ratios to redox potentials
+
+ratio_numerator
+    the channel to use as the numerator in the ratio
+ratio_denominator
+    the channel to use as the denominator in the ratio
+r_min
+    the minimum ratio of the sensor (experimentally derived)
+r_max
+    the maximum ratio of the sensor (experimentally derived)
+instrument_factor
+    the "instrument factor" see `SensorOverlord <https://www.biorxiv.org/content/10
+    .1101/2020.01.31.928895v1>`_.
+
+midpoint_potential
+    the midpoint potential of the sensor
+z
+    z
+temperature
+    the temperature that the experiment was conducted at
+
+registration
+++++++++++++
+
+These parameters control how 1D registration works. They are ignored if all
+``pipeline.registration`` is set to ``0``.
+
+n_deriv
+    Which derivative to use to register the profiles
+
+warp_n_basis
+    the number of basis functions in the B-spline representation of the warp function
+
+warp_order
+    the order of the basis functions in the B-spline representation of the warp function
+
+warp_lambda
+    the smoothing constraint for the warp function
+
+smooth_lambda
+    the smoothing constraint for the smoothed profiles (which will be used to
+    generate the warp functions)
+smooth_n_breaks
+    the number of breaks in the basis functions of the B-spline representation of the
+    smoothed profiles (which will be used to generate the warp functions)
+smooth_order
+    the order of the basis functions of the B-spline representation of the
+    smoothed profiles (which will be used to generate the warp functions)
+
+rough_lambda
+    the smoothing constraint of the B-spline representation for the "rough" profiles
+    (which are the actual data to be registered)
+rough_n_breaks
+    the number of breaks in the B-spline representation for the "rough" profiles
+    (which are the actual data to be registered)
+rough_order
+    the roughness penalty for the B-spline representation for the "rough" profiles
+    (which are the actual data to be registered)
+
+output:
+++++++
+These parameters control which files are saved after the pipeline finishes.
+
+should_save_plots: True
+    if True, useful plots will be auto-generated and saved in the analysis directory
+should_save_profile_data: True
+    if True, the profile data will be saved in the analysis directory (both as ``.csv``
+    and ``.nc``).
+should_save_summary_data: True
+    if True, a summary table wherein each region has been averaged will be saved in
+    the analysis directory.
 
 Running the Analysis
 ====================
