@@ -33,14 +33,20 @@ class Ui_Form(object):
         self.horizontalLayout_2.addWidget(self.label)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.thresholdSpinBox = QtWidgets.QSpinBox(self.groupBox)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.thresholdSpinBox.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.thresholdSpinBox.sizePolicy().hasHeightForWidth()
+        )
         self.thresholdSpinBox.setSizePolicy(sizePolicy)
         self.thresholdSpinBox.setMinimumSize(QtCore.QSize(150, 0))
         self.thresholdSpinBox.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.thresholdSpinBox.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.thresholdSpinBox.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.thresholdSpinBox.setMaximum(65535)
         self.thresholdSpinBox.setSingleStep(100)
         self.thresholdSpinBox.setObjectName("thresholdSpinBox")
@@ -58,7 +64,9 @@ class Ui_Form(object):
         self.horizontalLayout.addWidget(self.smallObjectSizeSpinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
         self.verticalLayout.addWidget(self.groupBox)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem)
         self.runPharynxButton = QtWidgets.QPushButton(Form)
         self.runPharynxButton.setObjectName("runPharynxButton")
