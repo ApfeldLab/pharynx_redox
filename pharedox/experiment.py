@@ -25,7 +25,7 @@ from strictyaml import (
     load,
 )
 from tqdm import tqdm
-from yaml import YAMLError
+from strictyaml import YAMLError
 
 from pharedox import image_processing as ip
 from pharedox import io as pio
@@ -116,9 +116,6 @@ class Experiment:
         self.experiment_id = self.experiment_dir.stem
 
         # compute the filenames/paths for this experiment
-        self.raw_img_stack_path = self.experiment_dir.joinpath(
-            self.experiment_id + ".tif"
-        )
         self.movement_path = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
@@ -157,13 +154,22 @@ class Experiment:
         return self.analysis_dir.joinpath("midlines.pickle")
 
     @property
-    def _raw_image_stack_path(self) -> Path:
+    def raw_img_stack_path(self) -> Path:
+        # TODO test that this works
         accepted_extensions = [".tif", ".tiff", ".stk"]
 
-        for ext in accepted_extensions:
-            self.analysis_dir.glob(self.experiment_id)
+        candidate_paths = [
+            self.experiment_dir.joinpath(f"{self.experiment_id}{ext}")
+            for ext in accepted_extensions
+        ]
 
-        return ""
+        for path in candidate_paths:
+            if path.exists():
+                return path
+
+        raise ValueError(
+            f"No image found in experiment directory. Tried the following files: {candidate_paths}"
+        )
 
     @property
     def fig_dir(self):
@@ -532,7 +538,7 @@ class Experiment:
                         logging.info(f"Saving ratio images to {ratio_img_path}")
                         for i in tqdm(range(self.rot_fl.animal.size)):
                             fig, ax = plt.subplots(dpi=300)
-                            R = (
+                            ratio_img = (
                                 self.rot_fl.sel(
                                     wavelength=self.config["redox"]["ratio_numerator"],
                                     pair=pair,
@@ -546,14 +552,14 @@ class Experiment:
                                     timepoint=tp,
                                 )
                             )[i]
-                            I = self.rot_fl.sel(
+                            fl_img = self.rot_fl.sel(
                                 wavelength=self.config["redox"]["ratio_numerator"],
                                 pair=pair,
                                 timepoint=tp,
                             )[i]
                             im, cbar = plots.imshow_ratio_normed(
-                                R,
-                                I,
+                                ratio_img,
+                                fl_img,
                                 r_min=u - (std * 1.96),
                                 r_max=u + (std * 1.96),
                                 colorbar=True,
