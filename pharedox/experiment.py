@@ -5,7 +5,6 @@ the analysis pipeline for redox imaging experiments.
 
 import datetime
 import logging
-import pickle
 import warnings
 from pathlib import Path
 
@@ -16,16 +15,17 @@ import xarray as xr
 from matplotlib.backends.backend_pdf import PdfPages
 from strictyaml import (
     Bool,
+    CommaSeparated,
+    Enum,
     Float,
     Int,
     Map,
     MapPattern,
-    CommaSeparated,
     Str,
+    YAMLError,
     load,
 )
 from tqdm import tqdm
-from strictyaml import YAMLError
 
 from pharedox import image_processing as ip
 from pharedox import io as pio
@@ -42,7 +42,7 @@ class Experiment:
             "pipeline": Map(
                 {
                     "strategy": Str(),
-                    "channel_order": CommaSeparated(Str()),
+                    "acquisition_method": Enum(["acquire", "mda"]),
                     "trimmed_profile_length": Int(),
                     "untrimmed_profile_length": Int(),
                     "seg_threshold": Int(),
@@ -98,8 +98,13 @@ class Experiment:
 
     midlines: xr.DataArray = None
 
-    untrimmed_profiles: xr.DataArray = None
-    trimmed_profiles: xr.DataArray = None
+    untrimmed_raw_profiles: xr.DataArray = None
+    untrimmed_std_profiles: xr.DataArray = None
+    untrimmed_reg_profiles: xr.DataArray = None
+
+    trimmed_raw_profiles: xr.DataArray = None
+    trimmed_std_profiles: xr.DataArray = None
+    trimmed_reg_profiles: xr.DataArray = None
 
     channel_warps: xr.DataArray = None
     std_warps: xr.DataArray = None
@@ -119,8 +124,8 @@ class Experiment:
         self.movement_path = self.experiment_dir.joinpath(
             self.experiment_id + "-mvmt.csv"
         )
-        self.indexer_path = self.experiment_dir.joinpath(
-            self.experiment_id + "-indexer.csv"
+        self.frame_map_path = self.experiment_dir.joinpath(
+            self.experiment_id + "-frame_map.csv"
         )
         self.processed_images_dir = self.experiment_dir.joinpath("processed_images")
         self.rot_seg_dir = self.processed_images_dir.joinpath("rot_seg")
@@ -134,8 +139,6 @@ class Experiment:
         self.aligned_seg_images_path = self.processed_images_dir.joinpath(
             "aligned_seg_images.nc"
         )
-
-        self.strains = pio.load_strain_map_from_disk(self.indexer_path)
 
         # load images
         self.images = self._load_raw_images()
@@ -175,16 +178,14 @@ class Experiment:
     def fig_dir(self):
         return self.analysis_dir.joinpath("figs")
 
-    @property
-    def untrimmed_profile_data_path(self):
+    def untrimmed_profile_data_path(self, treatment="raw"):
         return self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_profile_data.nc"
+            self.experiment_id + f"-untrimmed_{treatment}_profile_data.nc"
         )
 
-    @property
-    def trimmed_profile_data_path(self):
+    def trimmed_profile_data_path(self, treatment="raw"):
         return self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_profile_data.nc"
+            self.experiment_id + f"-trimmed_{treatment}_profile_data.nc"
         )
 
     @property
@@ -195,16 +196,14 @@ class Experiment:
     def std_warp_data_path(self):
         return self.analysis_dir.joinpath(self.experiment_id + "-std_warps.nc")
 
-    @property
-    def untrimmed_profile_data_csv_path(self):
+    def untrimmed_profile_data_csv_path(self, treatment="raw"):
         return self.analysis_dir.joinpath(
-            self.experiment_id + "-untrimmed_profile_data.csv"
+            self.experiment_id + f"-untrimmed_{treatment}_profile_data.csv"
         )
 
-    @property
-    def trimmed_profile_data_csv_path(self):
+    def trimmed_profile_data_csv_path(self, treatment="raw"):
         return self.analysis_dir.joinpath(
-            self.experiment_id + "-trimmed_profile_data.csv"
+            self.experiment_id + f"-trimmed_{treatment}_profile_data.csv"
         )
 
     @property
@@ -240,9 +239,8 @@ class Experiment:
         logging.info(f"Loading image data from {self.raw_img_stack_path}")
         raw_image_data = pio.load_tiff_as_hyperstack(
             img_stack_path=self.raw_img_stack_path,
-            strain_map=self.strains,
-            movement_path=self.movement_path,
-            channel_order=self.config["pipeline"]["channel_order"],
+            manual_metadata=self.frame_map_path,
+            mvmt_metadata=self.movement_path,
         )
 
         raw_image_data = raw_image_data.assign_coords(
@@ -277,7 +275,7 @@ class Experiment:
     @property
     def trimmed_summary_table(self):
         df = profile_processing.summarize_over_regions(
-            self.trimmed_profiles,
+            self.trimmed_raw_profiles,
             regions=self.config["pipeline"]["trimmed_regions"],
             **self.config["redox"],
         )
@@ -286,7 +284,7 @@ class Experiment:
     @property
     def untrimmed_summary_table(self):
         df = profile_processing.summarize_over_regions(
-            self.untrimmed_profiles,
+            self.untrimmed_raw_profiles,
             regions=self.config["pipeline"]["untrimmed_regions"],
             **self.config["redox"],
         )
@@ -365,22 +363,24 @@ class Experiment:
 
     def measure_under_midlines(self):
         logging.info("Measuring under midlines")
-        self.untrimmed_profiles = ip.measure_under_midlines(
+        self.untrimmed_raw_profiles = ip.measure_under_midlines(
             self.rot_fl,
             self.midlines,
             n_points=self.config["pipeline"]["untrimmed_profile_length"],
             order=self.config["pipeline"]["measurement_order"],
             thickness=float(self.config["pipeline"]["measure_thickness"]),
         )
-        self.untrimmed_profiles = profile_processing.align_pa(self.untrimmed_profiles)
-        self.untrimmed_profiles = self.add_experiment_metadata_to_data_array(
-            self.untrimmed_profiles
+        self.untrimmed_raw_profiles = profile_processing.align_pa(
+            self.untrimmed_raw_profiles
+        )
+        self.untrimmed_raw_profiles = self.add_experiment_metadata_to_data_array(
+            self.untrimmed_raw_profiles
         )
 
         # subtract the image medians from the profile data
         logging.info("Subtracting image medians from profile data")
-        self.untrimmed_profiles = ip.subtract_medians(
-            self.untrimmed_profiles, self.images
+        self.untrimmed_raw_profiles = ip.subtract_medians(
+            self.untrimmed_raw_profiles, self.images
         )
 
     def register_profiles(self):
@@ -388,30 +388,55 @@ class Experiment:
         if self.config["pipeline"]["population_register"]:
             logging.info("Standardizing profiles")
             (
-                self.untrimmed_profiles,
+                self.untrimmed_std_profiles,
                 self.std_warps,
-            ) = profile_processing.register_profiles_pop(
-                self.untrimmed_profiles,
-                self.config["redox"],
+            ) = profile_processing.standardize_profiles(
+                self.untrimmed_raw_profiles,
+                redox_params=self.config["redox"],
                 **self.config["registration"],
             )
 
         if self.config["pipeline"]["channel_register"]:
             logging.info("Channel-Registering profiles")
+
+            if self.untrimmed_std_profiles is not None:
+                logging.info("using the standardize profiles for channel-registration")
+                data_to_register = self.untrimmed_std_profiles
+            else:
+                logging.info("using the raw profiles for channel-registration")
+                data_to_register = self.untrimmed_raw_profiles
+
             (
-                self.untrimmed_profiles,
+                self.untrimmed_reg_profiles,
                 self.channel_warps,
             ) = profile_processing.channel_register(
-                self.untrimmed_profiles,
+                data_to_register,
                 redox_params=self.config["redox"],
                 reg_params=self.config["registration"],
             )
 
     def trim_data(self):
         logging.info("Trimming intensity data")
-        self.trimmed_profiles = self.add_experiment_metadata_to_data_array(
+
+        self.trimmed_raw_profiles = self.add_experiment_metadata_to_data_array(
             profile_processing.trim_profiles(
-                self.untrimmed_profiles,
+                self.untrimmed_raw_profiles,
+                self.config["pipeline"]["seg_threshold"],
+                ref_wvl=self.config["pipeline"]["reference_wavelength"],
+            )
+        )
+
+        self.trimmed_std_profiles = self.add_experiment_metadata_to_data_array(
+            profile_processing.trim_profiles(
+                self.untrimmed_std_profiles,
+                self.config["pipeline"]["seg_threshold"],
+                ref_wvl=self.config["pipeline"]["reference_wavelength"],
+            )
+        )
+
+        self.trimmed_reg_profiles = self.add_experiment_metadata_to_data_array(
+            profile_processing.trim_profiles(
+                self.untrimmed_reg_profiles,
                 self.config["pipeline"]["seg_threshold"],
                 ref_wvl=self.config["pipeline"]["reference_wavelength"],
             )
@@ -427,12 +452,12 @@ class Experiment:
         self.rot_fl = utils.add_derived_wavelengths(self.rot_fl, **redox_params)
 
         # profiles
-        self.trimmed_profiles = utils.add_derived_wavelengths(
-            self.trimmed_profiles, **redox_params
+        self.trimmed_raw_profiles = utils.add_derived_wavelengths(
+            self.trimmed_raw_profiles, **redox_params
         )
 
-        self.untrimmed_profiles = utils.add_derived_wavelengths(
-            self.untrimmed_profiles, **redox_params
+        self.untrimmed_raw_profiles = utils.add_derived_wavelengths(
+            self.untrimmed_raw_profiles, **redox_params
         )
 
     def do_manual_ap_flips(self):
@@ -440,12 +465,8 @@ class Experiment:
         logging.info("skipping manual AP flips - not implemented")
 
     def flip_at(self, idx):
-        # TODO use get_axis_num here and flip with xarray along correct dimension
-        logging.debug(f"manually flipping animal {idx}")
-        np.fliplr(self.rot_fl[:, idx])
-        np.fliplr(self.rot_seg[:, idx])
-        np.fliplr(self.untrimmed_profiles[:, idx])
-        np.fliplr(self.trimmed_profiles[:, idx])
+        # TODO finish implementation
+        raise NotImplementedError
 
     ####################################################################################
     # PERSISTENCE / IO
@@ -472,45 +493,67 @@ class Experiment:
         fig_dir.mkdir(parents=True, exist_ok=True)
         return fig_dir
 
+    def save_individual_profiles(self, profile_data, treatment: str, trimmed: bool):
+        if profile_data is None:
+            return
+
+        fig_dir = self.make_fig_dir()
+
+        profile_data_fig_dir = (
+            fig_dir
+            / "profile_data"
+            / treatment
+            / ("trimmed" if trimmed else "untrimmed")
+        )
+
+        individual_data_fig_dir = profile_data_fig_dir.joinpath("inividual")
+        individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
+
+        for title, fig in plots.generate_wvl_pair_timepoint_profile_plots(profile_data):
+            title = title.replace(" ", "")
+            fig.savefig(
+                individual_data_fig_dir
+                / f"{self.experiment_id}-{title}-individuals.pdf"
+            )
+            plt.close(fig)
+
+    def save_avg_profiles(self, profile_data, treatment: str, trimmed: bool):
+        if profile_data is None:
+            return
+
+        fig_dir = self.make_fig_dir()
+
+        profile_data_fig_dir = (
+            fig_dir
+            / "profile_data"
+            / treatment
+            / ("trimmed" if trimmed else "untrimmed")
+        )
+
+        individual_data_fig_dir = profile_data_fig_dir.joinpath("avg")
+        individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
+
+        for title, fig in plots.generate_avg_wvl_pair_profile_plots(profile_data):
+            title = title.replace(" ", "")
+            fig.savefig(
+                individual_data_fig_dir / f"{self.experiment_id}-{title}-avg.pdf"
+            )
+            plt.close(fig)
+
     def save_plots(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            fig_dir = self.make_fig_dir()
 
-            # First, save profile data plots
-            profile_fig_dir = fig_dir.joinpath("profile_data")
-
-            # need both trimmed and untrimmed data
-            for prefix, data in zip(
-                ("un", ""), (self.untrimmed_profiles, self.trimmed_profiles)
-            ):
-                profile_data_fig_dir = profile_fig_dir.joinpath(
-                    prefix + "trimmed_profiles"
-                )
-
-                # individual data
-                individual_data_fig_dir = profile_data_fig_dir.joinpath("individual")
-                individual_data_fig_dir.mkdir(exist_ok=True, parents=True)
-                for title, fig in plots.generate_wvl_pair_timepoint_profile_plots(data):
-                    title = title.replace(" ", "")
-                    fig.savefig(
-                        individual_data_fig_dir.joinpath(
-                            f"{self.experiment_id}-{title}-individuals.pdf"
-                        )
-                    )
-                    plt.close(fig)
-
-                # avg. data
-                avgs_data_fig_dir = profile_data_fig_dir.joinpath("avgs")
-                avgs_data_fig_dir.mkdir(exist_ok=True, parents=True)
-                for title, fig in plots.generate_avg_wvl_pair_profile_plots(data):
-                    title = title.replace(" ", "")
-                    fig.savefig(
-                        avgs_data_fig_dir.joinpath(
-                            f"{self.experiment_id}-{title}-avgs.pdf"
-                        )
-                    )
-                    plt.close(fig)
+            for data, treatment, trimmed in [
+                (self.untrimmed_raw_profiles, "raw", False),
+                (self.untrimmed_std_profiles, "standardized", False),
+                (self.untrimmed_reg_profiles, "channel-registered", False),
+                (self.trimmed_raw_profiles, "raw", True),
+                (self.trimmed_std_profiles, "standardized", True),
+                (self.trimmed_reg_profiles, "channel-registered", True),
+            ]:
+                self.save_individual_profiles(data, treatment, trimmed)
+                self.save_avg_profiles(data, treatment, trimmed)
 
             # frame-normed Ratio Images
             mvmt_annotation_img_path = self.fig_dir.joinpath(
@@ -526,8 +569,8 @@ class Experiment:
                         plt.close("all")
 
             # Pop-normed ratio images
-            u = self.trimmed_profiles.sel(wavelength="r").mean()
-            std = self.trimmed_profiles.sel(wavelength="r").std()
+            u = self.trimmed_raw_profiles.sel(wavelength="r").mean()
+            std = self.trimmed_raw_profiles.sel(wavelength="r").std()
 
             for pair in self.rot_fl.pair.values:
                 for tp in self.rot_fl.timepoint.values:
@@ -577,16 +620,16 @@ class Experiment:
                             strain = self.rot_fl.strain.values[i]
                             ax.set_title(f"Animal={i} ; Pair={pair} ; Strain={strain}")
                             cax = cbar.ax
-                            for j in range(len(self.trimmed_profiles)):
+                            for j in range(len(self.trimmed_raw_profiles)):
                                 cax.axhline(
-                                    self.trimmed_profiles.sel(
+                                    self.trimmed_raw_profiles.sel(
                                         wavelength="r", pair=pair, timepoint=tp
                                     )[j].mean(),
                                     color="k",
                                     alpha=0.1,
                                 )
                             cax.axhline(
-                                self.trimmed_profiles.sel(
+                                self.trimmed_raw_profiles.sel(
                                     wavelength="r", pair=pair, timepoint=tp
                                 )[i].mean(),
                                 color="k",
@@ -596,14 +639,44 @@ class Experiment:
                                 plt.close("all")
 
     def persist_profile_data(self):
-        # First, the netCDF4 format
-        logging.info(
-            f"Saving untrimmed profile data to {self.untrimmed_profile_data_path}"
-        )
-        pio.save_profile_data(self.untrimmed_profiles, self.untrimmed_profile_data_path)
+        for treatment, untrimmed_profile_data in (
+            ("raw", self.untrimmed_raw_profiles),
+            ("std", self.untrimmed_std_profiles),
+            ("reg", self.untrimmed_reg_profiles),
+        ):
+            if untrimmed_profile_data is not None:
+                untrimmed_prof_path = self.untrimmed_profile_data_path(treatment)
+                logging.info(
+                    f"Saving untrimmed {treatment} profile data to {untrimmed_prof_path}"
+                )
+                pio.save_profile_data(untrimmed_profile_data, untrimmed_prof_path)
 
-        logging.info(f"Saving trimmed profile data to {self.trimmed_profile_data_path}")
-        pio.save_profile_data(self.trimmed_profiles, self.trimmed_profile_data_path)
+                untrimmed_prof_path_csv = self.untrimmed_profile_data_csv_path(
+                    treatment
+                )
+                profile_processing.to_dataframe(untrimmed_profile_data, "value").to_csv(
+                    untrimmed_prof_path_csv
+                )
+
+        for treatment, trimmed_profile_data in (
+            ("raw", self.trimmed_raw_profiles),
+            ("std", self.trimmed_std_profiles),
+            ("reg", self.trimmed_reg_profiles),
+        ):
+            if trimmed_profile_data is not None:
+                trimmed_prof_path = self.trimmed_profile_data_path(treatment)
+                logging.info(
+                    f"Saving trimmed {treatment} profile data to {trimmed_prof_path}"
+                )
+                pio.save_profile_data(trimmed_profile_data, trimmed_prof_path)
+
+                trimmed_prof_path_csv = self.trimmed_profile_data_csv_path(treatment)
+                logging.info(
+                    f"Saving trimmed {treatment} profile data to {trimmed_prof_path_csv}"
+                )
+                profile_processing.to_dataframe(trimmed_profile_data, "value").to_csv(
+                    trimmed_prof_path_csv
+                )
 
         # Warps, if necessary
         if self.config["pipeline"]["channel_register"]:
@@ -613,14 +686,6 @@ class Experiment:
         if self.config["pipeline"]["population_register"]:
             logging.info(f"Saving channel warp data to {self.std_warp_data_path}")
             self.std_warps.to_netcdf(self.std_warp_data_path)
-
-        # Now, save the profile data in "tidy" format as CSV
-        profile_processing.to_dataframe(self.trimmed_profiles, "value").to_csv(
-            self.trimmed_profile_data_csv_path
-        )
-        profile_processing.to_dataframe(self.untrimmed_profiles, "value").to_csv(
-            self.untrimmed_profile_data_csv_path
-        )
 
     def save_summary_data(self):
         # Persist the region means
@@ -668,7 +733,7 @@ class Experiment:
         params.update(self.config["redox"])
         params.update(self.config["registration"])
 
-        to_remove = ["channel_order", "trimmed_regions", "untrimmed_regions"]
+        to_remove = ["trimmed_regions", "untrimmed_regions"]
         for k in to_remove:
             del params[k]
 

@@ -260,7 +260,40 @@ def smooth_profile_data(
     )
 
 
-def _register_profiles_pop(
+def standardize_profiles(
+    profile_data: xr.DataArray, redox_params, eng=None, **reg_kwargs,
+) -> (xr.DataArray, xr.DataArray):
+
+    try:
+        import matlab.engine
+    except ImportError:
+        logging.warn("MATLAB engine not installed! Skipping registration.")
+        return profile_data
+
+    if eng is None:
+        eng = matlab.engine.start_matlab()
+
+    std_profile_data = profile_data.copy()
+    std_warp_data = profile_data.copy().isel(wavelength=0)
+
+    for tp in profile_data.timepoint:
+        for pair in profile_data.pair:
+            selector = dict(timepoint=tp, pair=pair)
+
+            data = std_profile_data.sel(**selector)
+            std_data_, warp_ = _standardize_profiles(
+                profile_data=data, eng=eng, **reg_kwargs
+            )
+            std_profile_data.loc[selector] = std_data_
+            std_warp_data.loc[selector] = np.array(warp_).T
+
+    std_profile_data = std_profile_data.assign_attrs(**reg_kwargs)
+    std_profile_data = utils.add_derived_wavelengths(std_profile_data, **redox_params)
+
+    return std_profile_data, std_warp_data
+
+
+def _standardize_profiles(
     profile_data: xr.DataArray,
     eng=None,
     n_deriv: float = 2.0,
@@ -275,7 +308,7 @@ def _register_profiles_pop(
     warp_order: float = 4.0,
     ratio_numerator: str = "410",
     ratio_denominator: str = "470",
-) -> xr.DataArray:
+) -> (xr.DataArray, xr.DataArray):
     try:
         import matlab.engine
     except ImportError:
@@ -311,42 +344,9 @@ def _register_profiles_pop(
 
     r410, r470 = np.array(r410).T, np.array(r470).T
 
-    reg_profile_data.loc[dict(wavelength="410")] = r410
-    reg_profile_data.loc[dict(wavelength="470")] = r470
+    reg_profile_data.loc[dict(wavelength=ratio_numerator)] = r410
+    reg_profile_data.loc[dict(wavelength=ratio_denominator)] = r470
 
-    return reg_profile_data, warp_data
-
-
-def register_profiles_pop(
-    profile_data: xr.DataArray,
-    redox_params,
-    eng=None,
-    progress_bar=False,
-    **reg_kwargs,
-) -> xr.DataArray:
-    try:
-        import matlab.engine
-    except ImportError:
-        logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data
-
-    if eng is None:
-        eng = matlab.engine.start_matlab()
-
-    reg_profile_data = profile_data.copy()
-    warp_data = []
-    disable_progress = not progress_bar
-    for tp in tqdm(profile_data.timepoint, disable=disable_progress, desc="timepoint"):
-        for pair in tqdm(profile_data.pair, disable=disable_progress, desc="pair"):
-            selector = dict(timepoint=tp, pair=pair)
-
-            data = reg_profile_data.sel(**selector)
-            reg_data, warp_data = _register_profiles_pop(
-                profile_data=data, eng=eng, **reg_kwargs
-            )
-            reg_profile_data.loc[selector] = reg_data
-    reg_profile_data = reg_profile_data.assign_attrs(**reg_kwargs)
-    reg_profile_data = utils.add_derived_wavelengths(reg_profile_data, **redox_params)
     return reg_profile_data, warp_data
 
 

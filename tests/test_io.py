@@ -17,7 +17,7 @@ class TestIO:
                 / "2017_02_22-HD233_SAY47"
                 / "2017_02_22-HD233_SAY47.tif"
             ),
-            indexer_path=(
+            frame_metadata=(
                 shared_datadir
                 / "experiments"
                 / "2017_02_22-HD233_SAY47"

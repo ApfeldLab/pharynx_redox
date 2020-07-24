@@ -1,6 +1,6 @@
 pipeline:
     strategy: ""
-    channel_order: TL, 470, 410, 470, 410
+    acquisition_method: acquire
     trimmed_profile_length: 200
     untrimmed_profile_length: 200
     seg_threshold: 2000

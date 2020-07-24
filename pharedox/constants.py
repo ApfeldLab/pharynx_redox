@@ -6,6 +6,7 @@ trimmed_regions = {
     "pm7": [0.88, 0.96],
 }
 
+# old regions
 # untrimmed_regions = {
 #     "pm3": [0.18, 0.33],
 #     "pm4": [0.38, 0.46],

@@ -97,9 +97,6 @@ def subtract_medians(
 
     submed = data.copy()
     submed.values = np.maximum(data - image_data.median(dim=["x", "y"]), 0)
-    if "TL" in data.wavelength.values:
-        submed.loc[dict(wavelength="TL")] = data.sel(wavelength="TL")
-    submed = submed.astype(data.dtype)
     return submed
 
 
@@ -932,12 +929,8 @@ def register_all_images(
                 moving = imgs.sel(
                     animal=animal, pair=pair, timepoint=timepoint, wavelength=moving_wvl
                 )
-                mask = masks.sel(
-                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
-                )
-                bbox = bboxes.sel(
-                    animal=animal, pair=pair, timepoint=timepoint, wavelength=mask_wvl
-                )
+                mask = masks.sel(animal=animal, pair=pair, timepoint=timepoint)
+                bbox = bboxes.sel(animal=animal, pair=pair, timepoint=timepoint)
 
                 # crop image
                 crop_fixed = crop(fixed, bbox)

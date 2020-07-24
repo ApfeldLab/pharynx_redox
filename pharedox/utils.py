@@ -1,24 +1,55 @@
-import subprocess
-import sys
-import argparse
+import logging
 import os
 import re
 import subprocess
+import sys
 import typing
+import warnings
 from collections import Counter
 from pathlib import Path
-import warnings
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import ndimage as ndi
 from skimage.measure import label, regionprops
-import logging
 
-
-from pharedox import experiment
 from pharedox import profile_processing as pp
+
+
+def midlines_xarray_to_napari(midlines: xr.DataArray, n: int) -> None:
+    """
+    Convert the xarray midline storage to the format that napari expects
+
+    Parameters
+    ----------
+    midlines
+    n
+
+    Returns
+    -------
+
+    """
+
+    def get_midline_pts(midline, n=10):
+        y, x = midline.linspace(n)
+        return np.stack([x, y]).T
+
+    lines = xr.apply_ufunc(
+        get_midline_pts,
+        midlines,
+        n,
+        vectorize=True,
+        output_core_dims=[["vertex", "xy"]],
+    ).transpose("vertex", "animal", "timepoint", "pair", "xy")
+    lines_list = []
+    for a in lines.animal:
+        for t in lines.timepoint:
+            for p in lines.pair:
+                line_i = lines.sel(animal=a, timepoint=t, pair=p).values
+                line_i = np.hstack((np.tile([a, t, p], (n, 1)), line_i))
+                lines_list.append(line_i)
+    return lines_list
 
 
 def stack_to_hyperstack(data, channel_order, strains, metadata=None):
@@ -119,13 +150,13 @@ def parse_reg_param_filename(s: Path):
     ...  'smooth_order': '6.0',
     ...  'warp_lambda': '10000.0',
     ...  'warp_n_basis': '10.0',
-    ...  'warp_order': '4.0'} 
-    
+    ...  'warp_order': '4.0'}
+
     Parameters
     ----------
     s : Path
         the filename for the registration data
-    
+
     Returns
     -------
     dict
@@ -141,7 +172,7 @@ def validate_pharynx_mask(mask: xr.DataArray):
     """
     Validate that the given pharyngeal mask image satisfies all requirements for further
     analysis.
-    
+
     Parameters
     ----------
     mask : xr.DataArray
@@ -153,7 +184,7 @@ def validate_pharynx_mask(mask: xr.DataArray):
 def send_data_to_matlab(data: typing.Union[xr.DataArray, np.ndarray], var_name: str):
     """
     Send data to MATLAB session currently running. Useful for debugging MATLAB code.
-    
+
     Parameters
     ----------
     data : typing.Union[xr.DataArray, np.ndarray]
@@ -452,7 +483,7 @@ def measure_shifted_midlines(
     """
     shifts = np.linspace(*shift_range, shift_steps)
 
-    ex_meas = experiment.trimmed_profiles
+    ex_meas = experiment.trimmed_raw_profiles
 
     df = experiment.movement
     df = pd.DataFrame(df.to_records())

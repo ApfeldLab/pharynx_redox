@@ -21,6 +21,10 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 MIN_PY_MAJOR_VER = 3
 MIN_PY_MINOR_VER = 7
 MIN_PY_VER = f"{MIN_PY_MAJOR_VER}.{MIN_PY_MINOR_VER}"
+
+MAX_PY_MAJOR_VER = 3
+MAX_PY_MINOR_VER = 7
+MAX_PY_VER = f"{MIN_PY_MAJOR_VER}.{MIN_PY_MINOR_VER}"
 DISTNAME = "pharedox"
 DESCRIPTION = "Software tools for measuring cytosolic redox state in the pharynx of the nematode C. elegans"
 LONG_DESCRIPTION = long_description
@@ -79,6 +83,7 @@ requirements = [
     "sphinx-autodoc-typehints>=1.10.3",
     "numpydoc>=0.9.2",
     "jupyter>=1.0.0,<2",
+    "pandera>=0.4.4,<0.5.0"
 ]
 
 
@@ -201,7 +206,7 @@ setup(
     classifiers=CLASSIFIERS,
     keywords="image-analysis biology microscopy",
     packages=find_packages(include=["pharedox", "pharedox.*"]),
-    python_requires=f">={MIN_PY_VER}",
+    python_requires=f">={MIN_PY_VER},<={MAX_PY_VER}",
     install_requires=requirements,
     project_urls={"Bug Reports": "https://github.com/ApfeldLab/pharynx_redox/issues"},
     entry_points="""
