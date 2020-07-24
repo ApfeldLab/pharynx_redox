@@ -14,6 +14,7 @@ test_data_path = Path(os.path.join(os.path.dirname(__file__), "test_data"))
 class TestUtils:
     @pytest.fixture(scope="function")
     def paired_imgs(self, shared_datadir):
+
         return pio.load_tiff_as_hyperstack(
             (
                 shared_datadir
@@ -21,13 +22,18 @@ class TestUtils:
                 / "2017_02_22-HD233_SAY47"
                 / "2017_02_22-HD233_SAY47.tif"
             ),
-            indexer_path=(
+            manual_metadata=(
                 shared_datadir
                 / "experiments"
                 / "2017_02_22-HD233_SAY47"
-                / "2017_02_22-HD233_SAY47-indexer.csv"
+                / "2017_02_22-HD233_SAY47-frame_map.csv"
             ),
-            channel_order=["TL", "470", "410", "470", "410"],
+            mvmt_metadata=(
+                shared_datadir
+                / "experiments"
+                / "2017_02_22-HD233_SAY47"
+                / "2017_02_22-HD233_SAY47-mvmt.csv"
+            ),
         )
 
     def test_create_occurrence_count_tuples(self):

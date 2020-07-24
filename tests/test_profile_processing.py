@@ -1,12 +1,8 @@
 import logging
-import os
-from unittest.mock import patch
 
-import numpy as np
 import pytest
-import xarray as xr
 
-from pharedox import experiment, pio
+from pharedox import pio
 from pharedox import profile_processing as pp
 
 
@@ -65,3 +61,23 @@ class TestProfileProcessing:
         )
 
         assert raw_data.animal.size == reg_data.animal.size
+
+    @pytest.mark.matlab
+    def test_standardization(self, matlab_engine, shared_datadir):
+        raw_data = pio.load_profile_data(
+            shared_datadir
+            / "experiments"
+            / "2017_02_23-HD233_HD236"
+            / "analyses"
+            / "2020-05-22"
+            / "2017_02_23-HD233_HD236-untrimmed_profile_data.nc"
+        ).isel(animal=[0, 1, 2])
+
+        std_data, std_warp = pp.standardize_profiles(
+            raw_data,
+            redox_params=self.redox_params,
+            eng=matlab_engine,
+            **self.reg_d2_parameters,
+        )
+
+        assert raw_data.animal.size == std_data.animal.size

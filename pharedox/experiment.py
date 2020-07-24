@@ -13,8 +13,18 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib.backends.backend_pdf import PdfPages
-from strictyaml import (Bool, CommaSeparated, Enum, Float, Int, Map,
-                        MapPattern, Str, YAMLError, load)
+from strictyaml import (
+    Bool,
+    CommaSeparated,
+    Enum,
+    Float,
+    Int,
+    Map,
+    MapPattern,
+    Str,
+    YAMLError,
+    load,
+)
 from tqdm import tqdm
 
 from pharedox import image_processing as ip
@@ -416,21 +426,23 @@ class Experiment:
             )
         )
 
-        self.trimmed_std_profiles = self.add_experiment_metadata_to_data_array(
-            profile_processing.trim_profiles(
-                self.untrimmed_std_profiles,
-                self.config["pipeline"]["seg_threshold"],
-                ref_wvl=self.config["pipeline"]["reference_wavelength"],
+        if self.untrimmed_std_profiles is not None:
+            self.trimmed_std_profiles = self.add_experiment_metadata_to_data_array(
+                profile_processing.trim_profiles(
+                    self.untrimmed_std_profiles,
+                    self.config["pipeline"]["seg_threshold"],
+                    ref_wvl=self.config["pipeline"]["reference_wavelength"],
+                )
             )
-        )
 
-        self.trimmed_reg_profiles = self.add_experiment_metadata_to_data_array(
-            profile_processing.trim_profiles(
-                self.untrimmed_reg_profiles,
-                self.config["pipeline"]["seg_threshold"],
-                ref_wvl=self.config["pipeline"]["reference_wavelength"],
+        if self.untrimmed_reg_profiles is not None:
+            self.trimmed_reg_profiles = self.add_experiment_metadata_to_data_array(
+                profile_processing.trim_profiles(
+                    self.untrimmed_reg_profiles,
+                    self.config["pipeline"]["seg_threshold"],
+                    ref_wvl=self.config["pipeline"]["reference_wavelength"],
+                )
             )
-        )
 
     def calculate_redox(self):
         logging.info("Calculating redox measurements")
