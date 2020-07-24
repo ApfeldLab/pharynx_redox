@@ -62,7 +62,12 @@ def get_image_metadata_metamorph_acquire(img_path: Union[Path, str]) -> pd.DataF
     with tifffile.TiffFile(str(img_path)) as tif:
         for page in tif.pages:
             xml_string = page.tags["ImageDescription"].value
-            root = ET.fromstring(xml_string)
+            try:
+                root = ET.fromstring(xml_string)
+            except ET.ParseError:
+                raise AttributeError(
+                    "Invalid metadata in file. Might have been processed by ImageJ?"
+                )
 
             for prop in root.findall("prop"):
                 if prop.get("id") == "Description":
@@ -330,7 +335,7 @@ def load_tiff_as_hyperstack(
     img_data_3d = read_image_raw(img_stack_path)
 
     if isinstance(manual_metadata, (str, Path)):
-        manual_metadata = pd.read_csv(manual_metadata)
+        manual_metadata = pd.read_csv(manual_metadata, dtype={"notes": str})
 
     manual_metadata = validate_frame_metadata(manual_metadata)
 
@@ -378,14 +383,14 @@ def load_tiff_as_hyperstack(
     )
 
     # METADATA
-
-    mvmt_metadata = Path(mvmt_metadata)
-    if mvmt_metadata.exists():
-        mvmt_metadata = validate_movement_annotations(pd.read_csv(mvmt_metadata))
-        mvmt_xarray = mvmt_metadata.set_index(
-            ["animal", "timepoint", "pair"]
-        ).to_xarray()
-        da = da.assign_coords(mvmt_xarray)
+    if mvmt_metadata is not None:
+        mvmt_metadata = Path(mvmt_metadata)
+        if mvmt_metadata.exists():
+            mvmt_metadata = validate_movement_annotations(pd.read_csv(mvmt_metadata))
+            mvmt_xarray = mvmt_metadata.set_index(
+                ["animal", "timepoint", "pair"]
+            ).to_xarray()
+            da = da.assign_coords(mvmt_xarray)
 
     # add image data to hyperstack
     # this is the slowest piece of the function, but can't think of a better way to do it

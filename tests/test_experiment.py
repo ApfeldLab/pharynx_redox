@@ -7,13 +7,13 @@ import xarray as xr
 
 from pharedox import experiment
 from pharedox import image_processing as ip
-from pharedox import io
+from pharedox import pio
 
 
 class TestExperiment:
     @pytest.fixture(scope="function")
     def paired_imgs(self, shared_datadir):
-        return io.load_tiff_as_hyperstack(
+        return pio.load_tiff_as_hyperstack(
             (
                 shared_datadir
                 / "experiments"

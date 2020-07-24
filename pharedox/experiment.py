@@ -28,7 +28,7 @@ from strictyaml import (
 from tqdm import tqdm
 
 from pharedox import image_processing as ip
-from pharedox import io as pio
+from pharedox import pio as pio
 from pharedox import plots, profile_processing, utils
 
 

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from pharedox import experiment, io
+from pharedox import experiment, pio
 from pharedox import profile_processing as pp
 
 
@@ -48,7 +48,7 @@ class TestProfileProcessing:
 
     @pytest.mark.matlab
     def test_channel_registration(self, matlab_engine, shared_datadir):
-        raw_data = io.load_profile_data(
+        raw_data = pio.load_profile_data(
             shared_datadir
             / "experiments"
             / "2017_02_23-HD233_HD236"

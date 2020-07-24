@@ -8,7 +8,7 @@ import xarray as xr
 from scipy import ndimage as ndi
 
 from pharedox import profile_processing
-from pharedox import io as pio
+from pharedox import pio as pio
 
 
 def fold_v_point_table(

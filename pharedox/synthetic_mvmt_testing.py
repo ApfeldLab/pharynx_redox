@@ -1,5 +1,5 @@
 from pharedox import (
-    io as pio,
+    pio as pio,
     image_processing as ip,
     experiment,
     plots,
