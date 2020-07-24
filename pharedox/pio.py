@@ -1,7 +1,6 @@
 import itertools
 import logging
 import pickle
-import uuid
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime

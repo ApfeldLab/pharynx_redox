@@ -1,18 +1,17 @@
 import logging
 from typing import Union
 
-import SimpleITK as sITK
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+import SimpleITK as sITK
 import xarray as xr
 from numpy.polynomial.polynomial import Polynomial
 from scipy import ndimage as ndi
 from scipy.stats import norm, zscore
-from skimage import io
-from skimage import measure, transform
+from skimage import io, measure, transform
 from skimage.measure import label, regionprops
 from skimage.transform import AffineTransform, warp
 

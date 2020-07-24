@@ -1,11 +1,11 @@
 import logging
 import warnings
-from typing import Union, Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy import spatial, signal
+from scipy import signal, spatial
 from tqdm.auto import tqdm
 
 from pharedox import utils

@@ -1,14 +1,16 @@
 import sys
+from dataclasses import astuple, dataclass
+
+import numpy as np
+import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
-import pyqtgraph as pg
 from pyqtgraph import Point
 from pyqtgraph.graphicsItems.ROI import ROI
 from scipy import interpolate
 from scipy.spatial.distance import cdist
-from dataclasses import dataclass, astuple
+
 from pharedox.gui.qt_py_files.spline_editor import Ui_Form
-import numpy as np
 
 
 class Spline:

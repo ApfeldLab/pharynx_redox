@@ -1,14 +1,14 @@
+import typing
 from pathlib import Path
 from typing import List
 
 import numpy as np
 import pandas as pd
-import typing
 import xarray as xr
 from scipy import ndimage as ndi
 
-from pharedox import profile_processing
 from pharedox import pio as pio
+from pharedox import profile_processing
 
 
 def fold_v_point_table(

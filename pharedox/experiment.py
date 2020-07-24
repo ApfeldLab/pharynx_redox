@@ -13,18 +13,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib.backends.backend_pdf import PdfPages
-from strictyaml import (
-    Bool,
-    CommaSeparated,
-    Enum,
-    Float,
-    Int,
-    Map,
-    MapPattern,
-    Str,
-    YAMLError,
-    load,
-)
+from strictyaml import (Bool, CommaSeparated, Enum, Float, Int, Map,
+                        MapPattern, Str, YAMLError, load)
 from tqdm import tqdm
 
 from pharedox import image_processing as ip

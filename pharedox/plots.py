@@ -2,6 +2,7 @@
 Miscellaneous and sundry plotting functions for to please your visual cortex 
 """
 
+import typing
 import warnings
 from pathlib import Path
 from typing import Dict, Union
@@ -10,9 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import typing
 import xarray as xr
-from matplotlib import cm, gridspec, colors, image, transforms
+from matplotlib import cm, colors, gridspec, image, transforms
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import stats
@@ -20,7 +20,8 @@ from skimage.measure import label, regionprops
 from statsmodels.stats.weightstats import DescrStatsW
 from tqdm.auto import tqdm
 
-from pharedox import data_analysis as da, constants
+from pharedox import constants
+from pharedox import data_analysis as da
 
 
 def imshow_r_stack(

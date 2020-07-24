@@ -1,9 +1,7 @@
-import os
-import pytest
-from unittest.mock import MagicMock
-from unittest.mock import patch
-import xarray as xr
 import numpy as np
+import pytest
+import xarray as xr
+
 from pharedox import pio
 
 
@@ -61,7 +59,6 @@ class TestIO:
 
         assert type(paired_imgs) == xr.DataArray
 
-    # @pytest.mark.skip("Time not added to data at this point")
     def test_save_load_from_disk_identical(self, paired_imgs, shared_datadir):
         path = shared_datadir / "paired_imgs.nc"
 
