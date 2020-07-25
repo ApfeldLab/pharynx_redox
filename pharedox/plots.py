@@ -33,7 +33,6 @@ def imshow_r_stack(
     cmap: str = "coolwarm",
     width: int = 80,
     height: int = 30,
-    progress_bar: bool = True,
     colorbar=True,
 ):
     output_dir = Path(output_dir)
@@ -69,7 +68,7 @@ def imshow_r_stack(
                     i += 1
 
 
-def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=["TL"]):
+def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=None):
     """
     For each wavelength and pair in the given data, this function plots a line plot with
     each color representing a unique strain. The line is the mean value across animals
@@ -77,9 +76,11 @@ def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=[
     
     Parameters
     ----------
-    data : [type]
-        [description]
+    data
+    ignored_wvls
     """
+    if ignored_wvls is None:
+        ignored_wvls = ["TL"]
     strains = np.unique(data.strain.values)
     cmap = plt.get_cmap("Set2")
     colormap = dict(zip(strains, cmap.colors))
@@ -116,7 +117,7 @@ def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=[
 
 
 def generate_avg_wvl_pair_profile_plots(
-    data: xr.DataArray, ignored_wvls: typing.List[str] = ["TL"]
+    data: xr.DataArray, ignored_wvls: typing.List[str] = None
 ):
     """
     For each wavelength and pair in the given data, this function plots a line plot with
@@ -129,6 +130,8 @@ def generate_avg_wvl_pair_profile_plots(
     data : [type]
         [description]
     """
+    if ignored_wvls is None:
+        ignored_wvls = ["TL"]
     strains = np.unique(data.strain.values)
     cmap = plt.get_cmap("Set2")
     colormap = dict(zip(strains, cmap.colors))

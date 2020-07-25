@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import signal, spatial
-from tqdm.auto import tqdm
 
 from pharedox import utils
 
@@ -531,7 +530,6 @@ def get_trim_boundaries(
     """
     prof_len = data.position.size
     data_reversed = data.reindex(position=list(reversed(data.position)))
-    axis_num = data.sel(wavelength=ref_wvl).get_axis_num("position")
     l_bound = (data.sel(wavelength=ref_wvl) >= thresh).argmax(dim="position").data - 1
     r_bound = (
         prof_len
