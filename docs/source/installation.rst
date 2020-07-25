@@ -1,138 +1,175 @@
 .. _installation:
 
-############
 Installation
 ############
 
 Basic Installation
 ==================
 
-Ensure that you have python installed on your system.::
+PhaRedox is a `Python <https://www.python.org/>`_ package. Many operating systems
+ship with their own versions of Python, but these are either out of date or are
+dangerous to mess with (as many system tools require them). Thus, it is recommended
+that you install an alternate version of Python, separate from the one that ships
+with your computer. I suggest that you use `Anaconda <https://www.anaconda.com/>`_ to
+manage your Python versions. Anaconda is the most popular Python environment
+management tool for scientists. However, if you prefer to manage your own Python
+environments with `pyenv <https://github.com/pyenv/pyenv>`_ and `pyenv-virtualenv
+<https://github.com/pyenv/pyenv-virtualenv>`_, that will work perfectly well too.
+Anaconda is nice because it works the same in macOS, Windows, and Linux - which means
+that I only have to write one set of installation instructions!
 
-    $ python --version
-    Python 3.7.6
+Installing Anaconda
+-------------------
 
-.. warning::
-    Pharedox is not tested for Python < 3.7
+The easiest way to install Anaconda is to navigate to their `download page
+<https://www.anaconda.com/products/individual>`_ then download and execute the
+appropriate file for your operating system.
 
+Creating a New Environment
+--------------------------
 
-Before moving forward, I would suggest that you use a virtual environments. Virtual
-environments keep packages that PhaRedox needs separate from your system's global
-python environment. See the instructions `here <https://python-guide-cn.readthedocs
-.io/en/latest/dev/virtualenvs.html>`_. Note that this is *not required*, but is
-helpful in the long run.
+The fastest way to create a new environment is through the terminal (macOS/Linux) or
+the Anaconda Prompt (Windows, you can find this in your Start Menu). Simply execute
+the following command::
 
-.. note::
-    Make sure to call your virtual environment something meaningful, like ``pharedox``.
+    conda create --name pharedox python=3.7
 
-If you did set up a virtual environment, make sure to activate it whenever you want
-to use PhaRedox. The process should look something like this::
+This will create a new Python installation that is isolated from your operating
+system's Python installation.
 
-    $ workon pharedox
-    (pharedox) $
+Installing the PhaRedox Library
+-------------------------------
 
-If you think that you will want to edit the source code, follow the instructions on
-`How to set up a development environment`_. Otherwise, after you have set up a
-virtual environment (or if you skipped that), simply execute the following line::
+Now that you have a custom Python environment, we can install PhaRedox.
 
-    pip install pharedox
+Installing Git
+++++++++++++++
+
+For the time being, we will install PhaRedox through its source code. The first step
+is to download the source code via Git (the software that we use to track code
+changes). By downloading PhaRedox through Git, you will be able to easily pull down
+the latest changes.
+
+In macOs, the easiest way to install Git is to try to run the following command::
+
+    git --version
+
+If you have Git installed, you're good to go. Otherwise, the system will prompt you
+to install Xcode Command Line Tools. Simply follow the prompts and try the command
+again - this time it should succeed.
+
+In Windows, the easiest way is to install `GitHub Desktop <https://desktop.github
+.com/>`. Simply download and run the installer.
+
+Downloading the Source Code
++++++++++++++++++++++++++++
+
+Now that Git is installed, we can download the source code. In macOS / Linux, open
+your terminal, and navigate to where you would like the source code folder to reside::
+
+    cd Path/to/parent/directory
+
+Then, run the following command to download the source code into a new folder::
+
+    git clone https://github.com/ApfeldLab/pharynx_redox.git
+
+In Windows, follow `these <https://docs.github
+.com/en/desktop/contributing-and-collaborating-using-github-desktop/cloning-a
+-repository-from-github-to-github-desktop>`_ instructions. The link to the repository
+(where you will find the green button in the instructions) is here: https://github
+.com/ApfeldLab/pharynx_redox.
+
+Installing the Code
++++++++++++++++++++
+
+Activate your conda environment. In macOS, execute these commands in Terminal. In
+Windows, execute them in Anaconda Prompt (you can find this in the Start Menu)::
+
+    conda activate pharedox
+
+Then, install the PhaRedox library::
+
+    pip install -e Path/to/parent/directory/pharedox
+
+In Windows, the slashes go the opposite way::
+
+    pip install -e C:Path\to\parent\directory\pharedox
 
 MATLAB
-======
+~~~~~~
 
-If you would like to use the `1D Profile Registration` features, you will need to
-set up the MATLAB python engine. Ensure that MATLAB is installed before continuing
-(your university probably has instructions on how to do this).
+PhaRedox requires MATLAB for its 1D profile registration algorithm. Thus, we will
+need to install that MATLAB library in your new Python environment. Unfortunately,
+this process is difficult to automate - so it's left for you!
+
+First, install MATLAB if you don't have it already.
 
 .. warning::
     PhaRedox was developed using ``MATLAB_R2019a``. Other versions are not guaranteed
     to work, though you are free to try.
 
-
-Add PhaRedox files to MATLAB path
-*********************************
 Open up MATLAB. Look for ``Set Path`` in the ``Home`` tab. Click it, then in the dialog,
 click ``Add with subfolders``, and navigate to the PhaRedox source directory and select
-the ``matlab`` folder.
+the ``matlab`` folder. Finally, hit ``Save``.
 
-Install MATLAB engine in Python
-*******************************
+Next, at the MATLAB command prompt, type::
 
-At the MATLAB command prompt, type::
+    matlabroot
 
-    >> matlabroot
+The system should print out a path that looks something like (on macOS)::
 
-    ans =
+    '/Applications/MATLAB_R2019a.app'
 
-        '/Applications/MATLAB_R2019a.app'
+On macOS/Linux, execute the following commands in Terminal. On Windows, execute them
+in the Anaconda Prompt (you can find this in the Start Menu), and replace ``/`` with
+``\``. In either case, replace ``<matlabroot>`` with the output of the above command.::
 
-.. warning::
-    Ensure that your python environment has PhaRedox installed before continuing. To ensure that you do have it installed,
-    execute the following code at your terminal: ``python -c "import pharedox ; print('success!')"``. You should see ``success!``
-    at the terminal. If you see ``ModuleNotFoundError``, ensure that you (a) have installed pharedox and (b) are in the correct 
-    virtual environment if you are using one.
+    cd <matlabroot>/extern/engines/python
+    python setup.py install
 
+Checking the Installation
+-------------------------
 
-In a system prompt, execute the following commands (replace ``<matlabroot>`` with
-output of the above command)::
-
-    $ cd <matlabroot>/extern/engines/python
-    $ python setup.py install
-
-
-How to set up a development environment
-=======================================
-If you'd like to work on the pipeline, you need to set up a few things on your computer
-so you'll be as productive as possible.
-
-Installing the development version of the code
-**********************************************
-
-Ensure that git is installed on your system. Git is software that helps us manage the
-source code versions.
-
-Once git is installed, download the source code. The easiest way is to issue the
+If everything went well, you should have a working copy of PhaRedox, ready to analyze
+your redox experiments! To make sure, activate your conda environment, and type the
 following command::
 
-    git clone https://github.com/ApfeldLab/pharynx_redox.git
+    pharedox --help
 
-This will download a new folder on your desktop called ``pharedox``.
+You should see something like::
+
+    Usage: pharedox [OPTIONS] COMMAND [ARGS]...
+
+      Useful scripts for analyzing ratiometric microscopy data
+
+    Options:
+      --debug / --no-debug
+      --help                Show this message and exit.
+
+    Commands:
+      analyze          Analyze an experiment
+      create-settings  Create a settings file using the default template and...
+      split-nc         Split an xarray DataArray into multiple Tiffs
 
 
-Run the following command::
 
-    pip install -e .
+Updating PhaRedox
+=================
 
-This will install PharRedox on your system such that when you change the source code,
-the installed library itself will change. Finally, follow the instructions under the
-`MATLAB`_ heading.
+To update PhaRedox, all you need to do is pull the latest changes from GitHub. On
+macOS, execute the following commands::
 
-Text Editors
-************
+    cd path/to/pharedox/
+    git pull
 
-Of course, if you'd like to write code, you need something to write code *in*. If you
-don't already have a preffered code editor, I would recommend downloading
-`Pycharm <https://www.jetbrains.com/pycharm/>`_ (the free version works just fine, but
-you can also get a free "professional" license by following the directions
-`here <https://www.jetbrains.com/community/education/#students>`_. PyCharm is nice
-because it has built-in auto-complete while you're typing, and has a very nice
-debugger, which is critical for code development.
+On Windows, open GitHub Desktop, and follow the instructions `here <https://docs
+.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/syncing
+-your-branch#update-your-local-branch>`_ under ``Update your local branch``.
 
-Configuring Code Formatting
----------------------------
-
-This project uses the `Black <https://black.readthedocs.io/en/stable/index.html>`_
-package to format all code automatically. This is so that all of our code "looks" the
-same. We'll set up your editor so that it formats the file using Black every time you
-save. Follow the instructions `here <https://black.readthedocs
-.io/en/stable/editor_integration.html#editor-integration>`_ to configure ``black`` to
-work with your text editor.
-
-Configure Pycharm Project Interpreter
--------------------------------------
-
-In order to do it's fancy auto-complete and other features, PyCharm needs to know
-which Python environment you will be using. Follow their directions `here
-<https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_ to set
-this up. If you are using virtual environments, use the location of that virtual
-environment for this step.
+.. warning::
+    If you made local changes to the code, this command might fail. This can happen if
+    the changes that you made locally are different from the changes on the server. If
+    this happens, we can force the remote changes to overwrite your local changes.
+    Open a command prompt (on Windows, this can be done through the GitHub Desktop
+    interface), and execute the following commands: ``git reset --hard HEAD`` and then
+    ``git pull``. This should overwrite any of your local changes. Be careful!

@@ -2,6 +2,40 @@
 Developer Documentation
 =======================
 
+Dev Environment
+###############
+
+
+Text Editors
+************
+
+Of course, if you'd like to write code, you need something to write code *in*. If you
+don't already have a preffered code editor, I would recommend downloading
+`Pycharm <https://www.jetbrains.com/pycharm/>`_ (the free version works just fine, but
+you can also get a free "professional" license by following the directions
+`here <https://www.jetbrains.com/community/education/#students>`_. PyCharm is nice
+because it has built-in auto-complete while you're typing, and has a very nice
+debugger, which is critical for code development.
+
+Configuring Code Formatting
+---------------------------
+
+This project uses the `Black <https://black.readthedocs.io/en/stable/index.html>`_
+package to format all code automatically. This is so that all of our code "looks" the
+same. We'll set up your editor so that it formats the file using Black every time you
+save. Follow the instructions `here <https://black.readthedocs
+.io/en/stable/editor_integration.html#editor-integration>`_ to configure ``black`` to
+work with your text editor.
+
+Configure Pycharm Project Interpreter
+-------------------------------------
+
+In order to do it's fancy auto-complete and other features, PyCharm needs to know
+which Python environment you will be using. Follow their directions `here
+<https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_ to set
+this up. If you are using virtual environments, use the location of that virtual
+environment for this step.
+
 This section is meant to introduce new developers to the architecture / design of this
 system.
 
