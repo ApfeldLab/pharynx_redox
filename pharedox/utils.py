@@ -5,14 +5,11 @@ import subprocess
 import sys
 import typing
 import warnings
-from collections import Counter
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import ndimage as ndi
-from skimage.measure import label, regionprops
 
 from pharedox import profile_processing as pp
 
@@ -52,50 +49,6 @@ def midlines_xarray_to_napari(midlines: xr.DataArray, n: int) -> None:
     return lines_list
 
 
-def stack_to_hyperstack(data, channel_order, strains, metadata=None):
-    """Create a 6D 'Hyperstack' from a 3D stack of images
-
-    channel_order: list
-        the order of the channels in the stack
-    strains: list
-        the strain each animal
-    """
-    wvls, pairs = zip(*create_occurrence_count_tuples(channel_order))
-
-    # calculate dimensions of hyperstack
-    n_frames = data.shape[0]
-    n_frames_per_animal = len(channel_order)
-    n_wvls = len(np.unique(channel_order))
-    n_animals = len(strains)
-    n_pairs = np.max(pairs) + 1
-    n_timepoints = int(n_frames / (n_frames_per_animal * n_animals))
-
-    # create empty hyperstack with correct dimensions
-    da = xr.DataArray(
-        np.full(
-            (n_animals, n_timepoints, n_pairs, n_wvls, data.shape[-2], data.shape[-1]),
-            np.nan,
-            dtype=data.dtype,
-        ),
-        dims=["animal", "timepoint", "pair", "wavelength", "y", "x"],
-        coords={"wavelength": np.unique(channel_order), "strain": ("animal", strains),},
-    )
-
-    # fill hyperstack with data
-    frame = 0
-    for timepoint in range(n_timepoints):
-        for animal in range(n_animals):
-            for wvl, pair in zip(*[wvls, pairs]):
-                # Assign image data from current frame to correct index
-                da.loc[
-                    dict(animal=animal, timepoint=timepoint, pair=pair, wavelength=wvl)
-                ] = data[frame]
-
-                frame += 1
-
-    return da
-
-
 def open_folder(path):
     if sys.platform == "darwin":
         subprocess.check_call(["open", "--", path])
@@ -106,66 +59,8 @@ def open_folder(path):
 
 
 def requires_matlab(func):
+    # TODO use this as a decorator
     pass
-
-
-def cm2inch(*tupl):
-    inch = 2.54
-    if isinstance(tupl[0], tuple):
-        return tuple(i / inch for i in tupl[0])
-    else:
-        return tuple(i / inch for i in tupl)
-
-
-def mm2inch(*tupl):
-    inch = 25.4
-    if isinstance(tupl[0], tuple):
-        return tuple(i / inch for i in tupl[0])
-    else:
-        return tuple(i / inch for i in tupl)
-
-
-def custom_round(x, base=5):
-    return int(base * round(float(x) / base))
-
-
-def round_down(num, divisor):
-    return num - (num % divisor)
-
-
-def parse_reg_param_filename(s: Path):
-    """
-    Extract the parameters used in the registration parameter sweep into a dictionary
-
-    Example
-    -------
-    >>> s = Path("/Users/sean/code/pharedox/data/registration_param_sweep/n_deriv=2.0_rough_lambda=0.01_rough_n_breaks=300.0_rough_order=6.0_smooth_lambda=8.0_smooth_n_breaks=100.0_smooth_order=6.0_warp_lambda=10000.0_warp_n_basis=10.0_warp_order=4.0.nc")
-    >>> parse_reg_param_filename(s)
-    >>> {'n_deriv': '2.0',
-    ...  'rough_lambda': '0.01',
-    ...  'rough_n_breaks': '300.0',
-    ...  'rough_order': '6.0',
-    ...  'smooth_lambda': '8.0',
-    ...  'smooth_n_breaks': '100.0',
-    ...  'smooth_order': '6.0',
-    ...  'warp_lambda': '10000.0',
-    ...  'warp_n_basis': '10.0',
-    ...  'warp_order': '4.0'}
-
-    Parameters
-    ----------
-    s : Path
-        the filename for the registration data
-
-    Returns
-    -------
-    dict
-        a dictionary mapping parameter keys to values
-    """
-    s = s.stem
-    param_vals = re.findall(r"=(\d+\.\d+)_?", s)
-    param_keys = re.split(r"=(\d+\.\d+)_?", s)[::2]
-    return dict(zip(param_keys, param_vals))
 
 
 def validate_pharynx_mask(mask: xr.DataArray):
@@ -178,6 +73,7 @@ def validate_pharynx_mask(mask: xr.DataArray):
     mask : xr.DataArray
         the pharyngeal mask to validate
     """
+    # TODO implement this
     raise NotImplementedError
 
 
@@ -247,129 +143,6 @@ def scale_region_boundaries(regions: dict, profile_length: int):
         region: np.int_(profile_length * np.asarray(regions[region]))
         for region in regions.keys()
     }
-
-
-def rmse(u, v, axis=0):
-    """
-    Calculate the root mean squared error (RMSE) between the two given vectors
-
-    Parameters
-    ----------
-    u
-        the first vector
-    v
-        the second vector
-    axis
-        the axis over which the mean should be taken
-
-    Returns
-    -------
-    float
-        RMSE between the two vectors
-
-    """
-    return np.sqrt(np.mean((u - v) ** 2, axis=axis))
-
-
-def jaccard(im1, im2):
-    """
-    Computes the Jaccard metric, a measure of set similarity.
-
-    Parameters
-    ----------
-    im1 : array-like, bool
-        Any array of arbitrary size. If not boolean, will be converted.
-    im2 : array-like, bool
-        Any other array of identical size. If not boolean, will be converted.
-
-    Returns
-    -------
-    jaccard : float
-        Jaccard metric returned is a float on range [0,1].
-        Maximum similarity = 1
-        No similarity = 0
-    """
-    im1 = np.asarray(im1).astype(np.bool)
-    im2 = np.asarray(im2).astype(np.bool)
-
-    intersection = np.logical_and(im1, im2)
-    union = np.logical_or(im1, im2)
-
-    return intersection.sum() / float(union.sum())
-
-
-def create_occurrence_count_tuples(l: typing.Iterable) -> [(typing.Any, int)]:
-    """
-    Given a list of things, return a list of tuples ``(item, nth_occurrence)``
-
-    .. todo::
-        test
-
-    Parameters
-    ----------
-    l
-        the list of things
-
-    Returns
-    -------
-    occurrence_count_list
-        a list of tuples ``(item, nth_occurrence)``
-
-    """
-    count_tuples = []
-    c = Counter()
-    for item in l:
-        c.update([item])
-        count_tuples.append((item, c[item] - 1))
-    return count_tuples
-
-
-def figure_to_np_array(fig):
-    """Given a figure, return a 3D numpy array, where the dimensions are (height, width, RGB)"""
-    fig.tight_layout(pad=0)
-    fig.canvas.draw()
-    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    return data
-
-
-def calc_max_bbox(
-    rot_seg_stack: xr.DataArray, ref_pair: int = 0, ref_wvl: str = "410"
-) -> (int, int, int, int):
-    """
-    Calculate the smallest bounding-box that encapsulates all of the the pharynxes in
-    the given set of rotated, segmented pharynxes.
-
-
-    Parameters
-    ----------
-    rot_seg_stack
-        the rotated and segmented stack of pharynx images
-    ref_pair
-        the pair to consider when calculating bounding boxes
-    ref_wvl
-        the wavelength to consider when calculating bounding boxes
-
-    Returns
-    -------
-    a tuple of ``(min_row, min_col, max_row, max_col)``
-
-    """
-    b_boxes = []
-
-    for i in range(rot_seg_stack.animal.size):
-        props = regionprops(
-            label(rot_seg_stack.sel(pair=ref_pair, wavelength=ref_wvl).isel(animal=i))
-        )[0]
-        b_boxes.append(props.bbox)
-
-    b_boxes = np.vstack(b_boxes)
-    min_row = np.min(b_boxes[:, 0])
-    min_col = np.min(b_boxes[:, 1])
-    max_row = np.max(b_boxes[:, 2])
-    max_col = np.max(b_boxes[:, 3])
-
-    return min_row, min_col, max_row, max_col
 
 
 def get_mvmt_pair_i(mvmt, pair):
@@ -579,15 +352,15 @@ def expand_dimension(
 
 
 def add_derived_wavelengths(
-    data,
-    r_min=0.852,
-    r_max=6.65,
-    instrument_factor=0.171,
-    midpoint_potential=-265.0,
-    z=2,
-    temperature=22.0,
-    ratio_numerator="410",
-    ratio_denominator="470",
+    data: xr.DataArray,
+    r_min: float = 0.852,
+    r_max: float = 6.65,
+    instrument_factor: float = 0.171,
+    midpoint_potential: float = -265.0,
+    z: int = 2,
+    temperature: float = 22.0,
+    ratio_numerator: str = "410",
+    ratio_denominator: str = "470",
 ):
     """ 
     Add "derived" wavelengths to the given DataArray. These derived wavelengths are
@@ -609,10 +382,8 @@ def add_derived_wavelengths(
         [description]
     temperature : [type]
         [description]
-    numerator : str, optional
-        [description], by default "410"
-    denominator : str, optional
-        [description], by default "470"
+    ratio_numerator
+    ratio_denominator
 
     Returns
     -------

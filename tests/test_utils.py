@@ -36,12 +36,6 @@ class TestUtils:
             ),
         )
 
-    def test_create_occurrence_count_tuples(self):
-        l = ["410", "470", "410", "470"]
-        expected = [("410", 0), ("470", 0), ("410", 1), ("470", 1)]
-
-        assert utils.create_occurrence_count_tuples(l) == expected
-
     def test_expand_dimension(self, paired_imgs):
         data = paired_imgs
         r = data.sel(wavelength="410") / data.sel(wavelength="470")
