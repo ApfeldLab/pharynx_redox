@@ -78,8 +78,7 @@ def fold_v_point_table(
 
     df["fold_error_point"] = fold_error_df["fold_error_point"]
 
-    ## Now we stack the pair data
-
+    # Now we stack the pair data
     df = df.set_index(["region", "pair"], append=True).unstack()
 
     fold_error_region = fold_error_pairs(

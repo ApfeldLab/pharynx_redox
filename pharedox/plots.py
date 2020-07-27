@@ -263,7 +263,7 @@ def ecdf_(data):
     x = np.sort(data)
     n = x.size
     y = np.arange(1, n + 1) / n
-    return (x, y)
+    return x, y
 
 
 def cdf_plot(data, *args, **kwargs):
@@ -277,13 +277,7 @@ def cdf_plot(data, *args, **kwargs):
     **kwargs
         keyword arguments passed onto ``plt.step``
     """
-    # ecdf = sm.distributions.ECDF(data)
     x, y = ecdf_(data)
-    # x = np.linspace(min(data), max(data), len(data))
-    # logging.debug(x)
-    # y = ecdf(x)
-    # plt.step(x, y, **kwargs)
-    # sns.kdeplot(data, cumulative=True)
     plt.step(x, y, **kwargs)
 
 
@@ -386,7 +380,14 @@ def add_region_bars_to_axis(
 
 
 def plot_profile_avg_with_bounds(
-    data, ax=None, confint_alpha=0.05, label=None, xs=None, **kwargs
+    data,
+    ax=None,
+    confint_alpha=0.05,
+    label=None,
+    xs=None,
+    axis=0,
+    bounds: str = "ci",
+    **kwargs,
 ):
     """
     TODO: Documentation
@@ -403,6 +404,16 @@ def plot_profile_avg_with_bounds(
     -------
 
     """
+
+    with np.errstate(invalid="ignore"):
+        mean = np.nanmean(data, axis=0)
+        sem = stats.sem(data)
+
+    bounds_map = {
+        "ci": DescrStatsW(data).tconfint_mean(alpha=confint_alpha),
+        "sem": (mean - sem, mean + sem),
+    }
+
     if ax is None:
         ax = plt.gca()
 
@@ -416,65 +427,14 @@ def plot_profile_avg_with_bounds(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+        ax.plot(xs, np.nanmean(data, axis=axis), label=label, **kwargs)
 
-        lower, upper = DescrStatsW(data).tconfint_mean(alpha=confint_alpha)
-
-    kwargs.pop("linestyle", None)
-    kwargs.pop("linewidth", None)
-    kwargs.pop("lw", None)
-    ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
-
-    return ax
-
-
-def plot_profile_avg_with_sem_bounds(data, ax=None, label=None, xs=None, **kwargs):
-    """
-    TODO: Documentation
-
-    Parameters
-    ----------
-    data
-    ax
-    label
-    kwargs
-
-    Returns
-    -------
-
-    """
-    if ax is None:
-        _, ax = plt.subplots()
-
-    mean = np.nanmean(data, axis=0)
-    if xs is not None:
-        ax.plot(xs, mean, label=label, **kwargs)
-    else:
-        ax.plot(mean, label=label, **kwargs)
-
-    with np.errstate(invalid="ignore"):
-        sem = stats.sem(data)
-
-        lower, upper = mean - sem, mean + sem
-    if xs is None:
-        xs = np.arange(len(lower))
+        lower, upper = bounds_map[bounds]
 
     kwargs.pop("linestyle", None)
     kwargs.pop("linewidth", None)
     kwargs.pop("lw", None)
     ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
-
-    return ax
-
-
-def plot_profile_avg(data, ax=None, label=None, xs=None, **kwargs):
-    if ax is None:
-        _, ax = plt.subplots()
-
-    if xs is not None:
-        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
-    else:
-        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
 
     return ax
 
