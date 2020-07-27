@@ -167,43 +167,41 @@ def summarize_over_regions(
         regions = utils.scale_region_boundaries(regions, data.shape[-1])
 
     # Ensure that derived wavelengths are present
-    try:
-        data = utils.add_derived_wavelengths(data, **redox_params)
-    except ValueError:
-        pass
+    data = utils.add_derived_wavelengths(data, **redox_params)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        region_data = xr.concat(
-            [
-                data[dict(position=range(bounds[0], bounds[1]))].mean(
-                    dim="position", skipna=True
+
+        all_region_data = []
+
+        for _, bounds in regions.items():
+            if isinstance(bounds, (int, float)):
+                all_region_data.append(data.interp(position=bounds))
+            else:
+                all_region_data.append(
+                    data.sel(position=slice(bounds[0], bounds[1])).mean(
+                        dim="position", skipna=True
+                    )
                 )
-                for _, bounds in regions.items()
-            ],
-            pd.Index(regions.keys(), name="region"),
-        )
+
+    region_data = xr.concat(all_region_data, pd.Index(regions.keys(), name="region"))
     region_data = region_data.assign_attrs(**data.attrs)
 
-    if not pointwise:
-        try:
-            region_data.loc[dict(wavelength="r")] = region_data.sel(
-                wavelength=redox_params["ratio_numerator"]
-            ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
-            region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
-                region_data.sel(wavelength="r"),
-                r_min=redox_params["r_min"],
-                r_max=redox_params["r_max"],
-                instrument_factor=redox_params["instrument_factor"],
-            )
-            region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
-                region_data.sel(wavelength="oxd"),
-                midpoint_potential=redox_params["midpoint_potential"],
-                z=redox_params["z"],
-                temperature=redox_params["temperature"],
-            )
-        except ValueError:
-            pass
+    region_data.loc[dict(wavelength="r")] = region_data.sel(
+        wavelength=redox_params["ratio_numerator"]
+    ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
+    region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
+        region_data.sel(wavelength="r"),
+        r_min=redox_params["r_min"],
+        r_max=redox_params["r_max"],
+        instrument_factor=redox_params["instrument_factor"],
+    )
+    region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
+        region_data.sel(wavelength="oxd"),
+        midpoint_potential=redox_params["midpoint_potential"],
+        z=redox_params["z"],
+        temperature=redox_params["temperature"],
+    )
 
     df = to_dataframe(region_data, value_name)
     df["pointwise"] = pointwise
