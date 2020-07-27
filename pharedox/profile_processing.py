@@ -9,6 +9,8 @@ from scipy import signal, spatial
 
 from pharedox import utils
 
+import matlab.engine
+
 
 def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
     """
@@ -258,14 +260,38 @@ def smooth_profile_data(
 
 
 def standardize_profiles(
-    profile_data: xr.DataArray, redox_params, eng=None, **reg_kwargs,
+    profile_data: xr.DataArray,
+    redox_params,
+    template: Union[xr.DataArray, np.ndarray] = None,
+    eng=None,
+    **reg_kwargs,
 ) -> (xr.DataArray, xr.DataArray):
+    """
+    Standardize the A-P positions of the pharyngeal intensity profiles.
 
-    try:
-        import matlab.engine
-    except ImportError:
-        logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data
+    Parameters
+    ----------
+    profile_data
+        The data to standardize. Must have the following dimensions:
+        ``["animal", "timepoint", "pair", "wavelength"]``.
+    redox_params
+        the parameters used to map R -> OxD -> E
+    template
+        a 1D profile to register all intensity profiles to. If None, intensity profiles
+        are registered to the population mean of the ratio numerator.
+    eng
+        The MATLAB engine to use for registration. If ``None``, a new engine is started.
+    reg_kwargs
+        Keyword arguments to use for registration. See `registration kwargs` for more
+        information.
+
+    Returns
+    -------
+    standardized_data: xr.DataArray
+        the standardized data
+    warp_functions: xr.DataArray
+        the warp functions generated to standardize the data
+    """
 
     if eng is None:
         eng = matlab.engine.start_matlab()
@@ -273,16 +299,63 @@ def standardize_profiles(
     std_profile_data = profile_data.copy()
     std_warp_data = profile_data.copy().isel(wavelength=0)
 
+    if template is None:
+        template = profile_data.sel(wavelength=reg_kwargs["ratio_numerator"]).mean(
+            dim=["animal", "pair"]
+        )
+
+    try:
+        template = matlab.double(template.values.tolist())
+    except AttributeError:
+        template = matlab.double(template.tolist())
+
     for tp in profile_data.timepoint:
         for pair in profile_data.pair:
-            selector = dict(timepoint=tp, pair=pair)
+            data = std_profile_data.sel(timepoint=tp, pair=pair)
 
-            data = std_profile_data.sel(**selector)
-            std_data_, warp_ = _standardize_profiles(
-                profile_data=data, eng=eng, **reg_kwargs
+            i_num = matlab.double(
+                data.sel(wavelength=redox_params["ratio_numerator"]).values.tolist()
             )
-            std_profile_data.loc[selector] = std_data_
-            std_warp_data.loc[selector] = np.array(warp_).T
+            i_denom = matlab.double(
+                data.sel(wavelength=redox_params["ratio_denominator"]).values.tolist()
+            )
+
+            resample_resolution = float(profile_data.position.size)
+
+            reg_num, reg_denom, warp_data = eng.standardize_profiles(
+                i_num,
+                i_denom,
+                template,
+                resample_resolution,
+                reg_kwargs["warp_n_basis"],
+                reg_kwargs["warp_order"],
+                reg_kwargs["warp_lambda"],
+                reg_kwargs["smooth_lambda"],
+                reg_kwargs["smooth_n_breaks"],
+                reg_kwargs["smooth_order"],
+                reg_kwargs["rough_lambda"],
+                reg_kwargs["rough_n_breaks"],
+                reg_kwargs["rough_order"],
+                reg_kwargs["n_deriv"],
+                nargout=3,
+            )
+
+            reg_num, reg_denom = np.array(reg_num).T, np.array(reg_denom).T
+
+            std_profile_data.loc[
+                dict(
+                    timepoint=tp, pair=pair, wavelength=redox_params["ratio_numerator"]
+                )
+            ] = reg_num
+            std_profile_data.loc[
+                dict(
+                    timepoint=tp,
+                    pair=pair,
+                    wavelength=redox_params["ratio_denominator"],
+                )
+            ] = reg_denom
+
+            std_warp_data.loc[dict(timepoint=tp, pair=pair)] = np.array(warp_data).T
 
     std_profile_data = std_profile_data.assign_attrs(**reg_kwargs)
     std_profile_data = utils.add_derived_wavelengths(std_profile_data, **redox_params)
@@ -306,11 +379,6 @@ def _standardize_profiles(
     ratio_numerator: str = "410",
     ratio_denominator: str = "470",
 ) -> (xr.DataArray, xr.DataArray):
-    try:
-        import matlab.engine
-    except ImportError:
-        logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data
 
     if eng is None:
         eng = matlab.engine.start_matlab()
@@ -348,7 +416,10 @@ def _standardize_profiles(
 
 
 def channel_register(
-    profile_data: xr.DataArray, redox_params: dict, reg_params: dict, eng=None,
+    profile_data: xr.DataArray,
+    redox_params: dict,
+    reg_params: dict,
+    eng: matlab.engine.MatlabEngine = None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Perform channel-registration on the given profile data
@@ -375,9 +446,9 @@ def channel_register(
 
     try:
         import matlab.engine
-    except ImportError:
-        logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data, None
+    except ModuleNotFoundError:
+        logging.error("Registration attempted but MATLAB engine is not installed")
+        return profile_data
 
     if eng is None:
         eng = matlab.engine.start_matlab()
