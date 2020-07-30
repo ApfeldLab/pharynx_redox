@@ -7,9 +7,10 @@ import pandas as pd
 import xarray as xr
 from scipy import signal, spatial
 
+import matlab.engine
 from pharedox import utils
 
-import matlab.engine
+import pkgutil
 
 
 def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
@@ -300,7 +301,7 @@ def standardize_profiles(
     std_warp_data = profile_data.copy().isel(wavelength=0)
 
     if template is None:
-        template = profile_data.sel(wavelength=reg_kwargs["ratio_numerator"]).mean(
+        template = profile_data.sel(wavelength=redox_params["ratio_numerator"]).mean(
             dim=["animal", "pair"]
         )
 

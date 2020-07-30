@@ -210,12 +210,15 @@ class App:
             if self.experiment.images is not None:
                 self.viewer.add_image(
                     plots.imgs_to_rgb(
-                        self.experiment.images, r_min=0.9, r_max=1.9, i_max=1500
-                    )
+                        self.experiment.images, r_min=0.9, r_max=1.9, i_max=1500,
+                    ),
+                    name="R (population-normalized)",
                 )
                 for wvl in self.experiment.images.wavelength.values:
                     self.viewer.add_image(
-                        self.experiment.images.sel(wavelength=wvl), name=wvl
+                        self.experiment.images.sel(wavelength=wvl),
+                        name=wvl,
+                        visible=False,
                     )
 
             if self.experiment.seg_images is not None:
