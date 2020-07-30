@@ -123,3 +123,7 @@ class TestIO:
             * paired_imgs.timepoint.size
             * paired_imgs.wavelength.size
         )
+
+    def test_load_tiff_as_hyperstack_attaches_movement_correctly(self, paired_imgs):
+        # TODO
+        pass

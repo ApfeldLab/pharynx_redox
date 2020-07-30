@@ -363,58 +363,6 @@ def standardize_profiles(
     return std_profile_data, std_warp_data
 
 
-def _standardize_profiles(
-    profile_data: xr.DataArray,
-    eng=None,
-    n_deriv: float = 2.0,
-    rough_lambda: float = 0.01,
-    rough_n_breaks: float = 300.0,
-    rough_order: float = 4.0,
-    smooth_lambda: float = 10.0 ** 2,
-    smooth_n_breaks: float = 100.0,
-    smooth_order: float = 4.0,
-    warp_lambda: float = 5.0e3,
-    warp_n_basis: float = 30.0,
-    warp_order: float = 4.0,
-    ratio_numerator: str = "410",
-    ratio_denominator: str = "470",
-) -> (xr.DataArray, xr.DataArray):
-
-    if eng is None:
-        eng = matlab.engine.start_matlab()
-
-    reg_profile_data = profile_data.copy()
-
-    i410 = matlab.double(profile_data.sel(wavelength=ratio_numerator).values.tolist())
-    i470 = matlab.double(profile_data.sel(wavelength=ratio_denominator).values.tolist())
-
-    resample_resolution = float(profile_data.position.size)
-
-    r410, r470, warp_data = eng.pop_register(
-        i410,
-        i470,
-        resample_resolution,
-        warp_n_basis,
-        warp_order,
-        warp_lambda,
-        smooth_lambda,
-        smooth_n_breaks,
-        smooth_order,
-        rough_lambda,
-        rough_n_breaks,
-        rough_order,
-        n_deriv,
-        nargout=3,
-    )
-
-    r410, r470 = np.array(r410).T, np.array(r470).T
-
-    reg_profile_data.loc[dict(wavelength=ratio_numerator)] = r410
-    reg_profile_data.loc[dict(wavelength=ratio_denominator)] = r470
-
-    return reg_profile_data, warp_data
-
-
 def channel_register(
     profile_data: xr.DataArray,
     redox_params: dict,
@@ -443,95 +391,53 @@ def channel_register(
         the warp functions used to register the data
 
     """
-
-    try:
-        import matlab.engine
-    except ModuleNotFoundError:
-        logging.error("Registration attempted but MATLAB engine is not installed")
-        return profile_data
-
     if eng is None:
         eng = matlab.engine.start_matlab()
 
     reg_profile_data = profile_data.copy()
-    # get rid of the wavelength dimension for warp data
     warp_data = profile_data.copy().isel(wavelength=0)
 
-    for pair in profile_data.pair:
-        for timepoint in profile_data.timepoint:
-            reg, warp_ = _channel_register(
-                profile_data.sel(pair=pair, timepoint=timepoint), eng=eng, **reg_params
+    for p in profile_data.pair:
+        for tp in profile_data.timepoint:
+            i_num = matlab.double(
+                profile_data.sel(
+                    timepoint=tp, pair=p, wavelength=redox_params["ratio_numerator"]
+                ).values.tolist()
             )
-            reg_profile_data.loc[dict(pair=pair, timepoint=timepoint)] = reg
-            warp_data.loc[dict(pair=pair, timepoint=timepoint)] = np.array(warp_).T
+            i_denom = matlab.double(
+                profile_data.sel(
+                    timepoint=tp, pair=p, wavelength=redox_params["ratio_denominator"]
+                ).values.tolist()
+            )
+            resample_resolution = float(profile_data.position.size)
+
+            reg_num, reg_denom, warps = eng.channel_register(
+                i_num,
+                i_denom,
+                resample_resolution,
+                reg_params["warp_n_basis"],
+                reg_params["warp_order"],
+                reg_params["warp_lambda"],
+                reg_params["smooth_lambda"],
+                reg_params["smooth_n_breaks"],
+                reg_params["smooth_order"],
+                reg_params["rough_lambda"],
+                reg_params["rough_n_breaks"],
+                reg_params["rough_order"],
+                reg_params["n_deriv"],
+                nargout=3,
+            )
+            reg_num, reg_denom = np.array(reg_num).T, np.array(reg_denom).T
+
+            reg_profile_data.loc[
+                dict(timepoint=tp, pair=p, wavelength=redox_params["ratio_numerator"])
+            ] = reg_num
+            reg_profile_data.loc[
+                dict(timepoint=tp, pair=p, wavelength=redox_params["ratio_denominator"])
+            ] = reg_denom
+            warp_data.loc[dict(pair=p, timepoint=tp)] = np.array(warps).T
 
     reg_profile_data = utils.add_derived_wavelengths(reg_profile_data, **redox_params)
-
-    return reg_profile_data, warp_data
-
-
-def _channel_register(
-    profile_data: xr.DataArray,
-    eng=None,
-    n_deriv: float = 2.0,
-    rough_lambda: float = 0.01,
-    rough_n_breaks: float = 300.0,
-    rough_order: float = 4.0,
-    smooth_lambda: float = 100.0,
-    smooth_n_breaks: float = 100.0,
-    smooth_order: float = 4.0,
-    warp_lambda: float = 5.0e3,
-    warp_n_basis: float = 30.0,
-    warp_order: float = 4.0,
-) -> (np.ndarray, np.ndarray):
-    """
-    Register the 470nm channel into the 410nm channel profile data
-    
-    Parameters
-    ----------
-    profile_data : xr.DataArray
-        The data to register. Must be maximally 3-dimensional. The dimensions are (animal, wavelength, position along profile).
-    eng: matlab.engine.MatlabEngine
-        The MATLAB engine to use for registration. If None, a new engine is created.
-    """
-
-    try:
-        import matlab.engine
-    except ImportError:
-        logging.warn("MATLAB engine not installed! Skipping registration.")
-        return profile_data
-
-    if eng is None:
-        eng = matlab.engine.start_matlab()
-
-    reg_profile_data = profile_data.copy()
-
-    i410 = matlab.double(profile_data.sel(wavelength="410").values.tolist())
-    i470 = matlab.double(profile_data.sel(wavelength="470").values.tolist())
-
-    resample_resolution = float(profile_data.position.size)
-
-    # Call the MATLAB subroutine
-    r410, r470, warp_data = eng.channel_register(
-        i410,
-        i470,
-        resample_resolution,
-        warp_n_basis,
-        warp_order,
-        warp_lambda,
-        smooth_lambda,
-        smooth_n_breaks,
-        smooth_order,
-        rough_lambda,
-        rough_n_breaks,
-        rough_order,
-        n_deriv,
-        nargout=3,
-    )
-    r410, r470 = np.array(r410).T, np.array(r470).T
-
-    reg_profile_data.loc[dict(wavelength="410")] = r410
-    reg_profile_data.loc[dict(wavelength="470")] = r470
 
     return reg_profile_data, warp_data
 

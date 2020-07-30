@@ -1,1 +1,3 @@
 include pharedox/standardization_template.txt
+include pharedox/default-settings.yaml
+include README.md
