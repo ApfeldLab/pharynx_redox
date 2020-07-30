@@ -42,58 +42,11 @@ Installing the PhaRedox Library
 
 Now that you have a custom Python environment, we can install PhaRedox.
 
-Installing Git
-++++++++++++++
+After activating your conda environment (`conda activate pharedox`), run::
 
-For the time being, we will install PhaRedox through its source code. The first step
-is to download the source code via Git (the software that we use to track code
-changes). By downloading PhaRedox through Git, you will be able to easily pull down
-the latest changes.
+    pip install pharedox
 
-In macOs, the easiest way to install Git is to try to run the following command::
-
-    git --version
-
-If you have Git installed, you're good to go. Otherwise, the system will prompt you
-to install Xcode Command Line Tools. Simply follow the prompts and try the command
-again - this time it should succeed.
-
-In Windows, the easiest way is to install `GitHub Desktop <https://desktop.github
-.com/>`. Simply download and run the installer.
-
-Downloading the Source Code
-+++++++++++++++++++++++++++
-
-Now that Git is installed, we can download the source code. In macOS / Linux, open
-your terminal, and navigate to where you would like the source code folder to reside::
-
-    cd Path/to/parent/directory
-
-Then, run the following command to download the source code into a new folder::
-
-    git clone https://github.com/ApfeldLab/pharynx_redox.git
-
-In Windows, follow `these <https://docs.github
-.com/en/desktop/contributing-and-collaborating-using-github-desktop/cloning-a
--repository-from-github-to-github-desktop>`_ instructions. The link to the repository
-(where you will find the green button in the instructions) is here: https://github
-.com/ApfeldLab/pharynx_redox.
-
-Installing the Code
-+++++++++++++++++++
-
-Activate your conda environment. In macOS, execute these commands in Terminal. In
-Windows, execute them in Anaconda Prompt (you can find this in the Start Menu)::
-
-    conda activate pharedox
-
-Then, install the PhaRedox library::
-
-    pip install -e Path/to/parent/directory/pharedox
-
-In Windows, the slashes go the opposite way::
-
-    pip install -e C:Path\to\parent\directory\pharedox
+We're almost done!
 
 MATLAB
 ~~~~~~
@@ -151,25 +104,3 @@ You should see something like::
       create-settings  Create a settings file using the default template and...
       split-nc         Split an xarray DataArray into multiple Tiffs
 
-
-
-Updating PhaRedox
-=================
-
-To update PhaRedox, all you need to do is pull the latest changes from GitHub. On
-macOS, execute the following commands::
-
-    cd path/to/pharedox/
-    git pull
-
-On Windows, open GitHub Desktop, and follow the instructions `here <https://docs
-.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/syncing
--your-branch#update-your-local-branch>`_ under ``Update your local branch``.
-
-.. warning::
-    If you made local changes to the code, this command might fail. This can happen if
-    the changes that you made locally are different from the changes on the server. If
-    this happens, we can force the remote changes to overwrite your local changes.
-    Open a command prompt (on Windows, this can be done through the GitHub Desktop
-    interface), and execute the following commands: ``git reset --hard HEAD`` and then
-    ``git pull``. This should overwrite any of your local changes. Be careful!
