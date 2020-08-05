@@ -277,6 +277,7 @@ class Experiment:
         df = profile_processing.summarize_over_regions(
             self.trimmed_raw_profiles,
             regions=self.config["pipeline"]["trimmed_regions"],
+            rescale=False,
             **self.config["redox"],
         )
         return df
