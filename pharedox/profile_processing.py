@@ -17,12 +17,12 @@ def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
     """
     Replacement for `xr.DataArray.to_dataframe` that adds the attrs for the given
     DataArray into the resultant DataFrame.
-    
+
     Parameters
     ----------
     data : xr.DataArray
         the data to convert to DataFrame
-    
+
     Returns
     -------
     pd.DataFrame
@@ -266,7 +266,7 @@ def standardize_profiles(
     template: Union[xr.DataArray, np.ndarray] = None,
     eng=None,
     **reg_kwargs,
-) -> (xr.DataArray, xr.DataArray):
+) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Standardize the A-P positions of the pharyngeal intensity profiles.
 
@@ -478,7 +478,7 @@ def trim_profile(
 
 def get_trim_boundaries(
     data: xr.DataArray, ref_wvl: str = "410", thresh: float = 2000.0
-) -> (np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the "left" and "right" indices to use to trim intensity profiles given a
     threshold.
@@ -519,7 +519,7 @@ def trim_profiles(
 ) -> xr.DataArray:
     """
     Trim the background away from the profiles.
-    
+
     Parameters
     ----------
     intensity_data : xr.DataArray
@@ -529,7 +529,7 @@ def trim_profiles(
     ref_wvl : str, optional
         the wavelength to be used to calculate trim boundaries. Other wavelengths will
         be trimmed using these boundaries. By default "410"
-    
+
     Returns
     -------
     xr.DataArray
