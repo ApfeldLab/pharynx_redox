@@ -223,7 +223,9 @@ def save_images_xarray_to_tiffs(
         tifffile.imsave(str(path), data)
 
 
-def read_image_raw(image_path: Union[Path, str],) -> np.ndarray:
+def read_image_raw(
+    image_path: Union[Path, str],
+) -> np.ndarray:
     """
     Read an image from disk, returning a `np.ndarray`. Right now, just a wrapper around
     `scikit-image`'s `imread` function.

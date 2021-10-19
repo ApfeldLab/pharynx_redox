@@ -470,3 +470,11 @@ def setup_logging(loglevel="info"):
         level=logmap[loglevel],
         datefmt="%I:%M:%S",
     )
+
+
+def mm2inch(*tupl):
+    inch = 25.4
+    if isinstance(tupl[0], tuple):
+        return tuple(i / inch for i in tupl[0])
+    else:
+        return tuple(i / inch for i in tupl)

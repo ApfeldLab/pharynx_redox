@@ -227,7 +227,8 @@ class Experiment:
         else:
             suffix = ""
         analysis_dir_ = self.experiment_dir.joinpath(
-            "analyses", utils.get_valid_filename(f"{date_str}{suffix}"),
+            "analyses",
+            utils.get_valid_filename(f"{date_str}{suffix}"),
         )
         # analysis_dir_.mkdir(parents=True, exist_ok=True)
         return analysis_dir_
@@ -349,7 +350,8 @@ class Experiment:
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
-            self.images, self.seg_images,
+            self.images,
+            self.seg_images,
         )
 
         logging.info(f"Saving rotated FL images to {self.aligned_images_path}")
@@ -614,7 +616,10 @@ class Experiment:
                                 ax=ax,
                             )
                             ax.plot(
-                                *self.midlines.sel(pair=pair, timepoint=tp,)[i]
+                                *self.midlines.sel(
+                                    pair=pair,
+                                    timepoint=tp,
+                                )[i]
                                 .values[()]
                                 .linspace(),
                                 color="green",
