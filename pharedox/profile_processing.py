@@ -8,6 +8,9 @@ import xarray as xr
 from scipy import signal, spatial
 
 import matlab.engine
+
+# import pharedox_registration
+# import matlab
 from pharedox import utils
 
 import pkgutil
@@ -138,9 +141,11 @@ def align_pa(
         return intensity_data
 
     if peaks[0] < len(mean_intensity) - peaks[1]:
-        intensity_data = np.flip(
-            intensity_data, axis=intensity_data.get_axis_num("position")
-        )
+        logging.warning("Skipping second data flip. Needs further investigation!")
+        return intensity_data
+        # intensity_data = np.flip(
+        #    intensity_data, axis=intensity_data.get_axis_num("position")
+        # )
 
     return intensity_data
 
@@ -168,9 +173,11 @@ def summarize_over_regions(
 
     if rescale:
         regions = utils.scale_region_boundaries(regions, data.shape[-1])
-
-    # Ensure that derived wavelengths are present
-    data = utils.add_derived_wavelengths(data, **redox_params)
+    try:
+        # Ensure that derived wavelengths are present
+        data = utils.add_derived_wavelengths(data, **redox_params)
+    except ValueError:
+        pass
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -186,25 +193,38 @@ def summarize_over_regions(
                         dim="position", skipna=True
                     )
                 )
+    areNull = False
+    for i in range(len(all_region_data)):
+        if all_region_data[i].isnull().all():
+            areNull = True
+            break
+
+    if areNull:
+        logging.warning(
+            "Region means will not populate. May be caused by an error with aligning PA"
+        )
 
     region_data = xr.concat(all_region_data, pd.Index(regions.keys(), name="region"))
     region_data = region_data.assign_attrs(**data.attrs)
 
-    region_data.loc[dict(wavelength="r")] = region_data.sel(
-        wavelength=redox_params["ratio_numerator"]
-    ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
-    region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
-        region_data.sel(wavelength="r"),
-        r_min=redox_params["r_min"],
-        r_max=redox_params["r_max"],
-        instrument_factor=redox_params["instrument_factor"],
-    )
-    region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
-        region_data.sel(wavelength="oxd"),
-        midpoint_potential=redox_params["midpoint_potential"],
-        z=redox_params["z"],
-        temperature=redox_params["temperature"],
-    )
+    try:
+        region_data.loc[dict(wavelength="r")] = region_data.sel(
+            wavelength=redox_params["ratio_numerator"]
+        ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
+        region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
+            region_data.sel(wavelength="r"),
+            r_min=redox_params["r_min"],
+            r_max=redox_params["r_max"],
+            instrument_factor=redox_params["instrument_factor"],
+        )
+        region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
+            region_data.sel(wavelength="oxd"),
+            midpoint_potential=redox_params["midpoint_potential"],
+            z=redox_params["z"],
+            temperature=redox_params["temperature"],
+        )
+    except ValueError:
+        pass
 
     df = to_dataframe(region_data, value_name)
     df["pointwise"] = pointwise
@@ -231,6 +251,7 @@ def smooth_profile_data(
     Implemented in MATLAB as smooth_profiles
     """
 
+    # eng = pharedox_registration.initialize()
     try:
         import matlab.engine
     except ImportError:
@@ -294,6 +315,7 @@ def standardize_profiles(
         the warp functions generated to standardize the data
     """
 
+    # eng = pharedox_registration.initialize()
     if eng is None:
         eng = matlab.engine.start_matlab()
 
@@ -395,6 +417,7 @@ def channel_register(
     if eng is None:
         eng = matlab.engine.start_matlab()
 
+    # eng = pharedox_registration.initialize()
     reg_profile_data = profile_data.copy()
     warp_data = profile_data.copy().isel(wavelength=0)
 
@@ -563,7 +586,6 @@ def trim_profiles(
                             logging.warning(
                                 f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
                             )
-
     return trimmed_intensity_data
 
 
