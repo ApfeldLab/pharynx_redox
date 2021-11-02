@@ -89,6 +89,13 @@ class Experiment:
                     "should_save_summary_data": Bool(),
                 }
             ),
+            "eGFP_Correction": Map(
+                {
+                    "should_do_corrections": Bool(),
+                    "Cata_Number": Float(),
+                    "Experiment_Number": Float(),
+                }
+            ),
         }
     )
 
@@ -116,7 +123,9 @@ class Experiment:
             with open(self.settings_path, "r") as f:
                 self.config = load(f.read(), self.experiment_schema).data
         except YAMLError:
-            raise ValueError("Incorrectly specified config file.")
+            raise ValueError(
+                'Incorrectly specified config file. Just added some parameters, so update your settings file with "pharedox create-settings"'
+            )
 
         self.experiment_id = self.experiment_dir.stem
 
@@ -227,7 +236,8 @@ class Experiment:
         else:
             suffix = ""
         analysis_dir_ = self.experiment_dir.joinpath(
-            "analyses", utils.get_valid_filename(f"{date_str}{suffix}"),
+            "analyses",
+            utils.get_valid_filename(f"{date_str}{suffix}"),
         )
         # analysis_dir_.mkdir(parents=True, exist_ok=True)
         return analysis_dir_
@@ -277,6 +287,7 @@ class Experiment:
         df = profile_processing.summarize_over_regions(
             self.trimmed_raw_profiles,
             regions=self.config["pipeline"]["trimmed_regions"],
+            eGFP_correction=self.config["eGFP_Correction"],
             rescale=False,
             **self.config["redox"],
         )
@@ -284,11 +295,19 @@ class Experiment:
 
     @property
     def untrimmed_summary_table(self):
+        turn_back = False
+        if self.config["eGFP_Correction"]["should_do_corrections"]:
+            turn_back = True
+            self.config["eGFP_Correction"]["should_do_corrections"] = False
+
         df = profile_processing.summarize_over_regions(
             self.untrimmed_raw_profiles,
             regions=self.config["pipeline"]["untrimmed_regions"],
+            eGFP_correction=self.config["eGFP_Correction"],
             **self.config["redox"],
         )
+        if turn_back:
+            self.config["eGFP_Correction"]["should_do_corrections"] = True
         return df
 
     ####################################################################################
@@ -349,7 +368,8 @@ class Experiment:
     def align_and_center(self):
         logging.info("Centering and rotating pharynxes")
         self.rot_fl, self.rot_seg = ip.center_and_rotate_pharynxes(
-            self.images, self.seg_images,
+            self.images,
+            self.seg_images,
         )
 
         logging.info(f"Saving rotated FL images to {self.aligned_images_path}")
@@ -614,7 +634,10 @@ class Experiment:
                                 ax=ax,
                             )
                             ax.plot(
-                                *self.midlines.sel(pair=pair, timepoint=tp,)[i]
+                                *self.midlines.sel(
+                                    pair=pair,
+                                    timepoint=tp,
+                                )[i]
                                 .values[()]
                                 .linspace(),
                                 color="green",

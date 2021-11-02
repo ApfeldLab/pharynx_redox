@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import typing
+from typing import Tuple
 import warnings
 
 import numpy as np
@@ -211,7 +212,7 @@ def measure_shifted_midlines(
     shift_range: typing.Iterable[float],
     shift_steps: int,
     n_points: int = 200,
-) -> (xr.DataArray, typing.List[float], typing.List[int]):
+) -> Tuple[xr.DataArray, typing.List[float], typing.List[int]]:
     """
     Measure under shifted midlines for use in synthetic movement analysis
 
@@ -362,7 +363,7 @@ def add_derived_wavelengths(
     ratio_numerator: str = "410",
     ratio_denominator: str = "470",
 ):
-    """ 
+    """
     Add "derived" wavelengths to the given DataArray. These derived wavelengths are
     the ratio (`r`), the fraction oxidized (`oxd`), and the reduction potential (`e`).
 
@@ -427,9 +428,9 @@ def add_derived_wavelengths(
 def git_version() -> str:
     """
     Return the current git revision.
-    
+
     Stolen from Numpy's internal code at https://github.com/numpy/numpy/blob/578f4e7dca4701637284c782d8c74c0d5b688341/setup.py#L65
-    
+
     Returns
     -------
     str
@@ -469,3 +470,11 @@ def setup_logging(loglevel="info"):
         level=logmap[loglevel],
         datefmt="%I:%M:%S",
     )
+
+
+def mm2inch(*tupl):
+    inch = 25.4
+    if isinstance(tupl[0], tuple):
+        return tuple(i / inch for i in tupl[0])
+    else:
+        return tuple(i / inch for i in tupl)

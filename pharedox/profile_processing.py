@@ -4,10 +4,14 @@ from typing import Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from pandas.core.frame import DataFrame
 import xarray as xr
 from scipy import signal, spatial
 
 import matlab.engine
+
+# import pharedox_registration
+# import matlab
 from pharedox import utils
 
 import pkgutil
@@ -17,12 +21,12 @@ def to_dataframe(data: xr.DataArray, *args, **kwargs) -> pd.DataFrame:
     """
     Replacement for `xr.DataArray.to_dataframe` that adds the attrs for the given
     DataArray into the resultant DataFrame.
-    
+
     Parameters
     ----------
     data : xr.DataArray
         the data to convert to DataFrame
-    
+
     Returns
     -------
     pd.DataFrame
@@ -138,9 +142,11 @@ def align_pa(
         return intensity_data
 
     if peaks[0] < len(mean_intensity) - peaks[1]:
-        intensity_data = np.flip(
-            intensity_data, axis=intensity_data.get_axis_num("position")
-        )
+        logging.warning("Skipping second data flip. Needs further investigation!")
+        return intensity_data
+        # intensity_data = np.flip(
+        #    intensity_data, axis=intensity_data.get_axis_num("position")
+        # )
 
     return intensity_data
 
@@ -148,6 +154,7 @@ def align_pa(
 def summarize_over_regions(
     data: xr.DataArray,
     regions: Dict,
+    eGFP_correction: Dict,
     rescale: bool = True,
     value_name: str = "value",
     pointwise: Union[bool, str] = False,
@@ -168,9 +175,11 @@ def summarize_over_regions(
 
     if rescale:
         regions = utils.scale_region_boundaries(regions, data.shape[-1])
-
-    # Ensure that derived wavelengths are present
-    data = utils.add_derived_wavelengths(data, **redox_params)
+    try:
+        # Ensure that derived wavelengths are present
+        data = utils.add_derived_wavelengths(data, **redox_params)
+    except ValueError:
+        pass
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -190,23 +199,50 @@ def summarize_over_regions(
     region_data = xr.concat(all_region_data, pd.Index(regions.keys(), name="region"))
     region_data = region_data.assign_attrs(**data.attrs)
 
-    region_data.loc[dict(wavelength="r")] = region_data.sel(
-        wavelength=redox_params["ratio_numerator"]
-    ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
-    region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
-        region_data.sel(wavelength="r"),
-        r_min=redox_params["r_min"],
-        r_max=redox_params["r_max"],
-        instrument_factor=redox_params["instrument_factor"],
-    )
-    region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
-        region_data.sel(wavelength="oxd"),
-        midpoint_potential=redox_params["midpoint_potential"],
-        z=redox_params["z"],
-        temperature=redox_params["temperature"],
-    )
+    try:
+        region_data.loc[dict(wavelength="r")] = region_data.sel(
+            wavelength=redox_params["ratio_numerator"]
+        ) / region_data.sel(wavelength=redox_params["ratio_denominator"])
+        region_data.loc[dict(wavelength="oxd")] = r_to_oxd(
+            region_data.sel(wavelength="r"),
+            r_min=redox_params["r_min"],
+            r_max=redox_params["r_max"],
+            instrument_factor=redox_params["instrument_factor"],
+        )
+        region_data.loc[dict(wavelength="e")] = oxd_to_redox_potential(
+            region_data.sel(wavelength="oxd"),
+            midpoint_potential=redox_params["midpoint_potential"],
+            z=redox_params["z"],
+            temperature=redox_params["temperature"],
+        )
+    except ValueError:
+        pass
 
-    df = to_dataframe(region_data, value_name)
+    # add corrections
+    if eGFP_correction["should_do_corrections"]:
+
+        # add data using xr.to_dataframe so correction values can be added directly next to value column
+        df = region_data.to_dataframe(value_name)
+        corrections = eGFP_corrections(df, eGFP_correction, **redox_params)
+        df["correction_ratio"] = corrections["correction_ratio"]
+        df["corrected_value"] = corrections["corrected_value"]
+        df["oxd"] = corrections["oxd"]
+        df["e"] = corrections["e"]
+
+        # add attributes
+        for k, v in region_data.attrs.items():
+            df[k] = v
+
+        for i in range(df.shape[0]):
+            x = i % 6
+            pd.options.mode.chained_assignment = None  # default='warn'
+            # TODO fix chain indexing error warning. Will leave for now but may cause issues
+            if data["wavelength"][x] == "TL":
+                df["e"][i] = None
+
+    else:
+        df = to_dataframe(region_data, value_name)
+
     df["pointwise"] = pointwise
 
     try:
@@ -215,6 +251,47 @@ def summarize_over_regions(
         pass
 
     return df
+
+
+def eGFP_corrections(
+    data: DataFrame,
+    eGFP_correction: Dict,
+    **redox_params,
+):
+    logging.info("Doing eGFP corrections")
+
+    # find the correction factor based of experiment specific eGFP number
+    correction_ratio = (
+        eGFP_correction["Cata_Number"] / eGFP_correction["Experiment_Number"]
+    )
+    # create empty lists that will contain column values
+    correction_ratio = [correction_ratio] * data.shape[0]
+    corrected_value = [None] * data.shape[0]
+    oxd = [None] * data.shape[0]
+    e = [None] * data.shape[0]
+    values = data["value"].tolist()
+
+    # loop through all the values
+    for i in range(data.shape[0]):
+        # find corrected value
+        corrected_value[i] = values[i] * correction_ratio[i]
+
+        # find oxd using formula
+        oxd[i] = r_to_oxd(
+            corrected_value[i],
+            redox_params["r_min"],
+            redox_params["r_max"],
+            redox_params["instrument_factor"],
+        )
+
+        # find e based on oxd
+        e[i] = oxd_to_redox_potential(oxd[i])
+    return {
+        "correction_ratio": correction_ratio,
+        "corrected_value": corrected_value,
+        "oxd": oxd,
+        "e": e,
+    }
 
 
 def smooth_profile_data(
@@ -231,6 +308,7 @@ def smooth_profile_data(
     Implemented in MATLAB as smooth_profiles
     """
 
+    # eng = pharedox_registration.initialize()
     try:
         import matlab.engine
     except ImportError:
@@ -266,7 +344,7 @@ def standardize_profiles(
     template: Union[xr.DataArray, np.ndarray] = None,
     eng=None,
     **reg_kwargs,
-) -> (xr.DataArray, xr.DataArray):
+) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Standardize the A-P positions of the pharyngeal intensity profiles.
 
@@ -294,6 +372,7 @@ def standardize_profiles(
         the warp functions generated to standardize the data
     """
 
+    # eng = pharedox_registration.initialize()
     if eng is None:
         eng = matlab.engine.start_matlab()
 
@@ -395,6 +474,7 @@ def channel_register(
     if eng is None:
         eng = matlab.engine.start_matlab()
 
+    # eng = pharedox_registration.initialize()
     reg_profile_data = profile_data.copy()
     warp_data = profile_data.copy().isel(wavelength=0)
 
@@ -478,7 +558,7 @@ def trim_profile(
 
 def get_trim_boundaries(
     data: xr.DataArray, ref_wvl: str = "410", thresh: float = 2000.0
-) -> (np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the "left" and "right" indices to use to trim intensity profiles given a
     threshold.
@@ -519,7 +599,7 @@ def trim_profiles(
 ) -> xr.DataArray:
     """
     Trim the background away from the profiles.
-    
+
     Parameters
     ----------
     intensity_data : xr.DataArray
@@ -529,7 +609,7 @@ def trim_profiles(
     ref_wvl : str, optional
         the wavelength to be used to calculate trim boundaries. Other wavelengths will
         be trimmed using these boundaries. By default "410"
-    
+
     Returns
     -------
     xr.DataArray
@@ -563,12 +643,11 @@ def trim_profiles(
                             logging.warning(
                                 f"trim boundaries close ({np.abs(r_i - l_i)}) for (animal: {i}, wvl: {wvl}, pair: {pair}) - skipping trimming this animal"
                             )
-
     return trimmed_intensity_data
 
 
 def r_to_oxd(
-    r: Union[np.ndarray, xr.DataArray],
+    r: Union[np.ndarray, xr.DataArray, float],
     r_min: float = 0.852,
     r_max: float = 6.65,
     instrument_factor: float = 0.171,
@@ -591,7 +670,7 @@ def r_to_oxd(
 
 
 def oxd_to_redox_potential(
-    oxd: Union[np.ndarray, xr.DataArray],
+    oxd: Union[np.ndarray, xr.DataArray, float],
     midpoint_potential: float = -265.0,
     z: float = 2.0,
     temperature: float = 22.0,

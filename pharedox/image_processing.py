@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Union, Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -132,10 +132,10 @@ def get_lr_bounds(
 
 def center_and_rotate_pharynxes(
     fl_images: xr.DataArray, seg_images: xr.DataArray
-) -> (xr.DataArray, xr.DataArray):
+) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Given a fluorescence stack and a pharyngeal mask stack, center and rotate each frame
-    of both the FL and mask such that the pharynx is in the center of the image, with 
+    of both the FL and mask such that the pharynx is in the center of the image, with
     its anterior on the left.
 
     Parameters
@@ -148,7 +148,7 @@ def center_and_rotate_pharynxes(
     Returns
     -------
     (rotated_fl_stack, rotated_seg_stack)
-        A 2-tuple where the first item is the rotated fluorescence stack and the second 
+        A 2-tuple where the first item is the rotated fluorescence stack and the second
         is the rotated mask stack
     """
     img_center_y, img_center_x = (
@@ -259,7 +259,7 @@ def get_area_of_largest_object(mask: np.ndarray) -> int:
     Returns
     -------
     int
-        the area of the largest object 
+        the area of the largest object
     """
     try:
         return measure.regionprops(measure.label(mask))[0].area
@@ -275,7 +275,7 @@ def segment_pharynx(
     Parameters
     ----------
     fl_img : xr.DataArray
-        a fluorescent image containing a single pharynx 
+        a fluorescent image containing a single pharynx
     target_area : int, optional
         the presumptive area (in px) of a pharynx, by default 450
     area_range : int, optional
@@ -506,11 +506,11 @@ def measure_under_midline(
     n_points
         The number of points to measure under
     thickness
-        The thickness of the line to measure under. 
-    
+        The thickness of the line to measure under.
+
     Notes
     -----
-    Using thickness is slower, depending on the amount of thickness 
+    Using thickness is slower, depending on the amount of thickness
 
     On my machine (2GHz Intel Core i5), as of 12/4/19:
         0-thickness:
@@ -523,7 +523,7 @@ def measure_under_midline(
     Returns
     -------
     zs: np.ndarray
-        The intensity profile of the image measured under the midline at the given 
+        The intensity profile of the image measured under the midline at the given
         x-coordinates.
 
     """
@@ -621,7 +621,7 @@ def measure_under_midlines(
     fl_stack
         The fluorescence stack under which to measure
     midlines: dict
-        A DataArray containing the midlines 
+        A DataArray containing the midlines
     n_points: int
         the number of points to sample under the midline
     thickness: float
@@ -828,7 +828,10 @@ def get_bbox(m, pad=5):
 
 
 def bspline_intra_modal_registration(
-    fixed_image, moving_image, fixed_image_mask=None, point_width=5.0,
+    fixed_image,
+    moving_image,
+    fixed_image_mask=None,
+    point_width=5.0,
 ):
 
     registration_method = sITK.ImageRegistrationMethod()

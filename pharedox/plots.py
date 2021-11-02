@@ -73,7 +73,7 @@ def generate_wvl_pair_timepoint_profile_plots(data: xr.DataArray, ignored_wvls=N
     For each wavelength and pair in the given data, this function plots a line plot with
     each color representing a unique strain. The line is the mean value across animals
     for that strain, and the shaded regions are the 95% confidence intervals
-    
+
     Parameters
     ----------
     data
@@ -123,7 +123,7 @@ def generate_avg_wvl_pair_profile_plots(
     For each wavelength and pair in the given data, this function plots a line plot with
     each color representing a unique strain. The line is the mean value across animals
     for that strain, and the shaded regions are the 95% confidence intervals
-    
+
     Parameters
     ----------
     ignored_wvls
@@ -229,19 +229,19 @@ def plot_stage_layout(
     A useful visualization to make sure that the strain map is accurate.
 
     .. image:: _static/plot_stage_layout.png
-    
+
     Parameters
     ----------
     image_data : xr.DataArray
         The image data acquired by metamorph.
     pair : int
         The image pair to display
-    
+
     Returns
     -------
     seaborn.axisgrid.FacetGrid
-        The grid object returned by seaborns's lmplot 
-    
+        The grid object returned by seaborns's lmplot
+
     See Also
     --------
     io.load_tiff_as_hyperstack
@@ -259,7 +259,7 @@ def plot_stage_layout(
 
 
 def ecdf_(data):
-    """ Compute ECDF """
+    """Compute ECDF"""
     x = np.sort(data)
     n = x.size
     y = np.arange(1, n + 1) / n
@@ -487,7 +487,7 @@ def imshow_ratio_normed(
     **imshow_kwargs,
 ):
     """
-    Show the given ratio image, first converting to HSV and setting the "V" (value) 
+    Show the given ratio image, first converting to HSV and setting the "V" (value)
     channel to be the given (normalized) intensity image
 
     Parameters
@@ -495,31 +495,31 @@ def imshow_ratio_normed(
     ratio_img
         the ratio image to display
     fl_img
-        the fluorescent intensity image with which to "value-correct" the ratio image. 
-        A good choice here is the max value of both intensity channels used in the 
+        the fluorescent intensity image with which to "value-correct" the ratio image.
+        A good choice here is the max value of both intensity channels used in the
         ratio.
     profile_data
-        the midline profile data corresponding to the ratio image. This is used to 
+        the midline profile data corresponding to the ratio image. This is used to
         center and to choose min/max values for the ratio colormap.
     prob
-        The "confidence interval" around the center of the ratio values to include in 
-        the colormap. For example, 0.95 translates to a min/max of 
+        The "confidence interval" around the center of the ratio values to include in
+        the colormap. For example, 0.95 translates to a min/max of
         mean(ratio) +/- (1.96*std(ratio))
     cmap
-        The colormap used to display the ratio image. Diverging colormaps are a good 
+        The colormap used to display the ratio image. Diverging colormaps are a good
         choice here (default is RdBu_r).
     r_min
-        The minimum value for the ratio colormap. If None, uses the `prob` parameter 
+        The minimum value for the ratio colormap. If None, uses the `prob` parameter
         (see its description), and requires `profile_data`.
     r_max
-        The maximum value for the ratio colormap. If None, uses the `prob` parameter 
+        The maximum value for the ratio colormap. If None, uses the `prob` parameter
         (see its description), and requires `profile_data`.
     i_min
         The intensity to map to 0 in the value channel
     i_max
         The intensity to map to 1 in the value channel
     clip
-        Whether or not the value channel should be clipped to [0, 1] before converting 
+        Whether or not the value channel should be clipped to [0, 1] before converting
         back to RGB. Leaving this as True is a sane default.
     ax
         If given, the image is plotted on this axis. If ``None``, this function uses the
@@ -800,7 +800,7 @@ def plot_pharynx_R_imgs(
 ):
     """
     Generate a figure which has ratio images broken up by timepoint and pair
-    
+
     Parameters
     ----------
     img : xr.DataArray
@@ -821,7 +821,7 @@ def plot_pharynx_R_imgs(
         The colormap to use, by default "coolwarm"
     fig_kwargs : [type], optional
         Keyword arguments to be passed to `matplotlib.pyplot.figure`, by default None
-    
+
     Raises
     ------
     ValueError
@@ -997,3 +997,51 @@ def plot_multiple_pop_wvl(
     ax.legend(loc="lower left")
 
     return fig, ax
+
+
+def plot_profile_avg_with_sem_bounds(data, ax=None, label=None, xs=None, **kwargs):
+    """
+    TODO: Documentation
+    Parameters
+    ----------
+    data
+    ax
+    label
+    kwargs
+    Returns
+    -------
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    mean = np.nanmean(data, axis=0)
+    if xs is not None:
+        ax.plot(xs, mean, label=label, **kwargs)
+    else:
+        ax.plot(mean, label=label, **kwargs)
+
+    with np.errstate(invalid="ignore"):
+        sem = stats.sem(data)
+
+        lower, upper = mean - sem, mean + sem
+    if xs is None:
+        xs = np.arange(len(lower))
+
+    kwargs.pop("linestyle", None)
+    kwargs.pop("linewidth", None)
+    kwargs.pop("lw", None)
+    ax.fill_between(xs, lower, upper, alpha=0.3, lw=0, **kwargs)
+
+    return ax
+
+
+def plot_profile_avg(data, ax=None, label=None, xs=None, **kwargs):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if xs is not None:
+        ax.plot(xs, np.nanmean(data, axis=0), label=label, **kwargs)
+    else:
+        ax.plot(np.nanmean(data, axis=0), label=label, **kwargs)
+
+    return ax
