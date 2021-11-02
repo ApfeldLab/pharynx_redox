@@ -89,6 +89,13 @@ class Experiment:
                     "should_save_summary_data": Bool(),
                 }
             ),
+            "eGFP_Correction": Map(
+                {
+                    "should_do_corrections": Bool(),
+                    "Cata_Number": Float(),
+                    "Experiment_Number": Float(),
+                }
+            ),
         }
     )
 
@@ -116,7 +123,9 @@ class Experiment:
             with open(self.settings_path, "r") as f:
                 self.config = load(f.read(), self.experiment_schema).data
         except YAMLError:
-            raise ValueError("Incorrectly specified config file.")
+            raise ValueError(
+                'Incorrectly specified config file. Just added some parameters, so update your settings file with "pharedox create-settings"'
+            )
 
         self.experiment_id = self.experiment_dir.stem
 
@@ -278,6 +287,7 @@ class Experiment:
         df = profile_processing.summarize_over_regions(
             self.trimmed_raw_profiles,
             regions=self.config["pipeline"]["trimmed_regions"],
+            eGFP_correction=self.config["eGFP_Correction"],
             rescale=False,
             **self.config["redox"],
         )
@@ -285,11 +295,19 @@ class Experiment:
 
     @property
     def untrimmed_summary_table(self):
+        turn_back = False
+        if self.config["eGFP_Correction"]["should_do_corrections"]:
+            turn_back = True
+            self.config["eGFP_Correction"]["should_do_corrections"] = False
+
         df = profile_processing.summarize_over_regions(
             self.untrimmed_raw_profiles,
             regions=self.config["pipeline"]["untrimmed_regions"],
+            eGFP_correction=self.config["eGFP_Correction"],
             **self.config["redox"],
         )
+        if turn_back:
+            self.config["eGFP_Correction"]["should_do_corrections"] = True
         return df
 
     ####################################################################################

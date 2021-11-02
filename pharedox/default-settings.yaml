@@ -53,3 +53,8 @@ output:
     should_save_plots: True
     should_save_profile_data: True
     should_save_summary_data: True
+
+eGFP_Correction:
+    should_do_corrections: False
+    Cata_Number: .1295
+    Experiment_Number: .1386
