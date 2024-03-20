@@ -1,5 +1,5 @@
 pre-commit>=1.16.1
-black==19.10b0
+black==24.3.0
 check-manifest>=0.42
 isort
 pylint
